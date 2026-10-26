@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 220" preserveAspectRatio="none">
+  <path d="M0 220 L0 168 L150 84 L262 148 L380 62 L500 156 L640 40 L760 142 L900 70 L1040 150 L1200 58 L1200 220 Z" fill="#14163a" opacity="0.30"/>
+  <path d="M0 220 L0 196 L180 118 L330 180 L470 96 L620 186 L770 88 L930 174 L1080 112 L1200 170 L1200 220 Z" fill="#14163a" opacity="0.45"/>
+  <path d="M0 220 L0 210 L220 160 L400 206 L560 150 L740 208 L900 156 L1060 202 L1200 168 L1200 220 Z" fill="#0e1030" opacity="0.55"/>
+</svg>

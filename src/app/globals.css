@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme {
+  /* Añil — color identitario de la Avanzada Lankuyen */
+  --color-anil-50: #f2f3fb;
+  --color-anil-100: #e6e8f8;
+  --color-anil-200: #cdd1f0;
+  --color-anil-300: #a9aee4;
+  --color-anil-400: #8389d4;
+  --color-anil-500: #6268c0;
+  --color-anil-600: #4b50a8;
+  --color-anil-700: #3b4090;
+  --color-anil-800: #2f3375;
+  --color-anil-900: #26295e;
+  --color-anil-950: #15173a;
+
+  /* Neutros fríos y acentos */
+  --color-canvas: #f5f6fb;
+  --color-surface: #ffffff;
+  --color-ink: #1a1d33;
+  --color-ink-soft: #626784;
+  --color-line: #e3e6f2;
+  --color-mist: #eceefa;
+  --color-lavender: #8b7fd4;
+  --color-gold: #c9a24a;
+  --color-gold-soft: #f5e8c8;
+
+  --shadow-card: 0 1px 2px rgba(20, 22, 58, 0.04), 0 14px 34px -22px rgba(20, 22, 58, 0.28);
+  --shadow-float: 0 18px 50px -24px rgba(20, 22, 58, 0.35);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    letter-spacing: -0.015em;
+  }
+
+  ::selection {
+    background-color: var(--color-anil-200);
+    color: var(--color-anil-950);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-anil-500);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .topo-bg {
+    background-image: url("/textures/topo.svg");
+    background-size: 620px 620px;
+    background-repeat: repeat;
+  }
+
+  .mountain-bg {
+    background-image: url("/textures/mountain-divider.svg");
+    background-size: 1200px 220px;
+    background-position: bottom center;
+    background-repeat: no-repeat;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-anil-300) transparent;
+  }
+}

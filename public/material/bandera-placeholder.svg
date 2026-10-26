@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-labelledby="bandera-title bandera-desc">
+  <title id="bandera-title">Bandera de la Avanzada Lankuyen · imagen de referencia</title>
+  <desc id="bandera-desc">Paño blanco con franjas añil, una cumbre de tres montañas y una estrella dorada. Marcador de posición hasta que los Adultos Acompañantes suban la fotografía oficial.</desc>
+  <defs>
+    <linearGradient id="bandera-anil" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b4090"/>
+      <stop offset="1" stop-color="#15173a"/>
+    </linearGradient>
+    <linearGradient id="bandera-cielo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f2f3fb"/>
+    </linearGradient>
+    <filter id="bandera-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#15173a" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#bandera-shadow)">
+    <rect x="40" y="36" width="720" height="448" rx="18" fill="url(#bandera-cielo)"/>
+    <rect x="40" y="36" width="720" height="72" rx="18" fill="url(#bandera-anil)"/>
+    <rect x="40" y="88" width="720" height="20" fill="url(#bandera-anil)"/>
+    <rect x="40" y="412" width="720" height="72" rx="18" fill="url(#bandera-anil)"/>
+    <rect x="40" y="396" width="720" height="16" fill="url(#bandera-anil)"/>
+
+    <path d="M110 370 L270 190 L340 268 L410 160 L590 370 Z" fill="#2f3375" opacity="0.12"/>
+    <path d="M128 370 L274 208 L334 276 L410 178 L572 370 Z" fill="none" stroke="#4b50a8" stroke-opacity="0.5" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M226 370 L352 232 L416 306 L486 226 L610 370 Z" fill="url(#bandera-anil)"/>
+    <path d="M226 370 L352 232 L416 306 L486 226 L610 370" fill="none" stroke="#e8c979" stroke-opacity="0.55" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M170 370 H650" stroke="#3b4090" stroke-opacity="0.7" stroke-width="4" stroke-linecap="round"/>
+
+    <path d="M400 128 L408 150 L431 158 L408 166 L400 189 L392 166 L369 158 L392 150 Z" fill="#c9a24a"/>
+    <circle cx="400" cy="158" r="52" fill="none" stroke="#c9a24a" stroke-opacity="0.32" stroke-width="1.4" stroke-dasharray="3 8"/>
+
+    <text x="400" y="326" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="30" letter-spacing="10" fill="#ffffff" opacity="0.92">LANKUYEN</text>
+    <text x="400" y="354" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="12" letter-spacing="4.5" fill="#dfe2f8">SENDERO Y CUMBRE</text>
+  </g>
+
+  <text x="400" y="508" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" letter-spacing="2.5" fill="#626784">IMAGEN DE REFERENCIA · FALTA SUBIR LA BANDERA OFICIAL</text>
+</svg>

@@ -1,0 +1,528 @@
+// ============================================================
+// Avanzada Lankuyen — esquema de datos
+// PostgreSQL 17 · Prisma ORM 7
+// ============================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------------
+// Enums
+// ------------------------------------------------------------
+
+enum Role {
+  AA
+  PP
+  COORDINADOR
+}
+
+enum BadgeCategory {
+  ETAPA
+  COMPETENCIA
+  PROMESA
+}
+
+enum StageCode {
+  SENDERO
+  CUMBRE
+}
+
+enum ActivityType {
+  REUNION
+  SALIDA
+  FORMACION
+  SERVICIO
+  CELEBRACION
+  OTRO
+}
+
+enum RsvpStatus {
+  CONFIRMADO
+  NO_ASISTE
+}
+
+enum AttendanceStatus {
+  PRESENTE
+  AUSENTE
+  JUSTIFICADO
+}
+
+enum RouteSheetStatus {
+  PENDIENTE_AUTORIZACION
+  APROBADA
+  RECHAZADA
+}
+
+enum NotificationType {
+  RSVP_CONFIRMADO
+  INASISTENCIA_JUSTIFICADA
+  HOJA_ENVIADA
+  HOJA_APROBADA
+  HOJA_RECHAZADA
+  RECORDATORIO_HOJA_FALTANTE
+  INSIGNIA_OTORGADA
+  CUENTA_CREADA
+  PASSWORD_RESETEADA
+}
+
+enum Channel {
+  IN_APP
+  EMAIL
+}
+
+enum DeliveryStatus {
+  PENDIENTE
+  ENVIADO
+  FALLIDO
+}
+
+enum JobStatus {
+  RUNNING
+  OK
+  ERROR
+}
+
+// ------------------------------------------------------------
+// Comunidades y usuarios
+// ------------------------------------------------------------
+
+model Community {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique @db.VarChar(80)
+  slug        String    @unique @db.VarChar(80)
+  description String?   @db.Text
+  color       String?   @db.VarChar(20)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  users User[]
+
+  @@map("communities")
+}
+
+model User {
+  id                 String    @id @default(uuid()) @db.Uuid
+  username           String    @unique @db.VarChar(40)
+  email              String?   @unique @db.VarChar(255)
+  passwordHash       String    @map("password_hash") @db.VarChar(255)
+  firstName          String    @map("first_name") @db.VarChar(80)
+  lastName           String    @map("last_name") @db.VarChar(80)
+  role               Role      @default(PP)
+  communityId        String?   @map("community_id") @db.Uuid
+  phone              String?   @db.VarChar(30)
+  birthDate          DateTime? @map("birth_date") @db.Date
+  avatarFileId       String?   @unique @map("avatar_file_id") @db.Uuid
+  isActive           Boolean   @default(true) @map("is_active")
+  mustChangePassword Boolean   @default(true) @map("must_change_password")
+  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdById        String?   @map("created_by_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  community       Community? @relation(fields: [communityId], references: [id], onDelete: Restrict)
+  avatarFile      File?      @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
+  createdBy       User?      @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers    User[]     @relation("UserCreatedBy")
+
+  badges              UserBadge[]         @relation("UserBadgeUser")
+  grantedBadges       UserBadge[]         @relation("UserBadgeGrantedBy")
+  revokedBadges       UserBadge[]         @relation("UserBadgeRevokedBy")
+  reflections         StageReflection[]
+  createdActivities   Activity[]          @relation("ActivityCreatedBy")
+  ledActivities       ActivityLeader[]    @relation("ActivityLeaderUser")
+  assignedLeaderShips ActivityLeader[]    @relation("ActivityLeaderAssignedBy")
+  attendanceResponses AttendanceResponse[]
+  attendanceRecords   AttendanceRecord[]  @relation("AttendanceRecordUser")
+  ratifiedRecords     AttendanceRecord[]  @relation("AttendanceRecordRatifiedBy")
+  activityEvaluations ActivityEvaluation[] @relation("ActivityEvaluationUser")
+  uploadedRouteSheets RouteSheet[]        @relation("RouteSheetUploadedBy")
+  reviewedRouteSheets RouteSheet[]        @relation("RouteSheetReviewedBy")
+  uploadedFiles       File[]              @relation("FileUploadedBy")
+  notifications       Notification[]
+  updatedResources    UnitResource[]      @relation("UnitResourceUpdatedBy")
+  settingsUpdated     AppSetting[]        @relation("AppSettingUpdatedBy")
+  auditLogs           AuditLog[]
+
+  @@index([communityId])
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+// ------------------------------------------------------------
+// Progresión personal
+// ------------------------------------------------------------
+
+model Badge {
+  id          String        @id @default(uuid()) @db.Uuid
+  code        String        @unique @db.VarChar(50)
+  category    BadgeCategory
+  stageCode   StageCode?    @map("stage_code")
+  name        String        @db.VarChar(100)
+  description String        @db.Text
+  imagePath   String        @map("image_path") @db.VarChar(255)
+  sortOrder   Int           @default(0) @map("sort_order")
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  grants UserBadge[]
+
+  @@index([category, sortOrder])
+  @@map("badges")
+}
+
+model UserBadge {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  badgeId     String    @map("badge_id") @db.Uuid
+  grantedById String    @map("granted_by_id") @db.Uuid
+  grantedAt   DateTime  @default(now()) @map("granted_at") @db.Timestamptz(3)
+  note        String?   @db.Text
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
+  revokedById String?   @map("revoked_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User  @relation("UserBadgeUser", fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge @relation(fields: [badgeId], references: [id], onDelete: Restrict)
+  grantedBy User  @relation("UserBadgeGrantedBy", fields: [grantedById], references: [id], onDelete: Restrict)
+  revokedBy User? @relation("UserBadgeRevokedBy", fields: [revokedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, badgeId])
+  @@index([badgeId])
+  @@map("user_badges")
+}
+
+model StageReflection {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  stageCode StageCode @map("stage_code")
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stageCode])
+  @@map("stage_reflections")
+}
+
+// ------------------------------------------------------------
+// Calendario semestral
+// ------------------------------------------------------------
+
+model Semester {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(60)
+  startsOn  DateTime @map("starts_on") @db.Date
+  endsOn    DateTime @map("ends_on") @db.Date
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  activities Activity[]
+
+  @@map("semesters")
+}
+
+model Activity {
+  id          String       @id @default(uuid()) @db.Uuid
+  semesterId  String       @map("semester_id") @db.Uuid
+  title       String       @db.VarChar(160)
+  description String?      @db.Text
+  type        ActivityType @default(REUNION)
+  startsAt    DateTime     @map("starts_at") @db.Timestamptz(3)
+  endsAt      DateTime     @map("ends_at") @db.Timestamptz(3)
+  location    String?      @db.VarChar(160)
+  isPublished Boolean      @default(true) @map("is_published")
+  createdById String       @map("created_by_id") @db.Uuid
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt   DateTime?    @map("deleted_at") @db.Timestamptz(3)
+
+  semester   Semester             @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  createdBy  User                 @relation("ActivityCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  leaders     ActivityLeader[]
+  responses   AttendanceResponse[]
+  records     AttendanceRecord[]
+  routeSheets RouteSheet[]
+  evaluations ActivityEvaluation[]
+
+  @@index([semesterId, startsAt])
+  @@index([startsAt])
+  @@map("activities")
+}
+
+model ActivityLeader {
+  activityId   String   @map("activity_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  assignedById String   @map("assigned_by_id") @db.Uuid
+  assignedAt   DateTime @default(now()) @map("assigned_at") @db.Timestamptz(3)
+
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User     @relation("ActivityLeaderUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy User     @relation("ActivityLeaderAssignedBy", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@id([activityId, userId])
+  @@index([userId])
+  @@map("activity_leaders")
+}
+
+// ------------------------------------------------------------
+// Asistencia en dos fases
+// ------------------------------------------------------------
+
+model AttendanceResponse {
+  id                String     @id @default(uuid()) @db.Uuid
+  activityId        String     @map("activity_id") @db.Uuid
+  userId            String     @map("user_id") @db.Uuid
+  status            RsvpStatus
+  justificationText String?    @map("justification_text") @db.Text
+  respondedAt       DateTime   @default(now()) @map("responded_at") @db.Timestamptz(3)
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  activity           Activity            @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  justificationFiles JustificationFile[]
+
+  @@unique([activityId, userId])
+  @@index([userId])
+  @@map("attendance_responses")
+}
+
+model JustificationFile {
+  id                   String   @id @default(uuid()) @db.Uuid
+  attendanceResponseId String   @map("attendance_response_id") @db.Uuid
+  fileId               String   @map("file_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  attendanceResponse AttendanceResponse @relation(fields: [attendanceResponseId], references: [id], onDelete: Cascade)
+  file               File               @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@unique([attendanceResponseId, fileId])
+  @@map("justification_files")
+}
+
+model AttendanceRecord {
+  id           String           @id @default(uuid()) @db.Uuid
+  activityId   String           @map("activity_id") @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  status       AttendanceStatus
+  notes        String?          @db.Text
+  ratifiedById String           @map("ratified_by_id") @db.Uuid
+  ratifiedAt   DateTime         @default(now()) @map("ratified_at") @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User     @relation("AttendanceRecordUser", fields: [userId], references: [id], onDelete: Cascade)
+  ratifiedBy User     @relation("AttendanceRecordRatifiedBy", fields: [ratifiedById], references: [id], onDelete: Restrict)
+
+  @@unique([activityId, userId])
+  @@index([userId, status])
+  @@map("attendance_records")
+}
+
+// ------------------------------------------------------------
+// Evaluación posterior de actividades
+// ------------------------------------------------------------
+
+model ActivityEvaluation {
+  id                 String   @id @default(uuid()) @db.Uuid
+  activityId         String   @map("activity_id") @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  affectivityScore   Int      @map("affectivity_score")
+  corporalityScore   Int      @map("corporality_score")
+  spiritualityScore  Int      @map("spirituality_score")
+  characterScore     Int      @map("character_score")
+  creativityScore    Int      @map("creativity_score")
+  sociabilityScore   Int      @map("sociability_score")
+  comment            String?  @db.Text
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation("ActivityEvaluationUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+  @@index([userId])
+  @@map("activity_evaluations")
+}
+
+// ------------------------------------------------------------
+// Archivos y Hojas de Ruta
+// ------------------------------------------------------------
+
+model File {
+  id             String    @id @default(uuid()) @db.Uuid
+  provider       String    @default("LOCAL") @db.VarChar(20)
+  bucket         String?   @db.VarChar(120)
+  objectKey      String    @unique @map("object_key") @db.VarChar(500)
+  originalName   String    @map("original_name") @db.VarChar(255)
+  mimeType       String    @map("mime_type") @db.VarChar(120)
+  sizeBytes      Int       @map("size_bytes")
+  checksumSha256 String?   @map("checksum_sha256") @db.VarChar(64)
+  isPublic       Boolean   @default(false) @map("is_public")
+  uploadedById   String    @map("uploaded_by_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  uploadedBy     User                @relation("FileUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+  avatarOf       User?               @relation("UserAvatar")
+  justifications JustificationFile[]
+  routeSheets    RouteSheet[]
+  unitResources  UnitResource[]      @relation("UnitResourceImage")
+
+  @@map("files")
+}
+
+model RouteSheet {
+  id              String           @id @default(uuid()) @db.Uuid
+  activityId      String           @map("activity_id") @db.Uuid
+  uploadedById    String           @map("uploaded_by_id") @db.Uuid
+  fileId          String           @map("file_id") @db.Uuid
+  title           String?          @db.VarChar(160)
+  description     String?          @db.Text
+  status          RouteSheetStatus @default(PENDIENTE_AUTORIZACION)
+  version         Int              @default(1)
+  reviewedById    String?          @map("reviewed_by_id") @db.Uuid
+  reviewedAt      DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  rejectionReason String?          @map("rejection_reason") @db.Text
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz(3)
+
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  uploadedBy User     @relation("RouteSheetUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+  file       File     @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  reviewedBy User?    @relation("RouteSheetReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([activityId, version])
+  @@index([activityId, status])
+  @@map("route_sheets")
+}
+
+// ------------------------------------------------------------
+// Notificaciones y automatización
+// ------------------------------------------------------------
+
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  recipientId String           @map("recipient_id") @db.Uuid
+  type        NotificationType
+  title       String           @db.VarChar(160)
+  body        String           @db.Text
+  entityType  String?          @map("entity_type") @db.VarChar(60)
+  entityId    String?          @map("entity_id") @db.Uuid
+  actionUrl   String?          @map("action_url") @db.VarChar(255)
+  priority    Int              @default(0)
+  dedupeKey   String?          @unique @map("dedupe_key") @db.VarChar(200)
+  readAt      DateTime?        @map("read_at") @db.Timestamptz(3)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  recipient  User                   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([recipientId, readAt, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String         @id @default(uuid()) @db.Uuid
+  notificationId String         @map("notification_id") @db.Uuid
+  channel        Channel
+  status         DeliveryStatus @default(PENDIENTE)
+  attempts       Int            @default(0)
+  lastError      String?        @map("last_error") @db.Text
+  sentAt         DateTime?      @map("sent_at") @db.Timestamptz(3)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, channel])
+  @@map("notification_deliveries")
+}
+
+model JobRun {
+  id         String    @id @default(uuid()) @db.Uuid
+  jobName    String    @map("job_name") @db.VarChar(100)
+  runKey     String    @map("run_key") @db.VarChar(100)
+  status     JobStatus @default(RUNNING)
+  startedAt  DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt DateTime? @map("finished_at") @db.Timestamptz(3)
+  stats      Json?
+  error      String?   @db.Text
+
+  @@unique([jobName, runKey])
+  @@map("job_runs")
+}
+
+model AppSetting {
+  key         String   @id @db.VarChar(100)
+  value       Json
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  updatedBy User? @relation("AppSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("app_settings")
+}
+
+// ------------------------------------------------------------
+// Material digital de la unidad
+// ------------------------------------------------------------
+
+model UnitResource {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique @db.VarChar(80)
+  title       String   @db.VarChar(160)
+  summary     String?  @db.VarChar(300)
+  bodyMd      String   @map("body_md") @db.Text
+  imageFileId String?  @map("image_file_id") @db.Uuid
+  sortOrder   Int      @default(0) @map("sort_order")
+  isPublished Boolean  @default(true) @map("is_published")
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  imageFile File? @relation("UnitResourceImage", fields: [imageFileId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("UnitResourceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("unit_resources")
+}
+
+// ------------------------------------------------------------
+// Auditoría
+// ------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorRole  Role?    @map("actor_role")
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(60)
+  entityId   String?  @map("entity_id") @db.Uuid
+  before     Json?
+  after      Json?
+  ip         String?  @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.VarChar(300)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
+}

@@ -1,0 +1,25 @@
+name: avanzada-lankuyen
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    container_name: lankuyen-db
+    environment:
+      POSTGRES_USER: lankuyen
+      POSTGRES_PASSWORD: lankuyen_dev
+      POSTGRES_DB: lankuyen
+      TZ: America/Santiago
+    ports:
+      # 5433 en el host para no colisionar con un PostgreSQL local en 5432.
+      - "5433:5432"
+    volumes:
+      - lankuyen_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lankuyen -d lankuyen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  lankuyen_pgdata:
