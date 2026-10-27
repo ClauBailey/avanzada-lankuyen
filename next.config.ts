@@ -1,3 +1,4 @@
+import withPWAInit from "@ducanh2912/next-pwa";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -10,4 +11,23 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@node-rs/argon2", "@prisma/adapter-pg", "pg"],
 };
 
-export default nextConfig;
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  extendDefaultRuntimeCaching: true,
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        // Las respuestas de la API dependen de la sesión y pueden contener
+        // datos privados (fotos de La Bitácora, sesión, etc.). Nunca deben
+        // quedar guardadas en la caché del Service Worker.
+        urlPattern: ({ url, sameOrigin }) =>
+          sameOrigin && url.pathname.startsWith("/api/"),
+        handler: "NetworkOnly",
+      },
+    ],
+  },
+});
+
+export default withPWA(nextConfig);

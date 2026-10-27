@@ -17,6 +17,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
+  applicationName: "Avanzada Lankuyen",
   title: {
     default: "Avanzada Lankuyen",
     template: "%s · Avanzada Lankuyen",
@@ -24,12 +25,22 @@ export const metadata: Metadata = {
   description:
     "Plataforma de la Avanzada Lankuyen: progresión personal, calendario, asistencia, hojas de ruta y material de la unidad.",
   icons: {
-    icon: "/brand/logo-lankuyen.svg",
+    icon: [
+      { url: "/brand/logo-lankuyen.svg", type: "image/svg+xml" },
+      { url: "/brand/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/brand/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/brand/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Lankuyen",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#15173a",
+  themeColor: "#312e81",
 };
 
 export default function RootLayout({

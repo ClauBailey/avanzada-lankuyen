@@ -37,3 +37,13 @@ test-results/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# PWA autogenerada por next-pwa (se recrea en cada build)
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/worker-*.js
+public/worker-*.js.map
+public/fallback-*.js
+public/fallback-*.js.map
