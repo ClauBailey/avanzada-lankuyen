@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   Award,
+  BookOpen,
   Compass,
   Flag,
   KeyRound,
@@ -20,6 +21,10 @@ import {
   UserResetButton,
   UserRoleButton,
 } from "@/components/admin/user-controls";
+import {
+  LogbookKeeperButton,
+  LogbookKeeperHint,
+} from "@/components/logbook/logbook-keeper-button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -68,6 +73,7 @@ export default async function AdminUsuarioDetallePage({
       role: true,
       isActive: true,
       mustChangePassword: true,
+      isLogbookKeeper: true,
       createdAt: true,
       community: { select: { id: true, name: true, color: true } },
     },
@@ -207,6 +213,12 @@ export default async function AdminUsuarioDetallePage({
                       Sin comunidad
                     </span>
                   ) : null}
+                  {member.isLogbookKeeper ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/20 px-2.5 py-0.5 text-[11px] font-semibold text-gold-soft">
+                      <BookOpen className="size-3" aria-hidden="true" />
+                      📖 Guardián de la Bitácora
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -294,6 +306,21 @@ export default async function AdminUsuarioDetallePage({
                 su contraseña.
               </p>
             )}
+
+            {!isAA ? (
+              <div className="space-y-1.5 border-t border-line/70 pt-3">
+                <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                  <BookOpen className="size-3.5" aria-hidden="true" />
+                  Guardián de La Bitácora
+                </p>
+                <LogbookKeeperButton
+                  userId={member.id}
+                  fullName={fullName}
+                  isKeeper={member.isLogbookKeeper}
+                />
+                <LogbookKeeperHint />
+              </div>
+            ) : null}
 
             <div className="space-y-1.5 border-t border-line/70 pt-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">

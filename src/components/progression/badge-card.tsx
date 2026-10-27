@@ -2,9 +2,20 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { CalendarCheck2, Lock, MessageSquareQuote, Quote } from "lucide-react";
+import {
+  CalendarCheck2,
+  Lock,
+  MessageSquareQuote,
+  Quote,
+  Share2,
+} from "lucide-react";
 
+import {
+  BadgeShareDialog,
+  type BadgeShareIdentity,
+} from "@/components/progression/badge-share-dialog";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { formatFullDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +39,8 @@ interface BadgeCardProps {
   imageSize?: number;
   variant?: "default" | "featured";
   className?: string;
+  /** Datos del protagonista para generar la historia 9:16. */
+  shareIdentity?: BadgeShareIdentity;
 }
 
 export function BadgeCard({
@@ -36,10 +49,13 @@ export function BadgeCard({
   imageSize = 88,
   variant = "default",
   className,
+  shareIdentity,
 }: BadgeCardProps) {
   const obtained = Boolean(grant);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const featured = variant === "featured";
+  const canShare = Boolean(obtained && grant && shareIdentity);
 
   return (
     <article
@@ -141,10 +157,35 @@ export function BadgeCard({
                 </p>
               </div>
             ) : null}
+
+            {canShare && grant && shareIdentity ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShareOpen(true)}
+                  className={cn(
+                    buttonVariants({ variant: "gold", size: "sm" }),
+                    "mt-1 w-full sm:w-auto",
+                  )}
+                >
+                  <Share2 aria-hidden="true" />
+                  Compartir insignia
+                </button>
+
+                {shareOpen ? (
+                  <BadgeShareDialog
+                    onClose={() => setShareOpen(false)}
+                    badge={badge}
+                    grant={grant}
+                    identity={shareIdentity}
+                  />
+                ) : null}
+              </>
+            ) : null}
           </div>
         ) : (
           <p className="mt-3 text-[11px] text-ink-soft/70">
-            Tu Adulto Acompañante puede otorgarla cuando estés preparado/a.
+            Cuando tu AA la otorgue, la imagen se activará a todo color.
           </p>
         )}
       </div>

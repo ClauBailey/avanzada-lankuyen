@@ -17,6 +17,7 @@ export interface SessionUser {
   lastName: string;
   role: Role;
   mustChangePassword: boolean;
+  isLogbookKeeper: boolean;
   communityId: string | null;
   community: {
     id: string;
@@ -52,6 +53,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
       lastName: true,
       role: true,
       mustChangePassword: true,
+      isLogbookKeeper: true,
       communityId: true,
       community: {
         select: {

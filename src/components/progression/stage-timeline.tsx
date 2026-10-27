@@ -1,9 +1,17 @@
-import Image from "next/image";
-import { CalendarCheck2, Compass, Lock, Mountain, Quote } from "lucide-react";
+"use client";
 
+import Image from "next/image";
+import { useState } from "react";
+import { CalendarCheck2, Compass, Lock, Mountain, Quote, Share2 } from "lucide-react";
+
+import {
+  BadgeShareDialog,
+  type BadgeShareIdentity,
+} from "@/components/progression/badge-share-dialog";
 import { ReflectionEditor } from "@/components/progression/reflection-editor";
 import type { BadgeGrantView, BadgeView } from "@/components/progression/badge-card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatFullDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -19,9 +27,10 @@ export interface StageEntry {
 
 interface StageTimelineProps {
   stages: StageEntry[];
+  shareIdentity?: BadgeShareIdentity;
 }
 
-export function StageTimeline({ stages }: StageTimelineProps) {
+export function StageTimeline({ stages, shareIdentity }: StageTimelineProps) {
   return (
     <ol className="relative space-y-5">
       <span
@@ -103,6 +112,13 @@ export function StageTimeline({ stages }: StageTimelineProps) {
                           {stage.grant.note}
                         </p>
                       ) : null}
+                      {shareIdentity ? (
+                        <StageShareButton
+                          badge={stage.badge}
+                          grant={stage.grant}
+                          identity={shareIdentity}
+                        />
+                      ) : null}
                     </div>
                   ) : (
                     <p className="mt-2 text-[11px] text-ink-soft/70">
@@ -125,5 +141,38 @@ export function StageTimeline({ stages }: StageTimelineProps) {
         );
       })}
     </ol>
+  );
+}
+
+function StageShareButton({
+  badge,
+  grant,
+  identity,
+}: {
+  badge: BadgeView;
+  grant: BadgeGrantView;
+  identity: BadgeShareIdentity;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(buttonVariants({ variant: "gold", size: "sm" }), "w-full sm:w-auto")}
+      >
+        <Share2 aria-hidden="true" />
+        Compartir insignia
+      </button>
+      {open ? (
+        <BadgeShareDialog
+          onClose={() => setOpen(false)}
+          badge={badge}
+          grant={grant}
+          identity={identity}
+        />
+      ) : null}
+    </>
   );
 }

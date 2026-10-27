@@ -67,6 +67,12 @@ const adminLinks = [
     icon: FileCheck2,
   },
   {
+    href: "/admin/bitacora",
+    label: "La Bitácora",
+    description: "Guardián del libro y páginas de la unidad",
+    icon: BookOpen,
+  },
+  {
     href: "/admin/insignias",
     label: "Otorgar insignias",
     description: "Etapas, competencias y promesa",
@@ -307,9 +313,9 @@ export default async function AdminPage() {
             </p>
             <p className="mt-1 text-sm text-ink-soft">
               Cuentas, comunidades, progresión, calendario, asistencia,
-              evaluaciones de actividades, hojas de ruta, material digital y
-              auditoría ya están operativos. Los ajustes del cron y las hojas de
-              ruta se editan en Configuración.
+              evaluaciones de actividades, hojas de ruta, material digital, La
+              Bitácora y auditoría ya están operativos. Los ajustes del cron y
+              las hojas de ruta se editan en Configuración.
             </p>
           </div>
           <Badge variant="outline" className="shrink-0">

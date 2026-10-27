@@ -1,7 +1,7 @@
 # Avanzada Lankuyen
 
 Plataforma web de gestión para la **Avanzada Lankuyen** (unidad de Pioneros).
-Estado actual: **Módulo 6 — Evaluaciones posteriores de actividades.**
+Estado actual: **v1.1 — Insignias compartibles y La Bitácora de la unidad.**
 
 ---
 
@@ -73,7 +73,7 @@ En el primer inicio de sesión la plataforma obliga a cambiarla.
 | `npm run build` | Build de producción |
 | `npm run typecheck` | Verificación de TypeScript |
 | `npm run lint` | ESLint |
-| `npm test` | Pruebas del cron, promedios de evaluación y permisos por rol |
+| `npm test` | Pruebas del cron, promedios, permisos por rol, Guardián y validación de La Bitácora |
 | `npm run cron:local` | Invoca el cron local; agrega `-- --bypass` para probarlo fuera de la ventana |
 | `npm run db:migrate` | Crea/aplica migraciones en desarrollo |
 | `npm run db:seed` | Insignias, material, semestre actual y AA inicial (idempotente) |
@@ -84,7 +84,7 @@ En el primer inicio de sesión la plataforma obliga a cambiarla.
 
 ```text
 prisma/
-  schema.prisma        # 20 modelos, enums y relaciones
+  schema.prisma        # 21 modelos, enums y relaciones
   seed.ts              # insignias, recursos, semestre actual, comunidad base y AA
 src/
   app/
@@ -98,6 +98,7 @@ src/
     attendance/        # RSVP, ratificador y resumen de asistencia
     evaluations/       # formulario PP y lectura de respuestas por los AA
     route-sheets/      # subida, moderación, filtros y estado de hojas de ruta
+    logbook/           # libro interactivo, formulario, revisión y Guardián
     brand/             # logo, etiqueta de comunidad
     layout/            # shell, sidebar y navegación móvil
     shared/            # page header, stats, progress, placeholders
@@ -107,6 +108,7 @@ src/
     attendance/        # RSVP, justificaciones, ratificación y estadísticas
     evaluations/       # esquema y acción de evaluación posterior
     route-sheets/      # esquemas y acciones de subida, aprobación y rechazo
+    logbook/           # esquemas y acciones de páginas, moderación y Guardián
     auth/              # esquemas, acciones y formularios
   lib/                 # utilidades, fechas, navegación, constantes
   server/
@@ -334,6 +336,64 @@ Cada Server Action debe volver a validar el permiso; la UI solo oculta.
   `activity.evaluation_submit` / `activity.evaluation_update` en auditoría con
   las notas anteriores y nuevas.
 
+## v1.1 — Insignias compartibles y La Bitácora
+
+### Insignias: texto y generador 9:16
+
+- Las insignias aún no obtenidas muestran exactamente:
+  **«Cuando tu AA la otorgue, la imagen se activará a todo color.»**
+- Cada insignia obtenida incorpora **«Compartir insignia»**, tanto en la Promesa
+  como en las etapas y competencias de `/perfil`.
+- El generador dibuja en el cliente un PNG **1080 × 1920** con Canvas: fondo Añil
+  con topografía sutil, tarjeta clara con detalles dorados, logo de la unidad,
+  insignia a color, nombre completo, `@username`, comunidad, fecha de
+  otorgamiento en `America/Santiago` y la dedicatoria del AA (o un lema de
+  Sendero/Cumbre si no dejó nota).
+- El modal ofrece vista previa, **Compartir** con `navigator.share` cuando el
+  dispositivo admite archivos y **Descargar imagen PNG** con el nombre
+  `insignia-[slug]-[username].png`. Sin servidor ni almacenamiento adicional.
+
+### La Bitácora de la unidad
+
+- **Rol acumulable:** `User.isLogbookKeeper` (`is_logbook_keeper`) agrega el
+  cargo **📖 Guardián de la Bitácora** sin reemplazar `PP` ni `COORDINADOR`. Los
+  AA pueden asignarlo o traspasarlo desde `/admin/bitacora`, la tabla de usuarios
+  y la ficha del miembro. Solo existe un Guardián activo: al asignar uno nuevo se
+  retira el anterior.
+- **RBAC:** `logbook:view` y `logbook:create` para PP, COORDINADOR y AA;
+  `logbook:review` para AA y para quien tenga `isLogbookKeeper`; `logbook:manage`
+  solo para AA. `can()` acepta `isLogbookKeeper` sin duplicar roles en las vistas.
+- **Páginas:** título, fecha de la aventura (por defecto hoy, puede ser pasada y
+  opcionalmente vincularse a una actividad terminada), relato Markdown y una
+  fotografía opcional. Todos los miembros activos pueden proponer páginas.
+- **Fotografías:** se comprimen en el cliente con Canvas a WebP (o JPEG si el
+  navegador no lo soporta), lado mayor máximo `1600 px` y calidad `0.82`. El
+  servidor exige máximo **1.5 MB** (`1_572_864` bytes) y solo JPG, PNG o WEBP.
+  Una página tiene como máximo una foto, guardada en `files` y servida por
+  `/api/files/[fileId]`.
+- **Estados:** `PENDIENTE_APROBACION`, `PUBLICADA` y `RECHAZADA`. Las páginas
+  de PP/Coordinador nacen pendientes; AA y Guardián pueden publicarlas de
+  inmediato. Aprobar asigna el número correlativo siguiente; rechazar exige un
+  motivo y el autor puede corregir y reenviar desde `/bitacora/[entryId]/editar`.
+- **Notificaciones:** `BITACORA_ENVIADA` a todos los AA y al Guardián al recibir
+  una propuesta; `BITACORA_APROBADA` / `BITACORA_RECHAZADA` al autor con el
+  número de página o el motivo.
+- **Auditoría:** `logbook.submit`, `logbook.approve`, `logbook.reject`,
+  `logbook.assign_keeper` y `logbook.delete`.
+- **Privacidad de fotos:** una foto de página `PUBLICADA` responde `200` a
+  cualquier miembro activo. Pendientes y rechazadas solo son visibles para su
+  autor, los AA y el Guardián; el resto recibe `404`. Sin sesión, `401`.
+- **Libro interactivo (`/bitacora`):** portada con el Guardián actual, total de
+  páginas e índice navegable; cada página muestra número, fecha, título en
+  Fraunces, Markdown seguro, polaroid con lightbox y firma
+  «Escrito por [Nombre] ([Comunidad])». Navegación con botones, teclado y swipe;
+  al final aparece una página en blanco con el llamado a escribir.
+- **Bandejas:** `/bitacora/revision` es la bandeja compartida de AA y Guardián
+  para aprobar o rechazar con feedback. `/admin/bitacora` es el tablero AA con
+  contadores, asignación del Guardián y retiro de páginas publicadas.
+- **Navegación:** «Bitácora» aparece en la navegación de miembros y en la del
+  panel AA, además del atajo del tablero.
+
 ## Modelo de datos
 
 20 modelos en `prisma/schema.prisma`:
@@ -344,6 +404,7 @@ Cada Server Action debe volver a validar el permiso; la UI solo oculta.
   `ActivityEvaluation`
 - **Asistencia:** `AttendanceResponse`, `JustificationFile`, `AttendanceRecord`
 - **Documentos:** `File`, `RouteSheet`
+- **Bitácora:** `LogbookEntry`
 - **Notificaciones:** `Notification`, `NotificationDelivery`, `JobRun`
 - **Contenido y soporte:** `UnitResource`, `AppSetting`, `AuditLog`
 
@@ -353,6 +414,7 @@ Restricciones destacadas (migración SQL adicional):
 - Solo puede existir **una hoja aprobada** por actividad.
 - Un solo semestre activo a la vez.
 - Una sola evaluación por actividad y evaluador; las seis notas deben estar entre 1 y 7.
+- Un único Guardián de La Bitácora activo y números de página publicados sin repetición.
 - Username/email únicos sin distinguir mayúsculas.
 - `PP`, `COORDINADOR` y `AA` deben tener comunidad; varias cuentas AA pueden
   compartir la misma comunidad.
@@ -412,9 +474,16 @@ npm run cron:local -- --bypass # fuerza la ejecución ahora
   cierre del adaptador R2.
 - [x] Módulo 6: evaluación posterior de actividades en seis áreas por PP y
   coordinadores, con lectura agregada y por respuesta para los AA.
+- [x] v1.1: texto de insignias bloqueadas, generador de historia 9:16 y módulo
+  completo de La Bitácora con Guardián, moderación, fotos y notificaciones.
 
 ## Seguridad antes de producción
 
+0. **v1.1:** ejecutar `npx prisma migrate deploy` contra la base Neon de
+   producción antes de desplegar. La migración
+   `20261027040629_v1_1_logbook_and_profile` es retrocompatible: agrega
+   `is_logbook_keeper` con `DEFAULT false`, crea `logbook_entries` y suma valores
+   al enum de notificaciones, sin borrar ni reescribir datos existentes.
 1. Generar un `AUTH_SECRET` y un `CRON_SECRET` nuevos.
 2. Cambiar la contraseña del AA inicial (el flujo ya lo exige).
 3. Configurar `STORAGE_DRIVER="r2"` con credenciales propias y mantener el bucket

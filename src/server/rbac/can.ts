@@ -17,6 +17,8 @@ export class ForbiddenError extends Error {
 
 export interface Actor {
   role: Role;
+  /** Cargo acumulable: habilita la moderación de La Bitácora. */
+  isLogbookKeeper?: boolean;
 }
 
 export function can(
@@ -24,6 +26,12 @@ export function can(
   permission: Permission,
 ): boolean {
   if (!actor) return false;
+  if (
+    permission === "logbook:review" &&
+    actor.isLogbookKeeper === true
+  ) {
+    return true;
+  }
   return permissionsFor(actor.role).has(permission);
 }
 
