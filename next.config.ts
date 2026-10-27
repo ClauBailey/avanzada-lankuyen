@@ -8,13 +8,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "16mb",
     },
   },
-  serverExternalPackages: ["@node-rs/argon2", "@prisma/adapter-pg", "pg"],
+  serverExternalPackages: ["@node-rs/argon2", "@prisma/adapter-pg", "pg", "web-push"],
 };
 
 const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
+  // Escucha `push` y `notificationclick` desde worker/index.ts.
+  customWorkerSrc: "worker",
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
     runtimeCaching: [

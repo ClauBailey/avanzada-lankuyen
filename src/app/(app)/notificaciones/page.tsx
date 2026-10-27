@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { PushNotificationToggle } from "@/components/notifications/push-notification-toggle";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -136,6 +137,8 @@ export default async function NotificacionesPage() {
         </p>
       ) : null}
 
+      <PushNotificationToggle />
+
       {notifications.length === 0 ? (
         <Card className="border-dashed bg-surface/70 p-10 text-center">
           <Bell className="mx-auto size-9 text-anil-400" aria-hidden="true" />
@@ -241,8 +244,9 @@ export default async function NotificacionesPage() {
       )}
 
       <p className="text-xs leading-relaxed text-ink-soft">
-        Las notificaciones se guardan en la plataforma. Más adelante se podrán
-        sumar envíos por correo o notificaciones push sin cambiar este historial.
+        Las notificaciones se guardan en la plataforma. Si activas los avisos
+        push en este dispositivo, también recibirás un aviso del sistema cuando
+        llegue una novedad.
       </p>
     </div>
   );

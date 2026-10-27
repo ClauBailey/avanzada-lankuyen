@@ -158,6 +158,7 @@ model User {
   reviewedRouteSheets RouteSheet[]        @relation("RouteSheetReviewedBy")
   uploadedFiles       File[]              @relation("FileUploadedBy")
   notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
   logbookEntries      LogbookEntry[]      @relation("LogbookEntryAuthor")
   reviewedLogbookEntries LogbookEntry[]   @relation("LogbookEntryReviewedBy")
   updatedResources    UnitResource[]      @relation("UnitResourceUpdatedBy")
@@ -466,6 +467,20 @@ model NotificationDelivery {
 
   @@unique([notificationId, channel])
   @@map("notification_deliveries")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  endpoint  String   @unique @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.Text
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 model JobRun {
