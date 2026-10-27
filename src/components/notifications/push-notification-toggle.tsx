@@ -50,11 +50,22 @@ function getErrorMessage(error: unknown) {
 }
 
 export function PushNotificationToggle() {
+  const [isMounted, setIsMounted] = useState(false);
   const [status, setStatus] = useState<PushStatus>("loading");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Evita evaluar APIs del navegador durante el render del servidor: el HTML
+  // inicial y el primer render del cliente deben ser idénticos.
   useEffect(() => {
+    // Guard de hidratación: el segundo render ocurre solo en el cliente.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
     let cancelled = false;
 
     async function detect() {
@@ -100,7 +111,7 @@ export function PushNotificationToggle() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isMounted]);
 
   async function activate() {
     setBusy(true);
@@ -190,6 +201,47 @@ export function PushNotificationToggle() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!isMounted) {
+    return (
+      <Card className="p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-anil-50 text-anil-700"
+            aria-hidden="true"
+          >
+            <BellRing className="size-5" />
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-display text-base font-semibold text-ink">
+                Notificaciones en este dispositivo
+              </h2>
+              <Badge variant="outline">Verificando</Badge>
+            </div>
+
+            <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+              Recibe un aviso del sistema cuando llegue una insignia, una hoja
+              de ruta o un recordatorio, incluso si la pestaña está cerrada.
+              Puedes desactivarlas cuando quieras.
+            </p>
+
+            <Button
+              type="button"
+              size="sm"
+              className="mt-4"
+              disabled
+              aria-busy="true"
+            >
+              <Loader2 className="animate-spin" aria-hidden="true" />
+              Comprobando…
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
   }
 
   const badge =
