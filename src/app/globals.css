@@ -92,4 +92,19 @@
     scrollbar-width: thin;
     scrollbar-color: var(--color-anil-300) transparent;
   }
+
+  .logbook-page-enter {
+    animation: logbook-page-enter 320ms ease-out both;
+  }
+}
+
+@keyframes logbook-page-enter {
+  from {
+    opacity: 0;
+    transform: translateX(14px) rotate(0.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotate(0);
+  }
 }

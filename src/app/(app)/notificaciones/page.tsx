@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Award,
   Bell,
+  BookOpen,
   CalendarCheck2,
   CheckCheck,
   FileText,
@@ -67,6 +68,18 @@ const typeStyles: Record<
   PASSWORD_RESETEADA: {
     icon: KeyRound,
     className: "bg-amber-50 text-amber-700",
+  },
+  BITACORA_ENVIADA: {
+    icon: BookOpen,
+    className: "bg-anil-50 text-anil-700",
+  },
+  BITACORA_APROBADA: {
+    icon: BookOpen,
+    className: "bg-emerald-50 text-emerald-700",
+  },
+  BITACORA_RECHAZADA: {
+    icon: BookOpen,
+    className: "bg-red-50 text-red-700",
   },
 };
 

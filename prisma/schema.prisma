@@ -69,6 +69,15 @@ enum NotificationType {
   INSIGNIA_OTORGADA
   CUENTA_CREADA
   PASSWORD_RESETEADA
+  BITACORA_ENVIADA
+  BITACORA_APROBADA
+  BITACORA_RECHAZADA
+}
+
+enum LogbookEntryStatus {
+  PENDIENTE_APROBACION
+  PUBLICADA
+  RECHAZADA
 }
 
 enum Channel {
@@ -121,6 +130,7 @@ model User {
   birthDate          DateTime? @map("birth_date") @db.Date
   avatarFileId       String?   @unique @map("avatar_file_id") @db.Uuid
   isActive           Boolean   @default(true) @map("is_active")
+  isLogbookKeeper    Boolean   @default(false) @map("is_logbook_keeper")
   mustChangePassword Boolean   @default(true) @map("must_change_password")
   lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(3)
   createdById        String?   @map("created_by_id") @db.Uuid
@@ -148,6 +158,8 @@ model User {
   reviewedRouteSheets RouteSheet[]        @relation("RouteSheetReviewedBy")
   uploadedFiles       File[]              @relation("FileUploadedBy")
   notifications       Notification[]
+  logbookEntries      LogbookEntry[]      @relation("LogbookEntryAuthor")
+  reviewedLogbookEntries LogbookEntry[]   @relation("LogbookEntryReviewedBy")
   updatedResources    UnitResource[]      @relation("UnitResourceUpdatedBy")
   settingsUpdated     AppSetting[]        @relation("AppSettingUpdatedBy")
   auditLogs           AuditLog[]
@@ -257,6 +269,7 @@ model Activity {
   records     AttendanceRecord[]
   routeSheets RouteSheet[]
   evaluations ActivityEvaluation[]
+  logbookEntries LogbookEntry[]
 
   @@index([semesterId, startsAt])
   @@index([startsAt])
@@ -383,6 +396,7 @@ model File {
   justifications JustificationFile[]
   routeSheets    RouteSheet[]
   unitResources  UnitResource[]      @relation("UnitResourceImage")
+  logbookEntries LogbookEntry[]      @relation("LogbookEntryPhoto")
 
   @@map("files")
 }
@@ -500,6 +514,40 @@ model UnitResource {
   updatedBy User? @relation("UnitResourceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@map("unit_resources")
+}
+
+// ------------------------------------------------------------
+// La Bitácora de la unidad
+// ------------------------------------------------------------
+
+model LogbookEntry {
+  id              String             @id @default(uuid()) @db.Uuid
+  title           String             @db.VarChar(160)
+  adventureDate   DateTime           @default(now()) @map("adventure_date") @db.Date
+  contentMd       String             @map("content_md") @db.Text
+  status          LogbookEntryStatus @default(PENDIENTE_APROBACION)
+  pageNumber      Int?               @unique @map("page_number")
+  authorId        String             @map("author_id") @db.Uuid
+  activityId      String?            @map("activity_id") @db.Uuid
+  photoFileId     String?            @map("photo_file_id") @db.Uuid
+  reviewedById    String?            @map("reviewed_by_id") @db.Uuid
+  reviewedAt      DateTime?          @map("reviewed_at") @db.Timestamptz(3)
+  rejectionReason String?            @map("rejection_reason") @db.Text
+  publishedAt     DateTime?          @map("published_at") @db.Timestamptz(3)
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt       DateTime?          @map("deleted_at") @db.Timestamptz(3)
+
+  author     User      @relation("LogbookEntryAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  photoFile  File?     @relation("LogbookEntryPhoto", fields: [photoFileId], references: [id], onDelete: SetNull)
+  reviewedBy User?     @relation("LogbookEntryReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, pageNumber])
+  @@index([adventureDate])
+  @@index([authorId])
+  @@index([activityId])
+  @@map("logbook_entries")
 }
 
 // ------------------------------------------------------------

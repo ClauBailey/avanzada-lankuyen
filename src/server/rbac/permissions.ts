@@ -27,6 +27,10 @@ export const PERMISSIONS = [
   "community:manage",
   "material:view",
   "material:manage",
+  "logbook:view",
+  "logbook:create",
+  "logbook:review",
+  "logbook:manage",
   "notification:view",
   "audit:view",
   "admin:access",
@@ -47,6 +51,8 @@ const PP_PERMISSIONS = [
   "route_sheet:upload",
   "badge:view",
   "material:view",
+  "logbook:view",
+  "logbook:create",
   "notification:view",
 ] as const satisfies readonly Permission[];
 
@@ -66,6 +72,8 @@ const COORDINADOR_PERMISSIONS = [
   "route_sheet:upload",
   "badge:view",
   "material:view",
+  "logbook:view",
+  "logbook:create",
   "notification:view",
 ] as const satisfies readonly Permission[];
 

@@ -52,6 +52,10 @@ export async function GET(
       unitResources: {
         select: { isPublished: true },
       },
+      logbookEntries: {
+        where: { deletedAt: null },
+        select: { status: true, authorId: true },
+      },
     },
   });
 
@@ -86,12 +90,32 @@ export async function GET(
     file.unitResources.some((resource) => resource.isPublished) ||
     (isAA && file.unitResources.length > 0);
 
+  // Las fotos de páginas publicadas son parte del libro abierto de la unidad.
+  // Mientras la página está pendiente o rechazada solo las ven su autor, los
+  // AA y el Guardián de La Bitácora.
+  const canViewLogbookPhoto = file.logbookEntries.some(
+    (entry) =>
+      entry.status === "PUBLICADA" ||
+      entry.authorId === user.id ||
+      isAA ||
+      user.isLogbookKeeper,
+  );
+
   const allowed =
     file.isPublic ||
     isJustificationAuthor ||
     isUploader ||
     canViewRouteSheet ||
-    canViewMaterialImage;
+    canViewMaterialImage ||
+    canViewLogbookPhoto;
+
+  // Las fotos de páginas que aún no se publican nunca deben quedar en la caché
+  // del navegador: en un dispositivo compartido otra sesión podría verlas.
+  const cacheControl =
+    file.logbookEntries.length > 0 &&
+    file.logbookEntries.every((entry) => entry.status !== "PUBLICADA")
+      ? "private, no-store"
+      : "private, max-age=60";
 
   if (!allowed) {
     // Mismo 404 que un archivo inexistente para no revelar su existencia.
@@ -115,7 +139,7 @@ export async function GET(
       "Content-Type": file.mimeType,
       "Content-Length": String(file.sizeBytes),
       "Content-Disposition": `inline; filename*=UTF-8''${encodedName}`,
-      "Cache-Control": "private, max-age=60",
+      "Cache-Control": cacheControl,
       "X-Content-Type-Options": "nosniff",
       ...(isSvg
         ? {

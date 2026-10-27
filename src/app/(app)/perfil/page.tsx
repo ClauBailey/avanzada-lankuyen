@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Award,
+  BookOpen,
   Compass,
   Flag,
   Mountain,
@@ -99,6 +100,11 @@ export default async function PerfilPage() {
     }));
   const competencyBadges = badges.filter((badge) => badge.category === "COMPETENCIA");
   const obtainedCount = grants.length;
+  const shareIdentity = {
+    fullName: `${user.firstName} ${user.lastName}`,
+    username: user.username,
+    communityName: user.community?.name ?? null,
+  };
 
   return (
     <div className="space-y-10">
@@ -137,6 +143,12 @@ export default async function PerfilPage() {
                       aria-hidden="true"
                     />
                     {user.community.name}
+                  </span>
+                ) : null}
+                {user.isLogbookKeeper ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/20 px-2.5 py-0.5 text-[11px] font-semibold text-gold-soft">
+                    <BookOpen className="size-3" aria-hidden="true" />
+                    📖 Guardián de la Bitácora
                   </span>
                 ) : null}
               </div>
@@ -228,6 +240,7 @@ export default async function PerfilPage() {
                 grant={grantByBadge.get(promiseBadge.id) ?? null}
                 variant="featured"
                 imageSize={96}
+                shareIdentity={shareIdentity}
                 className="border-anil-200/80 bg-gradient-to-br from-surface via-surface to-gold-soft/20"
               />
             ) : (
@@ -246,7 +259,7 @@ export default async function PerfilPage() {
               icon={Mountain}
             />
 
-            <StageTimeline stages={stageEntries} />
+            <StageTimeline stages={stageEntries} shareIdentity={shareIdentity} />
           </section>
 
           {/* Bloque 3 — Competencias */}
@@ -265,6 +278,7 @@ export default async function PerfilPage() {
                   badge={toBadgeView(badge)}
                   grant={grantByBadge.get(badge.id) ?? null}
                   imageSize={80}
+                  shareIdentity={shareIdentity}
                 />
               ))}
             </div>

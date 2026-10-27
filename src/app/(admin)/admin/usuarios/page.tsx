@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowUpRight, Award, Plus, UserRound } from "lucide-react";
+import { ArrowUpRight, Award, BookOpen, Plus, UserRound } from "lucide-react";
 
 import {
   UserActiveToggle,
@@ -8,6 +8,7 @@ import {
   UserResetButton,
   UserRoleButton,
 } from "@/components/admin/user-controls";
+import { LogbookKeeperButton } from "@/components/logbook/logbook-keeper-button";
 import { UsersFilters } from "@/components/admin/users-filters";
 import { CommunityTag } from "@/components/brand/community-tag";
 import { PageHeader } from "@/components/shared/page-header";
@@ -80,6 +81,7 @@ export default async function AdminUsuariosPage({
         role: true,
         isActive: true,
         mustChangePassword: true,
+        isLogbookKeeper: true,
         communityId: true,
         community: { select: { id: true, name: true, color: true } },
         _count: {
@@ -183,9 +185,17 @@ export default async function AdminUsuariosPage({
                         ) : null}
                       </td>
                       <td className="px-3 py-3.5">
-                        <Badge variant={member.role === "AA" ? "gold" : "default"}>
-                          {ROLE_LABELS[member.role]}
-                        </Badge>
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge variant={member.role === "AA" ? "gold" : "default"}>
+                            {ROLE_LABELS[member.role]}
+                          </Badge>
+                          {member.isLogbookKeeper ? (
+                            <Badge variant="gold">
+                              <BookOpen className="size-3" aria-hidden="true" />
+                              Guardián de la Bitácora
+                            </Badge>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-3 py-3.5">
                         <UserCommunitySelect
@@ -237,6 +247,14 @@ export default async function AdminUsuariosPage({
                             <div className="mt-1 flex flex-col items-start gap-1 border-l-2 border-line pl-2">
                               {member.role !== "AA" ? (
                                 <UserRoleButton userId={member.id} role={member.role} />
+                              ) : null}
+                              {member.role !== "AA" ? (
+                                <LogbookKeeperButton
+                                  userId={member.id}
+                                  fullName={fullName}
+                                  isKeeper={member.isLogbookKeeper}
+                                  compact
+                                />
                               ) : null}
                               <UserActiveToggle
                                 userId={member.id}
