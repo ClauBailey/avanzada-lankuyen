@@ -24,6 +24,7 @@ import { prisma } from "@/server/db";
 import { notifyUser } from "@/server/notifications";
 import { getAppSettings } from "@/server/settings";
 import { getStorage } from "@/server/storage";
+import { enqueuePushNotification } from "@/server/web-push";
 
 function revalidateRouteSheets(activityId?: string) {
   revalidatePath("/hojas-de-ruta");
@@ -305,6 +306,7 @@ export async function approveRouteSheetAction(
       activityId: true,
       version: true,
       status: true,
+      title: true,
       uploadedById: true,
       activity: {
         select: {
@@ -393,6 +395,14 @@ export async function approveRouteSheetAction(
     );
   });
 
+  // Post-commit: el push no debe retrasar ni revertir la aprobación.
+  enqueuePushNotification(sheet.uploadedById, {
+    title: "Actualización de Hoja de Ruta",
+    body: `Tu AA ha aprobado tu ruta: ${sheet.title}.`,
+    url: "/hojas-de-ruta",
+    tag: `route-sheet-${sheet.id}`,
+  });
+
   revalidateRouteSheets(sheet.activityId);
 
   return {
@@ -423,6 +433,7 @@ export async function rejectRouteSheetAction(
       activityId: true,
       version: true,
       status: true,
+      title: true,
       uploadedById: true,
       activity: {
         select: {
@@ -496,6 +507,14 @@ export async function rejectRouteSheetAction(
       },
       tx,
     );
+  });
+
+  // Post-commit: el push no debe retrasar ni revertir el rechazo.
+  enqueuePushNotification(sheet.uploadedById, {
+    title: "Actualización de Hoja de Ruta",
+    body: `Tu AA ha devuelto con observaciones tu ruta: ${sheet.title}.`,
+    url: "/hojas-de-ruta",
+    tag: `route-sheet-${sheet.id}`,
   });
 
   revalidateRouteSheets(sheet.activityId);

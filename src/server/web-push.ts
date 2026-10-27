@@ -1,5 +1,6 @@
 import "server-only";
 
+import { after } from "next/server";
 import webpush from "web-push";
 
 import { prisma } from "@/server/db";
@@ -131,4 +132,35 @@ export async function sendPushNotification(
   }
 
   return result;
+}
+
+/**
+ * Programa un push para después de que la respuesta HTTP haya terminado.
+ *
+ * Se usa en Server Actions y route handlers una vez que la transacción de
+ * negocio ya hizo commit. El envío nunca bloquea ni hace fallar la operación
+ * principal: cualquier error se registra solo en el servidor.
+ */
+export function enqueuePushNotification(
+  userId: string,
+  payload: PushNotificationPayload,
+): void {
+  const send = async () => {
+    try {
+      await sendPushNotification(userId, payload);
+    } catch (error) {
+      console.error(
+        `[push] Error al procesar la notificación para ${userId}:`,
+        error,
+      );
+    }
+  };
+
+  try {
+    after(send);
+  } catch {
+    // Fuera de un request de Next.js (por ejemplo, un script de mantenimiento)
+    // no existe `after`; se intenta en segundo plano sin bloquear al llamador.
+    void send();
+  }
 }

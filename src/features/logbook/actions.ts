@@ -26,6 +26,7 @@ import { requirePermission } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { notifyUser } from "@/server/notifications";
 import { getStorage } from "@/server/storage";
+import { enqueuePushNotification } from "@/server/web-push";
 
 function revalidateLogbook(entryId?: string) {
   revalidatePath("/bitacora");
@@ -598,6 +599,17 @@ export async function reviewLogbookEntryAction(
       });
 
       revalidateLogbook(entry.id);
+
+      // Post-commit: solo se avisa cuando la página quedó PUBLICADA y el
+      // autor no es quien moderó.
+      if (approve && entry.authorId !== actor.id) {
+        enqueuePushNotification(entry.authorId, {
+          title: "¡Página de Bitácora Publicada!",
+          body: `Tu relato «${entry.title}» ha sido añadido oficialmente a la Bitácora de la Avanzada.`,
+          url: "/bitacora",
+          tag: `logbook-${entry.id}`,
+        });
+      }
 
       return {
         success: approve

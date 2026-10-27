@@ -15,6 +15,7 @@ import { recordAudit } from "@/server/audit";
 import { requirePermission, requireReadyUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { notifyUser } from "@/server/notifications";
+import { enqueuePushNotification } from "@/server/web-push";
 
 function revalidateProgression(userId?: string) {
   revalidatePath("/perfil");
@@ -181,6 +182,14 @@ export async function grantBadgeAction(
       },
       tx,
     );
+  });
+
+  // Post-commit: la insignia ya quedó otorgada antes de intentar el push.
+  enqueuePushNotification(userId, {
+    title: "¡Nueva Insignia Obtenida!",
+    body: `Felicidades, has recibido la insignia: ${badge.name}.`,
+    url: "/perfil",
+    tag: `badge-${badge.code}`,
   });
 
   revalidateProgression(userId);
