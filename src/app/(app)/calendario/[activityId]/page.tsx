@@ -534,9 +534,11 @@ export default async function ActivityDetailPage({
                 {record ? (
                   <div className="rounded-xl border border-line bg-canvas/50 px-3 py-2 text-xs text-ink-soft">
                     <p>
-                      Ratificada por {record.ratifiedBy.firstName}{" "}
-                      {record.ratifiedBy.lastName} el{" "}
-                      {formatTimestamp(record.ratifiedAt)}.
+                      Ratificada por{" "}
+                      {record.ratifiedBy
+                        ? `${record.ratifiedBy.firstName} ${record.ratifiedBy.lastName}`
+                        : "un Adulto Acompañante"}{" "}
+                      el {formatTimestamp(record.ratifiedAt)}.
                     </p>
                     {record.notes ? (
                       <p className="mt-1 text-ink">Nota: {record.notes}</p>

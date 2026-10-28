@@ -8,6 +8,7 @@ import {
   UserResetButton,
   UserRoleButton,
 } from "@/components/admin/user-controls";
+import { DeleteUserDialog } from "@/components/admin/delete-user-dialog";
 import { LogbookKeeperButton } from "@/components/logbook/logbook-keeper-button";
 import { UsersFilters } from "@/components/admin/users-filters";
 import { CommunityTag } from "@/components/brand/community-tag";
@@ -36,7 +37,7 @@ export default async function AdminUsuariosPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await requirePermission("user:manage");
+  const actor = await requirePermission("user:manage");
 
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
@@ -261,6 +262,14 @@ export default async function AdminUsuariosPage({
                                 fullName={fullName}
                                 isActive={member.isActive}
                               />
+                              {member.id !== actor.id ? (
+                                <DeleteUserDialog
+                                  userId={member.id}
+                                  fullName={fullName}
+                                  username={member.username}
+                                  roleLabel={ROLE_LABELS[member.role]}
+                                />
+                              ) : null}
                             </div>
                           </details>
 

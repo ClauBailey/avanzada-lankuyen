@@ -173,8 +173,9 @@ export default async function AdminAsistenciaDetallePage({
           {lastRecord ? (
             <span>
               Última ratificación: {formatTimestamp(lastRecord.ratifiedAt)} por{" "}
-              {lastRecord.ratifiedBy.firstName}{" "}
-              {lastRecord.ratifiedBy.lastName}
+              {lastRecord.ratifiedBy
+                ? `${lastRecord.ratifiedBy.firstName} ${lastRecord.ratifiedBy.lastName}`
+                : "un Adulto Acompañante"}
             </span>
           ) : (
             <span>Sin registros definitivos todavía.</span>
@@ -197,9 +198,11 @@ export default async function AdminAsistenciaDetallePage({
           lastRecord ? formatTimestamp(lastRecord.ratifiedAt) : null
         }
         lastRatifiedBy={
-          lastRecord
+          lastRecord?.ratifiedBy
             ? `${lastRecord.ratifiedBy.firstName} ${lastRecord.ratifiedBy.lastName}`
-            : null
+            : lastRecord
+              ? "un Adulto Acompañante"
+              : null
         }
       />
     </div>

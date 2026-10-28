@@ -151,6 +151,18 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
                   </p>
                 </div>
               </div>
+
+              <form action={logoutAction} className="lg:hidden">
+                <button
+                  type="submit"
+                  title="Cerrar sesión"
+                  className="flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-2.5 text-xs font-semibold text-ink-soft transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                >
+                  <LogOut className="size-[18px]" aria-hidden="true" />
+                  <span className="hidden sm:inline">Cerrar sesión</span>
+                  <span className="sr-only sm:hidden">Cerrar sesión</span>
+                </button>
+              </form>
             </div>
           </div>
         </header>
