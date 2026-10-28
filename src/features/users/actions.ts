@@ -6,6 +6,10 @@ import type { ActionState } from "@/lib/action-state";
 import { firstIssue, readField } from "@/lib/form-data";
 import { generateTemporaryPassword } from "@/lib/temporary-password";
 import {
+  AccountDeletionError,
+  assertCanDeleteAccount,
+} from "@/features/users/delete-account";
+import {
   createUserSchema,
   setUserActiveSchema,
   setUserCommunitySchema,
@@ -15,13 +19,14 @@ import {
 import type { UserActionState } from "@/features/users/types";
 import { recordAudit } from "@/server/audit";
 import { hashPassword } from "@/server/auth/password";
-import { requirePermission } from "@/server/auth/session";
+import { requirePermission, requireUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 
 function revalidateUsers(userId?: string) {
   revalidatePath("/admin/usuarios");
   revalidatePath("/admin/insignias");
   revalidatePath("/admin");
+  revalidatePath("/miembros");
   if (userId) {
     revalidatePath(`/admin/usuarios/${userId}`);
   }
@@ -433,5 +438,78 @@ export async function resetUserPasswordAction(
       fullName: `${target.firstName} ${target.lastName}`,
       role: target.role,
     },
+  };
+}
+
+/**
+ * Elimina definitivamente una cuenta y su progreso asociado.
+ *
+ * Solo un AA puede ejecutarla. La sesión se revalida contra PostgreSQL para
+ * que un cambio de rol no quede cubierto por un JWT antiguo.
+ */
+export async function deleteUserAccountAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requireUser();
+
+  const parsed = userIdSchema.safeParse({
+    userId: readField(formData, "userId"),
+  });
+
+  if (!parsed.success) {
+    return { error: firstIssue(parsed.error) };
+  }
+
+  const { userId } = parsed.data;
+
+  const target = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: { id: true, username: true, role: true, isActive: true },
+  });
+
+  if (!target) {
+    return { error: "La cuenta ya no existe." };
+  }
+
+  const activeAaCount =
+    target.role === "AA"
+      ? await prisma.user.count({
+          where: { role: "AA", isActive: true, deletedAt: null },
+        })
+      : 0;
+
+  try {
+    assertCanDeleteAccount(actor, target, activeAaCount);
+  } catch (error) {
+    if (error instanceof AccountDeletionError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await recordAudit(
+      {
+        actor,
+        action: "user.delete",
+        entityType: "User",
+        entityId: target.id,
+        before: { username: target.username, role: target.role },
+      },
+      tx,
+    );
+
+    await tx.user.delete({ where: { id: target.id } });
+  });
+
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/admin");
+  revalidatePath("/miembros");
+  revalidatePath(`/miembros/${target.username}`);
+  revalidatePath("/", "layout");
+
+  return {
+    success: `La cuenta @${target.username} y su progreso fueron eliminados permanentemente.`,
   };
 }

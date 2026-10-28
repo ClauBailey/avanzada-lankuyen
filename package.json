@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/route-sheet-schedule.test.ts tests/evaluations.test.ts tests/logbook.test.ts",
+    "test": "tsx --test tests/route-sheet-schedule.test.ts tests/evaluations.test.ts tests/logbook.test.ts tests/notifications.test.ts tests/achievements.test.ts tests/user-deletion.test.ts",
     "cron:local": "node --env-file=.env --experimental-strip-types scripts/run-cron-local.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

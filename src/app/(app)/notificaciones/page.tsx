@@ -5,8 +5,11 @@ import {
   BookOpen,
   CalendarCheck2,
   CheckCheck,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   KeyRound,
+  Trophy,
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
@@ -20,9 +23,12 @@ import {
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from "@/features/notifications/actions";
+import {
+  normalizeNotificationPage,
+} from "@/features/notifications/pagination";
+import { getNotificationsPage } from "@/features/notifications/queries";
 import { formatDateTime } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import { prisma } from "@/server/db";
 import { requireReadyUser } from "@/server/auth/session";
 
 export const metadata = {
@@ -81,30 +87,26 @@ const typeStyles: Record<
     icon: BookOpen,
     className: "bg-red-50 text-red-700",
   },
+  LOGRO_DESBLOQUEADO: {
+    icon: Trophy,
+    className: "bg-gold-soft text-[#7a5a16]",
+  },
 };
 
-export default async function NotificacionesPage() {
+export default async function NotificacionesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await requireReadyUser();
+  const params = await searchParams;
+  const requestedPage = normalizeNotificationPage(params.page);
 
-  const [notifications, unreadCount] = await Promise.all([
-    prisma.notification.findMany({
-      where: { recipientId: user.id },
-      orderBy: [{ readAt: "asc" }, { createdAt: "desc" }],
-      take: 60,
-      select: {
-        id: true,
-        type: true,
-        title: true,
-        body: true,
-        actionUrl: true,
-        readAt: true,
-        createdAt: true,
-      },
-    }),
-    prisma.notification.count({
-      where: { recipientId: user.id, readAt: null },
-    }),
-  ]);
+  const { notifications, page, totalCount, totalPages, unreadCount } =
+    await getNotificationsPage(user.id, requestedPage);
+
+  const rangeStart = totalCount === 0 ? 0 : (page - 1) * 10 + 1;
+  const rangeEnd = Math.min(page * 10, totalCount);
 
   return (
     <div className="space-y-8">
@@ -136,7 +138,7 @@ export default async function NotificacionesPage() {
         </p>
       ) : null}
 
-      {notifications.length === 0 ? (
+      {totalCount === 0 ? (
         <Card className="border-dashed bg-surface/70 p-10 text-center">
           <Bell className="mx-auto size-9 text-anil-400" aria-hidden="true" />
           <p className="mt-3 font-display text-xl font-semibold text-ink">
@@ -160,7 +162,9 @@ export default async function NotificacionesPage() {
       ) : (
         <ul className="space-y-3">
           {notifications.map((notification) => {
-            const style = typeStyles[notification.type];
+            const style =
+              typeStyles[notification.type as NotificationType] ??
+              typeStyles.CUENTA_CREADA;
             const Icon = style.icon;
             const unread = !notification.readAt;
 
@@ -239,6 +243,68 @@ export default async function NotificacionesPage() {
           })}
         </ul>
       )}
+
+      {totalCount > 0 ? (
+        <nav
+          aria-label="Paginación de notificaciones"
+          className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 sm:flex-row"
+        >
+          <p className="text-xs text-ink-soft">
+            Mostrando {rangeStart}–{rangeEnd} de {totalCount} notificación
+            {totalCount === 1 ? "" : "es"}.
+          </p>
+
+          <div className="flex items-center gap-2">
+            {page > 1 ? (
+              <Link
+                href={`/notificaciones?page=${page - 1}`}
+                className={buttonVariants({ variant: "secondary", size: "sm" })}
+                aria-label="Página anterior"
+              >
+                <ChevronLeft aria-hidden="true" />
+                Anterior
+              </Link>
+            ) : (
+              <span
+                aria-disabled="true"
+                className={cn(
+                  buttonVariants({ variant: "secondary", size: "sm" }),
+                  "pointer-events-none opacity-50",
+                )}
+              >
+                <ChevronLeft aria-hidden="true" />
+                Anterior
+              </span>
+            )}
+
+            <span className="min-w-[110px] text-center text-xs font-semibold text-ink">
+              Página {page} de {totalPages}
+            </span>
+
+            {page < totalPages ? (
+              <Link
+                href={`/notificaciones?page=${page + 1}`}
+                className={buttonVariants({ variant: "secondary", size: "sm" })}
+                aria-label="Página siguiente"
+              >
+                Siguiente
+                <ChevronRight aria-hidden="true" />
+              </Link>
+            ) : (
+              <span
+                aria-disabled="true"
+                className={cn(
+                  buttonVariants({ variant: "secondary", size: "sm" }),
+                  "pointer-events-none opacity-50",
+                )}
+              >
+                Siguiente
+                <ChevronRight aria-hidden="true" />
+              </span>
+            )}
+          </div>
+        </nav>
+      ) : null}
 
       <p className="text-xs leading-relaxed text-ink-soft">
         Las notificaciones se guardan en la plataforma. Más adelante se podrán

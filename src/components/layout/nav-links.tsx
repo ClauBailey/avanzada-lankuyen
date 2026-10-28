@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   Settings2,
   Star,
+  Trophy,
   UserRound,
   Users,
   UsersRound,
@@ -44,6 +45,8 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   clipboard: ClipboardCheck,
   "file-check": FileCheck2,
   award: Award,
+  trophy: Trophy,
+  "users-round": UsersRound,
   settings: Settings2,
   "arrow-left": ArrowLeft,
 };
