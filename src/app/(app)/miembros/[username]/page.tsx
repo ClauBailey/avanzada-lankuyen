@@ -7,7 +7,6 @@ import {
   Compass,
   Flag,
   Mountain,
-  Sparkles,
   Trophy,
 } from "lucide-react";
 
@@ -36,9 +35,12 @@ export default async function MiembroPerfilPage({
   const profile = await getSocialMemberProfile(username);
   if (!profile) notFound();
 
+  // Los AA no tienen perfil social: no participan de insignias ni logros.
+  if (profile.role === "AA") notFound();
+
   const [achievements, managerData] = await Promise.all([
     getUnlockedAchievementsForMember(profile.id),
-    actor.role === "AA" && profile.role !== "AA"
+    actor.role === "AA"
       ? getAchievementManagerData(profile.id)
       : Promise.resolve(null),
   ]);
@@ -52,10 +54,6 @@ export default async function MiembroPerfilPage({
   );
   const promiseBadges = profile.badges.filter(
     (badge) => badge.category === "PROMESA",
-  );
-  const points = achievements.reduce(
-    (total, achievement) => total + achievement.points,
-    0,
   );
 
   return (
@@ -123,12 +121,12 @@ export default async function MiembroPerfilPage({
               </p>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-center">
-              <Sparkles className="mx-auto size-4 text-gold" aria-hidden="true" />
+              <Award className="mx-auto size-4 text-gold" aria-hidden="true" />
               <p className="mt-1 font-display text-2xl font-semibold text-white">
-                {points}
+                {profile.badges.length}
               </p>
               <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-anil-200/70">
-                puntos
+                insignias
               </p>
             </div>
           </div>

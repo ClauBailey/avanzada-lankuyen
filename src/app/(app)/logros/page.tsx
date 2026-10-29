@@ -16,6 +16,8 @@ import {
   achievementProgress,
   getAchievementsForViewer,
 } from "@/features/achievements/queries";
+import { RARITY_OPTIONS } from "@/features/achievements/rarity";
+import { cn } from "@/lib/utils";
 import { requirePermission } from "@/server/auth/session";
 
 export const metadata = {
@@ -67,6 +69,9 @@ export default async function LogrosPage({
     (total, achievement) => total + achievement.memberCount,
     0,
   );
+  const secretCount = achievements.filter(
+    (achievement) => achievement.visibility === "SECRET",
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -128,13 +133,13 @@ export default async function LogrosPage({
           </Card>
           <Card className="p-5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
-              Puntos en juego
+              Logros secretos
             </p>
             <p className="mt-1 font-display text-3xl font-semibold text-ink">
-              {progress.maxPoints}
+              {secretCount}
             </p>
             <p className="mt-1 text-xs text-ink-soft">
-              suma de todos los logros activos
+              permanecen ocultos hasta desbloquearlos
             </p>
           </Card>
         </section>
@@ -156,7 +161,8 @@ export default async function LogrosPage({
                   {progress.unlockedCount} / {progress.totalCount}
                 </p>
                 <p className="text-sm text-anil-100/70">
-                  logros desbloqueados · {progress.points} puntos
+                  {progress.unlockedCount} de {progress.totalCount} logros
+                  descubiertos
                 </p>
               </div>
             </div>
@@ -171,6 +177,19 @@ export default async function LogrosPage({
                   className="h-full rounded-full bg-gradient-to-r from-gold via-[#c8a45a] to-lavender transition-[width]"
                   style={{ width: `${progress.percent}%` }}
                 />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {RARITY_OPTIONS.map((rarity) => (
+                  <span
+                    key={rarity.key}
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      rarity.badgeClass,
+                    )}
+                  >
+                    {rarity.label}: {progress.unlockedByRarity[rarity.key]}
+                  </span>
+                ))}
               </div>
               <p className="mt-2 text-[11px] text-anil-100/60">
                 Los logros secretos también cuentan para tu progreso.
@@ -220,13 +239,14 @@ export default async function LogrosPage({
           {filtered.map((achievement) => (
             <AchievementCard
               key={achievement.id}
+              showManageActions={isAA}
               achievement={{
                 id: achievement.id,
                 title: achievement.title,
                 description: achievement.description,
                 icon: achievement.icon,
                 category: achievement.category,
-                points: achievement.points,
+                rarity: achievement.rarity,
                 unlocked: achievement.unlocked,
                 unlockedAt: achievement.unlockedAt,
                 note: achievement.note,

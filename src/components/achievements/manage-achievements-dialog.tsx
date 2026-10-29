@@ -240,8 +240,13 @@ export function ManageAchievementsDialog({
                                 {achievement.description}
                               </p>
                             </div>
-                            <span className="rounded-full border border-gold/40 bg-gold-soft px-2 py-0.5 text-[10px] font-bold text-[#7a5a16]">
-                              {achievement.points} pts
+                            <span
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                                achievement.rarity.badgeClass,
+                              )}
+                            >
+                              {achievement.rarity.label}
                             </span>
                           </div>
                           <GrantAchievementForm

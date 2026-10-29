@@ -6,6 +6,7 @@ import type { ActionState } from "@/lib/action-state";
 import { firstIssue, readField } from "@/lib/form-data";
 import {
   createAchievementSchema,
+  deleteAchievementSchema,
   grantAchievementSchema,
   revokeAchievementSchema,
 } from "@/features/achievements/schemas";
@@ -291,4 +292,68 @@ export async function createAchievementAction(
   revalidateAchievements();
 
   return { success: `Logro «${achievement.title}» creado en el catálogo.` };
+}
+
+/**
+ * Elimina un logro del catálogo general. Solo un AA puede hacerlo.
+ *
+ * `UserAchievement.achievement` usa `onDelete: Cascade`, por lo que las
+ * asignaciones y los puntos de rareza asociados desaparecen con el logro.
+ */
+export async function deleteAchievementAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("achievement:manage");
+
+  const parsed = deleteAchievementSchema.safeParse({
+    achievementId: readField(formData, "achievementId"),
+  });
+
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  const achievement = await prisma.achievement.findUnique({
+    where: { id: parsed.data.achievementId },
+    select: {
+      id: true,
+      code: true,
+      title: true,
+      category: true,
+      visibility: true,
+      points: true,
+      _count: { select: { unlockedBy: true } },
+    },
+  });
+
+  if (!achievement) {
+    return { error: "El logro ya no existe." };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await recordAudit(
+      {
+        actor,
+        action: "achievement.delete",
+        entityType: "Achievement",
+        entityId: achievement.id,
+        before: {
+          code: achievement.code,
+          title: achievement.title,
+          category: achievement.category,
+          visibility: achievement.visibility,
+          points: achievement.points,
+          unlockedCount: achievement._count.unlockedBy,
+        },
+      },
+      tx,
+    );
+
+    await tx.achievement.delete({ where: { id: achievement.id } });
+  });
+
+  revalidateAchievements();
+
+  return {
+    success: `El logro «${achievement.title}» fue eliminado permanentemente.`,
+  };
 }

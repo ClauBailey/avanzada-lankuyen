@@ -7,6 +7,11 @@ import type {
 import { prisma } from "@/server/db";
 import type { SessionUser } from "@/server/auth/session";
 import {
+  getAchievementRarity,
+  type AchievementRarity,
+  type AchievementRarityCountKey,
+} from "@/features/achievements/rarity";
+import {
   sanitizeAchievementForViewer,
   type AchievementViewerRole,
 } from "@/features/achievements/visibility";
@@ -19,7 +24,7 @@ export interface AchievementView {
   icon: string;
   category: AchievementCategory;
   visibility: AchievementVisibility;
-  points: number;
+  rarity: AchievementRarity;
   isActive: boolean;
   unlocked: boolean;
   unlockedAt: string | null;
@@ -75,6 +80,7 @@ export async function getAchievementsForViewer(
         hint: row.hint,
         icon: row.icon,
         visibility: row.visibility,
+        points: row.points,
       },
       Boolean(unlock),
       role,
@@ -88,7 +94,7 @@ export async function getAchievementsForViewer(
       icon: sanitized.icon,
       category: row.category,
       visibility: row.visibility,
-      points: row.points,
+      rarity: sanitized.rarity,
       isActive: row.isActive,
       unlocked: Boolean(unlock),
       unlockedAt: unlock?.unlockedAt.toISOString() ?? null,
@@ -106,7 +112,7 @@ export interface UnlockedAchievementView {
   description: string;
   icon: string;
   category: AchievementCategory;
-  points: number;
+  rarity: AchievementRarity;
   unlockedAt: string;
   note: string | null;
   awardedBy: string | null;
@@ -132,7 +138,7 @@ export async function getUnlockedAchievementsForMember(
     description: row.achievement.description,
     icon: row.achievement.icon,
     category: row.achievement.category,
-    points: row.achievement.points,
+    rarity: getAchievementRarity(row.achievement.points),
     unlockedAt: row.unlockedAt.toISOString(),
     note: row.note,
     awardedBy: formatAwardedBy(row.awardedBy),
@@ -142,9 +148,8 @@ export async function getUnlockedAchievementsForMember(
 export interface AchievementProgress {
   unlockedCount: number;
   totalCount: number;
-  points: number;
-  maxPoints: number;
   percent: number;
+  unlockedByRarity: Record<AchievementRarityCountKey, number>;
 }
 
 /** Resumen de progreso para la cabecera de /logros. */
@@ -153,24 +158,27 @@ export function achievementProgress(
 ): AchievementProgress {
   const active = achievements.filter((achievement) => achievement.isActive);
   const unlocked = active.filter((achievement) => achievement.unlocked);
-  const points = unlocked.reduce(
-    (total, achievement) => total + achievement.points,
-    0,
-  );
-  const maxPoints = active.reduce(
-    (total, achievement) => total + achievement.points,
-    0,
-  );
+
+  const unlockedByRarity: Record<AchievementRarityCountKey, number> = {
+    COMMON: 0,
+    UNCOMMON: 0,
+    EPIC: 0,
+    LEGENDARY: 0,
+  };
+
+  for (const achievement of unlocked) {
+    const key = achievement.rarity.key;
+    if (key !== "HIDDEN") unlockedByRarity[key] += 1;
+  }
 
   return {
     unlockedCount: unlocked.length,
     totalCount: active.length,
-    points,
-    maxPoints,
     percent:
       active.length === 0
         ? 0
         : Math.round((unlocked.length / active.length) * 100),
+    unlockedByRarity,
   };
 }
 
@@ -183,7 +191,7 @@ export interface AchievementManagerData {
     icon: string;
     category: AchievementCategory;
     visibility: AchievementVisibility;
-    points: number;
+    rarity: AchievementRarity;
     unlocked: boolean;
     unlockedAt: string | null;
     note: string | null;
@@ -219,7 +227,7 @@ export async function getAchievementManagerData(
         icon: row.icon,
         category: row.category,
         visibility: row.visibility,
-        points: row.points,
+        rarity: getAchievementRarity(row.points),
         unlocked: Boolean(unlock),
         unlockedAt: unlock?.unlockedAt.toISOString() ?? null,
         note: unlock?.note ?? null,

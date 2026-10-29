@@ -42,6 +42,10 @@ export const revokeAchievementSchema = z.object({
   achievementId: z.string().trim().min(1, "Selecciona un logro."),
 });
 
+export const deleteAchievementSchema = z.object({
+  achievementId: z.string().trim().min(1, "Logro inválido."),
+});
+
 export const createAchievementSchema = z.object({
   title: z
     .string()

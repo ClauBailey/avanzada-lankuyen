@@ -2,8 +2,15 @@
  * Reglas de "niebla de guerra" para logros.
  *
  * Este módulo es puro (sin Prisma ni Next.js) para poder probar que un logro
- * bloqueado nunca expone su texto real en el payload del servidor.
+ * bloqueado nunca expone su texto real ni su rareza real en el payload del
+ * servidor.
  */
+
+import {
+  getAchievementRarity,
+  HIDDEN_RARITY,
+  type AchievementRarity,
+} from "./rarity";
 
 export type AchievementVisibilityValue = "PUBLIC" | "HINT" | "SECRET";
 export type AchievementCategoryValue =
@@ -25,6 +32,8 @@ export interface AchievementSource {
   hint: string | null;
   icon: string;
   visibility: AchievementVisibilityValue;
+  /** Valor numérico interno que define la rareza. */
+  points: number;
 }
 
 export interface SanitizedAchievementText {
@@ -32,6 +41,8 @@ export interface SanitizedAchievementText {
   description: string;
   hint: string | null;
   icon: string;
+  /** Rareza real, o `HIDDEN_RARITY` si es un SECRET aún bloqueado. */
+  rarity: AchievementRarity;
   /** `true` cuando el visitante todavía no lo ha desbloqueado. */
   locked: boolean;
 }
@@ -40,9 +51,9 @@ export interface SanitizedAchievementText {
  * Aplica la censura correspondiente al visitante.
  *
  * - AA: ve todo el catálogo sin importar si lo tiene desbloqueado.
- * - Logro desbloqueado: texto completo.
- * - SECRET bloqueado: título "???", icono Lock y descripción genérica. La
- *   pista, si existe, se conserva como único teaser.
+ * - Logro desbloqueado: texto y rareza completos.
+ * - SECRET bloqueado: título "???", icono Lock, descripción genérica y rareza
+ *   oculta. La pista, si existe, se conserva como único teaser.
  * - HINT bloqueado: título real e icono real; la descripción se reemplaza por
  *   la pista para no revelar el requisito completo.
  * - PUBLIC bloqueado: la descripción ya es pública por diseño.
@@ -60,6 +71,7 @@ export function sanitizeAchievementForViewer(
       description: achievement.description,
       hint: achievement.hint,
       icon: achievement.icon,
+      rarity: getAchievementRarity(achievement.points),
       locked: false,
     };
   }
@@ -70,6 +82,7 @@ export function sanitizeAchievementForViewer(
       description: SECRET_ACHIEVEMENT_DESCRIPTION,
       hint: achievement.hint,
       icon: "Lock",
+      rarity: HIDDEN_RARITY,
       locked: true,
     };
   }
@@ -80,6 +93,7 @@ export function sanitizeAchievementForViewer(
       description: achievement.hint ?? HINT_ACHIEVEMENT_FALLBACK,
       hint: null,
       icon: achievement.icon,
+      rarity: getAchievementRarity(achievement.points),
       locked: true,
     };
   }
@@ -89,6 +103,7 @@ export function sanitizeAchievementForViewer(
     description: achievement.description,
     hint: achievement.hint,
     icon: achievement.icon,
+    rarity: getAchievementRarity(achievement.points),
     locked: true,
   };
 }

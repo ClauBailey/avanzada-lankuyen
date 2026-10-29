@@ -3,11 +3,13 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Role } from "@/generated/prisma/enums";
 import { prisma } from "@/server/db";
+import {
+  buildMemberDirectoryWhere,
+  SOCIAL_MEMBER_ROLES,
+  type MemberDirectoryFilters,
+} from "@/features/members/filters";
 
-export interface MemberDirectoryFilters {
-  query?: string;
-  communityId?: string;
-}
+export type { MemberDirectoryFilters } from "@/features/members/filters";
 
 export interface MemberStage {
   code: "SENDERO" | "CUMBRE";
@@ -71,26 +73,7 @@ function pickStage(
 export async function getMembersDirectory(
   filters: MemberDirectoryFilters = {},
 ): Promise<MemberCardView[]> {
-  const query = filters.query?.trim();
-
-  const where: Prisma.UserWhereInput = {
-    isActive: true,
-    deletedAt: null,
-  };
-
-  if (query) {
-    where.OR = [
-      { firstName: { contains: query, mode: "insensitive" } },
-      { lastName: { contains: query, mode: "insensitive" } },
-      { username: { contains: query, mode: "insensitive" } },
-    ];
-  }
-
-  if (filters.communityId === "sin") {
-    where.communityId = null;
-  } else if (filters.communityId) {
-    where.communityId = filters.communityId;
-  }
+  const where = buildMemberDirectoryWhere(filters);
 
   const members = await prisma.user.findMany({
     where,
@@ -145,6 +128,7 @@ export async function getSocialMemberProfile(
       username: { equals: username, mode: "insensitive" },
       isActive: true,
       deletedAt: null,
+      role: { in: [...SOCIAL_MEMBER_ROLES] },
     },
     select: {
       id: true,

@@ -1,10 +1,12 @@
-import { CalendarCheck2, MessageSquareQuote, Sparkles } from "lucide-react";
+import { CalendarCheck2, MessageSquareQuote } from "lucide-react";
 
 import { AchievementIcon } from "@/components/achievements/achievement-icon";
+import { DeleteAchievementDialog } from "@/components/achievements/delete-achievement-dialog";
 import { Badge } from "@/components/ui/badge";
+import type { AchievementCategory, AchievementVisibility } from "@/generated/prisma/enums";
+import type { AchievementRarity } from "@/features/achievements/rarity";
 import { formatFullDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import type { AchievementCategory, AchievementVisibility } from "@/generated/prisma/enums";
 
 export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = {
   AVANZADA: "Avanzada",
@@ -28,7 +30,7 @@ export interface AchievementCardData {
   description: string;
   icon: string;
   category: AchievementCategory;
-  points: number;
+  rarity: AchievementRarity;
   unlocked: boolean;
   unlockedAt?: string | null;
   note?: string | null;
@@ -38,25 +40,32 @@ export interface AchievementCardData {
 
 interface AchievementCardProps {
   achievement: AchievementCardData;
-  /** En la vitrina social solo se muestran logros obtenidos. */
-  hideLockedHint?: boolean;
+  /** Solo en la vista AA: permite eliminar el logro del catálogo. */
+  showManageActions?: boolean;
 }
 
-export function AchievementCard({ achievement }: AchievementCardProps) {
+export function AchievementCard({
+  achievement,
+  showManageActions = false,
+}: AchievementCardProps) {
   const unlocked = achievement.unlocked;
+  const rarity = achievement.rarity;
 
   return (
     <article
       className={cn(
         "group relative flex h-full flex-col overflow-hidden rounded-2xl border p-4 transition-colors",
         unlocked
-          ? "border-gold/40 bg-surface shadow-card"
+          ? cn("bg-surface shadow-card", rarity.borderClass)
           : "border-dashed border-line bg-canvas/50 opacity-80",
       )}
     >
       {unlocked ? (
         <span
-          className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-gold via-anil-500 to-lavender"
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 h-[3px]",
+            rarity.accentClass,
+          )}
           aria-hidden="true"
         />
       ) : null}
@@ -66,14 +75,11 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
           className={cn(
             "flex size-12 shrink-0 items-center justify-center rounded-2xl border",
             unlocked
-              ? "border-gold/40 bg-gold-soft text-[#7a5a16]"
+              ? cn(rarity.borderClass, rarity.badgeClass)
               : "border-line bg-canvas text-ink-soft grayscale",
           )}
         >
-          <AchievementIcon
-            name={achievement.icon}
-            className="size-6"
-          />
+          <AchievementIcon name={achievement.icon} className="size-6" />
         </span>
 
         <div className="min-w-0 flex-1">
@@ -81,17 +87,13 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
             <h3 className="font-display text-base font-semibold leading-tight text-ink">
               {achievement.title}
             </h3>
-            {unlocked ? (
-              <Badge variant="gold">
-                <Sparkles className="size-3" aria-hidden="true" />
-                {achievement.points} pts
-              </Badge>
-            ) : (
-              <Badge variant="outline">{achievement.points} pts</Badge>
-            )}
+            <Badge className={cn("normal-case", rarity.badgeClass)}>
+              {rarity.label}
+            </Badge>
           </div>
           <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-anil-600">
             {ACHIEVEMENT_CATEGORY_LABELS[achievement.category]}
+            {rarity.key !== "HIDDEN" ? ` · ${rarity.subtitle}` : null}
           </p>
         </div>
       </div>
@@ -139,6 +141,15 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
             : "Aún no lo has desbloqueado."}
         </p>
       )}
+
+      {showManageActions ? (
+        <div className="mt-3 flex justify-end border-t border-line/60 pt-2">
+          <DeleteAchievementDialog
+            achievementId={achievement.id}
+            title={achievement.title}
+          />
+        </div>
+      ) : null}
     </article>
   );
 }

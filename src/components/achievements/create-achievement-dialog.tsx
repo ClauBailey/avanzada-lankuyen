@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
 import { createAchievementAction } from "@/features/achievements/actions";
+import { RARITY_OPTIONS } from "@/features/achievements/rarity";
 import { ACHIEVEMENT_ICON_OPTIONS } from "@/features/achievements/schemas";
 import { EMPTY_ACTION_STATE } from "@/lib/action-state";
 
@@ -158,16 +159,24 @@ export function CreateAchievementDialog() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="achievement-points">Puntos</Label>
-                    <Input
-                      id="achievement-points"
+                    <Label htmlFor="achievement-rarity">Rareza</Label>
+                    <Select
+                      id="achievement-rarity"
                       name="points"
-                      type="number"
-                      min={0}
-                      max={1000}
-                      defaultValue={10}
-                      required
-                    />
+                      defaultValue={String(RARITY_OPTIONS[0].defaultPoints)}
+                    >
+                      {RARITY_OPTIONS.map((rarity) => (
+                        <option
+                          key={rarity.key}
+                          value={rarity.defaultPoints}
+                        >
+                          {rarity.label} · {rarity.subtitle}
+                        </option>
+                      ))}
+                    </Select>
+                    <p className="text-[10px] text-ink-soft">
+                      La rareza reemplaza a los puntos acumulables.
+                    </p>
                   </div>
                 </div>
 
