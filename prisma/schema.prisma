@@ -250,7 +250,7 @@ model StageReflection {
 // ------------------------------------------------------------
 
 model Achievement {
-  id          String                @id @default(cuid())
+  id          String                @id @default(uuid()) @db.Uuid
   code        String                @unique @db.VarChar(80)
   title       String                @db.VarChar(120)
   description String                @db.Text
@@ -269,9 +269,9 @@ model Achievement {
 }
 
 model UserAchievement {
-  id            String   @id @default(cuid())
+  id            String   @id @default(uuid()) @db.Uuid
   userId        String   @map("user_id") @db.Uuid
-  achievementId String   @map("achievement_id")
+  achievementId String   @map("achievement_id") @db.Uuid
   unlockedAt    DateTime @default(now()) @map("unlocked_at") @db.Timestamptz(3)
   awardedById   String?  @map("awarded_by_id") @db.Uuid
   note          String?  @db.Text

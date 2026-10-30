@@ -29,7 +29,7 @@ export const ACHIEVEMENT_ICON_OPTIONS = [
 
 export const grantAchievementSchema = z.object({
   targetUserId: z.string().uuid("Usuario inválido."),
-  achievementId: z.string().trim().min(1, "Selecciona un logro."),
+  achievementId: z.string().trim().uuid("Logro inválido."),
   note: z
     .string()
     .trim()
@@ -39,11 +39,11 @@ export const grantAchievementSchema = z.object({
 
 export const revokeAchievementSchema = z.object({
   targetUserId: z.string().uuid("Usuario inválido."),
-  achievementId: z.string().trim().min(1, "Selecciona un logro."),
+  achievementId: z.string().trim().uuid("Logro inválido."),
 });
 
 export const deleteAchievementSchema = z.object({
-  achievementId: z.string().trim().min(1, "Logro inválido."),
+  achievementId: z.string().trim().uuid("Logro inválido."),
 });
 
 export const createAchievementSchema = z.object({

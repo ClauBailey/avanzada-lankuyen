@@ -17,6 +17,11 @@ import {
   isSocialMemberRole,
   SOCIAL_MEMBER_ROLES,
 } from "../src/features/members/filters.ts";
+import {
+  deleteAchievementSchema,
+  grantAchievementSchema,
+  revokeAchievementSchema,
+} from "../src/features/achievements/schemas.ts";
 import { can } from "../src/server/rbac/can.ts";
 
 const secret: AchievementSource = {
@@ -216,6 +221,56 @@ describe("permisos de eliminación de logros", () => {
   it("los jóvenes conservan la vista del catálogo", () => {
     assert.equal(can({ role: "PP" }, "achievement:view"), true);
     assert.equal(can({ role: "COORDINADOR" }, "achievement:view"), true);
+  });
+});
+
+describe("identificadores UUID en los logros", () => {
+  const ACHIEVEMENT_ID = "9655681a-6900-48dd-aea2-461777a87d54";
+  const USER_ID = "cef0a4c4-3f8b-4f1e-9a1a-77b0f0f0f0f0";
+  const LEGACY_CUID = "cmvrkdl600001g4v57525a865";
+
+  it("acepta UUIDs válidos al otorgar un logro", () => {
+    const parsed = grantAchievementSchema.safeParse({
+      targetUserId: USER_ID,
+      achievementId: ACHIEVEMENT_ID,
+    });
+
+    assert.equal(parsed.success, true);
+  });
+
+  it("rechaza el CUID legado que provocaba el error P2007", () => {
+    const parsed = grantAchievementSchema.safeParse({
+      targetUserId: USER_ID,
+      achievementId: LEGACY_CUID,
+    });
+
+    assert.equal(parsed.success, false);
+  });
+
+  it("exige UUID también al revocar y eliminar", () => {
+    assert.equal(
+      revokeAchievementSchema.safeParse({
+        targetUserId: USER_ID,
+        achievementId: ACHIEVEMENT_ID,
+      }).success,
+      true,
+    );
+    assert.equal(
+      revokeAchievementSchema.safeParse({
+        targetUserId: USER_ID,
+        achievementId: LEGACY_CUID,
+      }).success,
+      false,
+    );
+    assert.equal(
+      deleteAchievementSchema.safeParse({ achievementId: ACHIEVEMENT_ID })
+        .success,
+      true,
+    );
+    assert.equal(
+      deleteAchievementSchema.safeParse({ achievementId: LEGACY_CUID }).success,
+      false,
+    );
   });
 });
 
