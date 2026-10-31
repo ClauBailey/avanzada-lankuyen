@@ -122,6 +122,7 @@ export default async function CalendarioPage({
             select: {
               firstName: true,
               lastName: true,
+              preferredName: true,
               community: { select: { name: true, color: true } },
             },
           },
@@ -241,6 +242,7 @@ export default async function CalendarioPage({
                     id: leader.userId,
                     firstName: leader.user.firstName,
                     lastName: leader.user.lastName,
+                    preferredName: leader.user.preferredName,
                     community: leader.user.community,
                   })),
                   approvedRouteSheet: approved

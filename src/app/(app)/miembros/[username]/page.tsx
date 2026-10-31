@@ -21,7 +21,11 @@ import {
 import { getSocialMemberProfile } from "@/features/members/queries";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatFullDate } from "@/lib/dates";
-import { getInitials } from "@/lib/utils";
+import {
+  getDisplayFirstName,
+  getDisplayInitials,
+  getDisplayName,
+} from "@/lib/user-display";
 import { requirePermission } from "@/server/auth/session";
 
 export default async function MiembroPerfilPage({
@@ -45,7 +49,8 @@ export default async function MiembroPerfilPage({
       : Promise.resolve(null),
   ]);
 
-  const fullName = `${profile.firstName} ${profile.lastName}`;
+  const fullName = getDisplayName(profile);
+  const displayFirstName = getDisplayFirstName(profile);
   const stageBadges = profile.badges.filter(
     (badge) => badge.category === "ETAPA",
   );
@@ -75,7 +80,7 @@ export default async function MiembroPerfilPage({
 
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
           <span className="flex size-20 shrink-0 items-center justify-center rounded-3xl bg-white/10 font-display text-2xl font-semibold text-white ring-1 ring-white/20">
-            {getInitials(profile.firstName, profile.lastName)}
+            {getDisplayInitials(profile)}
           </span>
 
           <div className="min-w-0 flex-1">
@@ -140,7 +145,7 @@ export default async function MiembroPerfilPage({
               Panel AA
             </p>
             <p className="text-sm font-semibold text-ink">
-              Gestiona los logros de {profile.firstName}
+              Gestiona los logros de {displayFirstName}
             </p>
             <p className="text-xs text-ink-soft">
               Otorga un logro con una nota o revoca uno asignado por error.
@@ -150,7 +155,7 @@ export default async function MiembroPerfilPage({
           {managerData ? (
             <ManageAchievementsDialog
               targetUserId={profile.id}
-              targetName={profile.firstName}
+              targetName={displayFirstName}
               data={managerData}
             />
           ) : (
@@ -244,7 +249,7 @@ export default async function MiembroPerfilPage({
               Su vitrina aún está esperando
             </p>
             <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-ink-soft">
-              Cuando {profile.firstName} desbloquee su primer logro, aparecerá
+              Cuando {displayFirstName} desbloquee su primer logro, aparecerá
               aquí con su historia y la nota de su AA.
             </p>
           </Card>

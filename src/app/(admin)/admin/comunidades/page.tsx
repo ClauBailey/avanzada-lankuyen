@@ -1,11 +1,21 @@
 import Link from "next/link";
-import { ArrowUpRight, UsersRound } from "lucide-react";
+import { ArrowUpRight, TriangleAlert, UsersRound } from "lucide-react";
 
 import { CommunityForm } from "@/components/admin/community-form";
 import { CommunityToggle } from "@/components/admin/community-toggle";
+import { CommunityBatchAa } from "@/components/communities/community-batch-aa";
+import { CommunityMemberRoles } from "@/components/communities/community-member-roles";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { aaLoadAdvisory, communitySizeAdvisory } from "@/lib/community-rules";
+import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 
@@ -13,35 +23,82 @@ export const metadata = {
   title: "Comunidades · Panel AA",
 };
 
+const YOUTH_ROLES = ["PP", "COORDINADOR"] as const;
+
 export default async function AdminComunidadesPage() {
   await requirePermission("community:manage");
 
-  const [communities, counts] = await Promise.all([
+  const [communities, youth, adults] = await Promise.all([
     prisma.community.findMany({
       orderBy: [{ isActive: "desc" }, { name: "asc" }],
       select: {
         id: true,
         name: true,
         slug: true,
+        motto: true,
         description: true,
         color: true,
         isActive: true,
         deletedAt: true,
       },
     }),
-    prisma.user.groupBy({
-      by: ["communityId"],
-      where: { deletedAt: null },
-      _count: { _all: true },
+    prisma.user.findMany({
+      where: { deletedAt: null, role: { in: [...YOUTH_ROLES] } },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        preferredName: true,
+        username: true,
+        role: true,
+        isActive: true,
+        communityId: true,
+        communityRole: true,
+        assignedAaId: true,
+        assignedSince: true,
+      },
+    }),
+    prisma.user.findMany({
+      where: { role: "AA", isActive: true, deletedAt: null },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        preferredName: true,
+        _count: {
+          select: {
+            assignedYouth: {
+              where: {
+                isActive: true,
+                deletedAt: null,
+                role: { in: [...YOUTH_ROLES] },
+              },
+            },
+          },
+        },
+      },
     }),
   ]);
 
-  const countByCommunity = new Map<string, number>();
-  for (const row of counts) {
-    if (row.communityId) {
-      countByCommunity.set(row.communityId, row._count._all);
-    }
+  const youthByCommunity = new Map<string, typeof youth>();
+  for (const member of youth) {
+    if (!member.communityId) continue;
+    const list = youthByCommunity.get(member.communityId) ?? [];
+    list.push(member);
+    youthByCommunity.set(member.communityId, list);
   }
+
+  const aaOptions = adults.map((adult) => ({
+    id: adult.id,
+    name: getDisplayName(adult),
+    assignedCount: adult._count.assignedYouth,
+  }));
+
+  const overloadedAas = adults.filter(
+    (adult) => aaLoadAdvisory(adult._count.assignedYouth) !== null,
+  );
 
   const activeCommunities = communities.filter((community) => community.isActive);
   const inactiveCommunities = communities.filter((community) => !community.isActive);
@@ -51,7 +108,7 @@ export default async function AdminComunidadesPage() {
       <PageHeader
         eyebrow="Administración"
         title="Comunidades"
-        description="Los subgrupos dinámicos de la Avanzada. Cada Pionero/a y Coordinador pertenece a una comunidad, y su etiqueta aparece en el perfil y en las listas de asistencia."
+        description="Grupos juveniles de 3 a 6 Pioneros/as. El Equipo Adulto no pertenece a las comunidades: acompaña de forma personal y 1 a 1 a un grupo pequeño de jóvenes."
         actions={
           <Badge variant="default">
             {activeCommunities.length} activa
@@ -59,6 +116,29 @@ export default async function AdminComunidadesPage() {
           </Badge>
         }
       />
+
+      {overloadedAas.length > 0 ? (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <div className="space-y-1">
+            <p className="font-semibold">
+              Carga de acompañamiento por sobre lo recomendado
+            </p>
+            <ul className="list-inside list-disc text-xs leading-relaxed">
+              {overloadedAas.map((adult) => (
+                <li key={adult.id}>
+                  {getDisplayName(adult)} acompaña a{" "}
+                  {adult._count.assignedYouth} jóvenes activos.
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs leading-relaxed">
+              El Manual recomienda un máximo de 6 jóvenes por AA para sostener un
+              acompañamiento cercano. Esta advertencia no bloquea la asignación.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[0.95fr_1.25fr]">
         <Card className="h-fit">
@@ -101,12 +181,22 @@ export default async function AdminComunidadesPage() {
           ) : (
             <ul className="space-y-3">
               {[...activeCommunities, ...inactiveCommunities].map((community) => {
-                const memberCount = countByCommunity.get(community.id) ?? 0;
+                const members = youthByCommunity.get(community.id) ?? [];
+                const activeMembers = members.filter((member) => member.isActive);
+                const youthCount = activeMembers.length;
+                const sizeAdvisory = communitySizeAdvisory(youthCount);
+                const hasEarlyAssignments = activeMembers.some(
+                  (member) =>
+                    member.assignedAaId &&
+                    member.assignedSince &&
+                    Date.now() - member.assignedSince.getTime() <
+                      365 * 86_400_000,
+                );
 
                 return (
                   <li key={community.id}>
                     <Card className="overflow-hidden">
-                      <div className="p-5">
+                      <div className="space-y-4 p-5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -124,6 +214,11 @@ export default async function AdminComunidadesPage() {
                                 <Badge variant="outline">Inactiva</Badge>
                               ) : null}
                             </div>
+                            {community.motto ? (
+                              <p className="mt-1 text-sm font-medium italic text-anil-800">
+                                «{community.motto}»
+                              </p>
+                            ) : null}
                             {community.description ? (
                               <p className="mt-1 text-sm text-ink-soft">
                                 {community.description}
@@ -140,14 +235,55 @@ export default async function AdminComunidadesPage() {
                             className="inline-flex items-center gap-2 rounded-xl border border-line bg-canvas/60 px-3 py-2 text-xs font-semibold text-anil-800 transition-colors hover:border-anil-200 hover:bg-anil-50"
                           >
                             <UsersRound className="size-4" aria-hidden="true" />
-                            {memberCount} miembro{memberCount === 1 ? "" : "s"}
+                            {youthCount} joven{youthCount === 1 ? "" : "es"} activo
+                            {youthCount === 1 ? "" : "s"}
                           </Link>
                         </div>
 
-                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                        {sizeAdvisory ? (
+                          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+                            <TriangleAlert
+                              className="mt-0.5 size-3.5 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span>{sizeAdvisory}</span>
+                          </div>
+                        ) : null}
+
+                        <div className="grid gap-4 xl:grid-cols-2">
+                          <div className="space-y-2 rounded-xl border border-line/70 bg-canvas/30 p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+                              Asignar acompañamiento al grupo
+                            </p>
+                            <CommunityBatchAa
+                              communityId={community.id}
+                              aaOptions={aaOptions}
+                              hasEarlyAssignments={Boolean(hasEarlyAssignments)}
+                            />
+                          </div>
+
+                          <div className="space-y-2 rounded-xl border border-line/70 bg-canvas/30 p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+                              Cargos internos
+                            </p>
+                            <CommunityMemberRoles
+                              communityId={community.id}
+                              canManage
+                              members={activeMembers.map((member) => ({
+                                id: member.id,
+                                name: getDisplayName(member),
+                                username: member.username,
+                                role: member.role,
+                                communityRole: member.communityRole,
+                              }))}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
                           <details className="group">
                             <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink transition-colors hover:border-anil-200 hover:bg-anil-50">
-                              Editar
+                              Editar identidad
                             </summary>
                             <div className="mt-4 rounded-xl border border-line/80 bg-canvas/50 p-4">
                               <CommunityForm mode="edit" community={community} />

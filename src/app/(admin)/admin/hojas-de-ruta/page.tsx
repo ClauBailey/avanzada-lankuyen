@@ -29,6 +29,7 @@ import type { RouteSheetStatus } from "@/generated/prisma/enums";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_STYLES } from "@/lib/activity-types";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatDateTime, formatTimestamp } from "@/lib/dates";
+import { getDisplayName } from "@/lib/user-display";
 import {
   formatFileSize,
   routeSheetVersionLabel,
@@ -149,12 +150,13 @@ export default async function AdminHojasDeRutaPage({
             id: true,
             firstName: true,
             lastName: true,
+            preferredName: true,
             role: true,
             community: { select: { name: true, color: true } },
           },
         },
         reviewedBy: {
-          select: { firstName: true, lastName: true },
+          select: { firstName: true, lastName: true, preferredName: true },
         },
         activity: {
           select: {
@@ -169,7 +171,9 @@ export default async function AdminHojasDeRutaPage({
               orderBy: { assignedAt: "asc" },
               select: {
                 userId: true,
-                user: { select: { firstName: true, lastName: true } },
+                user: {
+                  select: { firstName: true, lastName: true, preferredName: true },
+                },
               },
             },
           },
@@ -339,10 +343,7 @@ export default async function AdminHojasDeRutaPage({
             {sheets.map((sheet) => {
               const isPending = sheet.status === "PENDIENTE_AUTORIZACION";
               const leaders = sheet.activity.leaders
-                .map(
-                  (leader) =>
-                    `${leader.user.firstName} ${leader.user.lastName}`,
-                )
+                .map((leader) => getDisplayName(leader.user))
                 .join(", ");
 
               return (
@@ -468,8 +469,7 @@ export default async function AdminHojasDeRutaPage({
                           Envío
                         </p>
                         <p className="mt-1.5 text-sm font-medium text-ink">
-                          {sheet.uploadedBy.firstName}{" "}
-                          {sheet.uploadedBy.lastName}
+                          {getDisplayName(sheet.uploadedBy)}
                         </p>
                         <p className="mt-0.5 text-[11px] text-ink-soft">
                           {ROLE_LABELS[sheet.uploadedBy.role]}
@@ -499,7 +499,7 @@ export default async function AdminHojasDeRutaPage({
                         <p className="font-semibold">
                           Rechazada
                           {sheet.reviewedBy
-                            ? ` por ${sheet.reviewedBy.firstName} ${sheet.reviewedBy.lastName}`
+                            ? ` por ${getDisplayName(sheet.reviewedBy)}`
                             : ""}
                           {sheet.reviewedAt
                             ? ` el ${formatTimestamp(sheet.reviewedAt)}`
@@ -525,7 +525,7 @@ export default async function AdminHojasDeRutaPage({
                         </p>
                         <p className="mt-1 text-sm">
                           {sheet.reviewedBy
-                            ? `Autorizada por ${sheet.reviewedBy.firstName} ${sheet.reviewedBy.lastName}`
+                            ? `Autorizada por ${getDisplayName(sheet.reviewedBy)}`
                             : "Autorizada por un AA"}
                           {sheet.reviewedAt
                             ? ` el ${formatTimestamp(sheet.reviewedAt)}`

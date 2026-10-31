@@ -9,6 +9,7 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 
@@ -38,11 +39,14 @@ export default async function RevisionBitacoraPage() {
           select: {
             firstName: true,
             lastName: true,
+            preferredName: true,
             username: true,
             community: { select: { name: true } },
           },
         },
-        reviewedBy: { select: { firstName: true, lastName: true } },
+        reviewedBy: {
+          select: { firstName: true, lastName: true, preferredName: true },
+        },
       },
     }),
     prisma.logbookEntry.findMany({
@@ -68,11 +72,14 @@ export default async function RevisionBitacoraPage() {
           select: {
             firstName: true,
             lastName: true,
+            preferredName: true,
             username: true,
             community: { select: { name: true } },
           },
         },
-        reviewedBy: { select: { firstName: true, lastName: true } },
+        reviewedBy: {
+          select: { firstName: true, lastName: true, preferredName: true },
+        },
       },
     }),
   ]);
@@ -84,14 +91,14 @@ export default async function RevisionBitacoraPage() {
     contentMd: entry.contentMd,
     photoFileId: entry.photoFileId,
     submittedAt: entry.createdAt.toISOString(),
-    authorName: `${entry.author.firstName} ${entry.author.lastName}`,
+    authorName: getDisplayName(entry.author),
     authorUsername: entry.author.username,
     communityName: entry.author.community?.name ?? null,
     status: entry.status,
     pageNumber: entry.pageNumber,
     rejectionReason: entry.rejectionReason,
     reviewedByName: entry.reviewedBy
-      ? `${entry.reviewedBy.firstName} ${entry.reviewedBy.lastName}`
+      ? getDisplayName(entry.reviewedBy)
       : null,
     reviewedAt: entry.reviewedAt?.toISOString() ?? null,
   });

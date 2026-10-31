@@ -29,6 +29,7 @@ interface CommunityFormProps {
   community?: {
     id: string;
     name: string;
+    motto: string | null;
     description: string | null;
     color: string | null;
   };
@@ -74,17 +75,31 @@ export function CommunityForm({ mode = "create", community }: CommunityFormProps
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`${mode}-description-${community?.id ?? "new"}`}>
-            Descripción <span className="normal-case tracking-normal">(opcional)</span>
+          <Label htmlFor={`${mode}-motto-${community?.id ?? "new"}`}>
+            Lema o grito{" "}
+            <span className="normal-case tracking-normal">(opcional)</span>
           </Label>
           <Input
-            id={`${mode}-description-${community?.id ?? "new"}`}
-            name="description"
-            defaultValue={community?.description ?? ""}
-            placeholder="Una frase que identifique al grupo"
+            id={`${mode}-motto-${community?.id ?? "new"}`}
+            name="motto"
+            defaultValue={community?.motto ?? ""}
+            placeholder="Ej. ¡Siempre más arriba!"
             maxLength={300}
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${mode}-description-${community?.id ?? "new"}`}>
+          Descripción <span className="normal-case tracking-normal">(opcional)</span>
+        </Label>
+        <Input
+          id={`${mode}-description-${community?.id ?? "new"}`}
+          name="description"
+          defaultValue={community?.description ?? ""}
+          placeholder="Una frase que identifique al grupo"
+          maxLength={300}
+        />
       </div>
 
       <div className="space-y-2">

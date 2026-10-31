@@ -30,6 +30,7 @@ import {
 import type { RouteSheetStatus } from "@/generated/prisma/enums";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_STYLES } from "@/lib/activity-types";
 import { formatDateTime, formatShortDate, formatTimestamp } from "@/lib/dates";
+import { getDisplayName } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 import {
   routeSheetVersionLabel,
@@ -110,7 +111,7 @@ export default async function HojasDeRutaPage() {
               },
             },
             reviewedBy: {
-              select: { firstName: true, lastName: true },
+              select: { firstName: true, lastName: true, preferredName: true },
             },
           },
         },
@@ -328,7 +329,7 @@ export default async function HojasDeRutaPage() {
                           </p>
                           <p className="text-xs text-emerald-800/80">
                             {approved.reviewedBy
-                              ? `Revisada por ${approved.reviewedBy.firstName} ${approved.reviewedBy.lastName}`
+                              ? `Revisada por ${getDisplayName(approved.reviewedBy)}`
                               : "Aprobada por un AA"}
                             {approved.reviewedAt
                               ? ` el ${formatTimestamp(approved.reviewedAt)}`
@@ -463,7 +464,7 @@ export default async function HojasDeRutaPage() {
                                   Aprobada el{" "}
                                   {formatTimestamp(sheet.reviewedAt)}
                                   {sheet.reviewedBy
-                                    ? ` por ${sheet.reviewedBy.firstName} ${sheet.reviewedBy.lastName}`
+                                    ? ` por ${getDisplayName(sheet.reviewedBy)}`
                                     : ""}
                                   .
                                 </p>

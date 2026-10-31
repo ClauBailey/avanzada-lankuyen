@@ -12,11 +12,13 @@ import {
   type EvaluationScores,
 } from "@/lib/evaluations";
 import { cn } from "@/lib/utils";
+import { getDisplayName } from "@/lib/user-display";
 
 export interface EvaluationResultItem {
   id: string;
   firstName: string;
   lastName: string;
+  preferredName?: string | null;
   username: string;
   community: { name: string; color: string | null } | null;
   scores: EvaluationScores;
@@ -145,7 +147,7 @@ export function EvaluationResults({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-display text-lg font-semibold text-ink">
-                      {evaluation.firstName} {evaluation.lastName}
+                      {getDisplayName(evaluation)}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
                       <span>@{evaluation.username}</span>

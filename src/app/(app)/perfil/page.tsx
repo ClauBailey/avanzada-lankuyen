@@ -13,11 +13,12 @@ import {
 import { AttendanceSummaryCard } from "@/components/attendance/attendance-summary-card";
 import { BadgeCard, type BadgeGrantView, type BadgeView } from "@/components/progression/badge-card";
 import { StageTimeline, type StageEntry } from "@/components/progression/stage-timeline";
+import { PreferredNameForm } from "@/components/profile/preferred-name-form";
 import { getAttendanceSummary } from "@/features/attendance/queries";
 import { buttonVariants } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLE_LABELS } from "@/lib/constants";
-import { getInitials } from "@/lib/utils";
+import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth/session";
 
@@ -100,8 +101,9 @@ export default async function PerfilPage() {
     }));
   const competencyBadges = badges.filter((badge) => badge.category === "COMPETENCIA");
   const obtainedCount = grants.length;
+  const displayName = getDisplayName(user);
   const shareIdentity = {
-    fullName: `${user.firstName} ${user.lastName}`,
+    fullName: displayName,
     username: user.username,
     communityName: user.community?.name ?? null,
   };
@@ -117,7 +119,7 @@ export default async function PerfilPage() {
         <div className="relative">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             <span className="flex size-20 shrink-0 items-center justify-center rounded-3xl bg-white/10 font-display text-2xl font-semibold text-white ring-1 ring-white/20">
-              {getInitials(user.firstName, user.lastName)}
+              {getDisplayInitials(user)}
             </span>
 
             <div className="min-w-0 flex-1">
@@ -125,7 +127,7 @@ export default async function PerfilPage() {
                 Mi perfil
               </p>
               <h1 className="mt-1 font-display text-3xl font-semibold leading-tight sm:text-4xl">
-                {user.firstName} {user.lastName}
+                {displayName}
               </h1>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -176,10 +178,10 @@ export default async function PerfilPage() {
               <div className="flex items-start gap-3">
                 <ShieldCheck className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden="true" />
                 <p className="text-sm leading-relaxed text-anil-100/80">
-                  Como AA acompañas a los Pioneros/as de{" "}
-                  {user.community ? `la ${user.community.name}` : "tu comunidad"}:
-                  revisas su progresión, otorgas insignias y sostienes el
-                  calendario. Tu cuenta no recibe insignias ni reflexiones de etapa.
+                  Como AA integras el Equipo Adulto de la Avanzada: acompañas
+                  personalmente a un grupo pequeño de Pioneros/as, revisas su
+                  progresión, otorgas insignias y sostienes el calendario. Tu
+                  cuenta no recibe insignias ni reflexiones de etapa.
                 </p>
               </div>
               <Link
@@ -192,6 +194,22 @@ export default async function PerfilPage() {
           ) : null}
         </div>
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Identidad</CardTitle>
+          <CardDescription>
+            Tu nombre social se muestra en toda la aplicación y en las tarjetas
+            que compartes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PreferredNameForm
+            preferredName={user.preferredName}
+            registralName={`${user.firstName} ${user.lastName}`}
+          />
+        </CardContent>
+      </Card>
 
       {isAA ? (
         <Card className="relative overflow-hidden border-dashed p-6 sm:p-8">

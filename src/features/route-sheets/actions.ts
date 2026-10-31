@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/lib/action-state";
 import type { Prisma } from "@/generated/prisma/client";
 import { firstIssue, readField } from "@/lib/form-data";
+import { getDisplayName } from "@/lib/user-display";
 import {
   isAllowedRouteSheetMime,
   MAX_ROUTE_SHEET_BYTES,
@@ -223,7 +224,7 @@ export async function uploadRouteSheetAction(
       });
 
       const audience = await getActiveAAIds(tx);
-      const fullName = `${user.firstName} ${user.lastName}`;
+      const fullName = getDisplayName(user);
 
       for (const recipient of audience) {
         await notifyUser(

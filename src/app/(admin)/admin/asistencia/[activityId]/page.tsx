@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatDateTime, formatTime, formatTimestamp } from "@/lib/dates";
+import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 
@@ -56,6 +57,7 @@ export default async function AdminAsistenciaDetallePage({
         id: true,
         firstName: true,
         lastName: true,
+        preferredName: true,
         username: true,
         role: true,
         isActive: true,
@@ -85,7 +87,9 @@ export default async function AdminAsistenciaDetallePage({
         status: true,
         notes: true,
         ratifiedAt: true,
-        ratifiedBy: { select: { firstName: true, lastName: true } },
+        ratifiedBy: {
+          select: { firstName: true, lastName: true, preferredName: true },
+        },
       },
     }),
     prisma.community.findMany({
@@ -109,6 +113,7 @@ export default async function AdminAsistenciaDetallePage({
       id: member.id,
       firstName: member.firstName,
       lastName: member.lastName,
+      preferredName: member.preferredName,
       username: member.username,
       role:
         member.role === "COORDINADOR"
@@ -174,7 +179,7 @@ export default async function AdminAsistenciaDetallePage({
             <span>
               Última ratificación: {formatTimestamp(lastRecord.ratifiedAt)} por{" "}
               {lastRecord.ratifiedBy
-                ? `${lastRecord.ratifiedBy.firstName} ${lastRecord.ratifiedBy.lastName}`
+                ? getDisplayName(lastRecord.ratifiedBy)
                 : "un Adulto Acompañante"}
             </span>
           ) : (
@@ -199,7 +204,7 @@ export default async function AdminAsistenciaDetallePage({
         }
         lastRatifiedBy={
           lastRecord?.ratifiedBy
-            ? `${lastRecord.ratifiedBy.firstName} ${lastRecord.ratifiedBy.lastName}`
+            ? getDisplayName(lastRecord.ratifiedBy)
             : lastRecord
               ? "un Adulto Acompañante"
               : null

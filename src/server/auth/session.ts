@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
-import type { Role } from "@/generated/prisma/enums";
+import type { AdultTeamRole, CommunityInternalRole, Role } from "@/generated/prisma/enums";
 import { can } from "@/server/rbac/can";
 import type { Permission } from "@/server/rbac/permissions";
 import { auth } from "@/server/auth";
@@ -15,10 +15,14 @@ export interface SessionUser {
   email: string | null;
   firstName: string;
   lastName: string;
+  preferredName: string | null;
   role: Role;
   mustChangePassword: boolean;
   isLogbookKeeper: boolean;
   communityId: string | null;
+  communityRole: CommunityInternalRole | null;
+  adultTeamRole: AdultTeamRole | null;
+  assignedAaId: string | null;
   community: {
     id: string;
     name: string;
@@ -51,10 +55,14 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
       email: true,
       firstName: true,
       lastName: true,
+      preferredName: true,
       role: true,
       mustChangePassword: true,
       isLogbookKeeper: true,
       communityId: true,
+      communityRole: true,
+      adultTeamRole: true,
+      assignedAaId: true,
       community: {
         select: {
           id: true,

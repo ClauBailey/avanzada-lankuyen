@@ -86,11 +86,25 @@ describe("permisos de evaluación", () => {
     assert.equal(permissionsFor("AA").has("activity:evaluate"), false);
   });
 
-  it("COORDINADOR conserva los mismos permisos que PP en v1", () => {
-    assert.deepEqual(
-      [...permissionsFor("COORDINADOR")].sort(),
-      [...permissionsFor("PP")].sort(),
+  it("COORDINADOR conserva los permisos juveniles y suma la coordinación de su comunidad", () => {
+    const ppPermissions = permissionsFor("PP");
+    const coordinatorPermissions = permissionsFor("COORDINADOR");
+
+    for (const permission of ppPermissions) {
+      assert.equal(
+        coordinatorPermissions.has(permission),
+        true,
+        `COORDINADOR debería conservar ${permission}`,
+      );
+    }
+
+    assert.equal(
+      coordinatorPermissions.has("community:identity_edit"),
+      true,
     );
+    assert.equal(coordinatorPermissions.has("community:roles_manage"), true);
+    assert.equal(ppPermissions.has("community:identity_edit"), false);
+    assert.equal(ppPermissions.has("community:roles_manage"), false);
   });
 
   it("solo los AA pueden leer todas las respuestas", () => {

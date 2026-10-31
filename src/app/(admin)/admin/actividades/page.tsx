@@ -64,6 +64,7 @@ export default async function AdminActividadesPage({
         id: true,
         firstName: true,
         lastName: true,
+        preferredName: true,
         role: true,
         community: { select: { name: true, color: true } },
       },
@@ -97,6 +98,7 @@ export default async function AdminActividadesPage({
                 select: {
                   firstName: true,
                   lastName: true,
+                  preferredName: true,
                   community: { select: { name: true, color: true } },
                 },
               },
@@ -117,6 +119,7 @@ export default async function AdminActividadesPage({
     id: leader.id,
     firstName: leader.firstName,
     lastName: leader.lastName,
+    preferredName: leader.preferredName,
     role: leader.role === "COORDINADOR" ? ("COORDINADOR" as const) : ("PP" as const),
     community: leader.community,
   }));
@@ -320,6 +323,7 @@ export default async function AdminActividadesPage({
                             id: leader.userId,
                             firstName: leader.user.firstName,
                             lastName: leader.user.lastName,
+                            preferredName: leader.user.preferredName,
                             community: leader.user.community,
                           })),
                           approvedRouteSheet: approved

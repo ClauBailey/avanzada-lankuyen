@@ -27,6 +27,7 @@ import {
 } from "@/lib/activity-types";
 import { formatDateTime, formatLongDate, formatTime, getGreeting } from "@/lib/dates";
 import { ROLE_LABELS } from "@/lib/constants";
+import { getDisplayFirstName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth/session";
 
@@ -178,7 +179,7 @@ export default async function InicioPage() {
             {formatLongDate()}
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold leading-tight text-white sm:text-4xl">
-            {getGreeting()}, {user.firstName}.
+            {getGreeting()}, {getDisplayFirstName(user)}.
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-anil-100/75 sm:text-base">
             {isAA

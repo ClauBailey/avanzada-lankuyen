@@ -3,9 +3,14 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionState } from "@/lib/action-state";
+import { canEditCommunityIdentity, canManageCommunityRoles, systemRoleForCommunityRole } from "@/lib/community-rules";
 import { firstIssue, readField } from "@/lib/form-data";
 import { slugify } from "@/lib/slug";
-import { communitySchema, communityIdSchema } from "@/features/communities/schemas";
+import {
+  communityMemberRoleSchema,
+  communitySchema,
+  communityIdSchema,
+} from "@/features/communities/schemas";
 import { recordAudit } from "@/server/audit";
 import { requirePermission } from "@/server/auth/session";
 import { prisma } from "@/server/db";
@@ -14,6 +19,9 @@ function revalidateCommunities() {
   revalidatePath("/admin/comunidades");
   revalidatePath("/admin/usuarios");
   revalidatePath("/admin/insignias");
+  revalidatePath("/mi-comunidad");
+  revalidatePath("/miembros");
+  revalidatePath("/", "layout");
 }
 
 function isUniqueViolation(error: unknown) {
@@ -53,6 +61,7 @@ export async function createCommunityAction(
 
   const parsed = communitySchema.safeParse({
     name: readField(formData, "name"),
+    motto: readField(formData, "motto") || undefined,
     description: readField(formData, "description") || undefined,
     color: readField(formData, "color") || undefined,
   });
@@ -61,7 +70,7 @@ export async function createCommunityAction(
     return { error: firstIssue(parsed.error) };
   }
 
-  const { name, description, color } = parsed.data;
+  const { name, motto, description, color } = parsed.data;
 
   const duplicate = await prisma.community.findFirst({
     where: {
@@ -82,6 +91,7 @@ export async function createCommunityAction(
       const created = await tx.community.create({
         data: {
           name,
+          motto: motto ?? null,
           description: description ?? null,
           color: color ?? "#4b50a8",
           slug,
@@ -94,7 +104,7 @@ export async function createCommunityAction(
           action: "community.create",
           entityType: "Community",
           entityId: created.id,
-          after: { name, description, color, slug },
+          after: { name, motto: motto ?? null, description, color, slug },
         },
         tx,
       );
@@ -114,7 +124,7 @@ export async function updateCommunityAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const actor = await requirePermission("community:manage");
+  const actor = await requirePermission("community:identity_edit");
 
   const idParsed = communityIdSchema.safeParse({
     id: readField(formData, "id"),
@@ -124,8 +134,17 @@ export async function updateCommunityAction(
     return { error: firstIssue(idParsed.error) };
   }
 
+  const { id } = idParsed.data;
+
+  if (!canEditCommunityIdentity(actor, id)) {
+    return {
+      error: "Solo puedes editar la identidad de tu propia comunidad.",
+    };
+  }
+
   const parsed = communitySchema.safeParse({
     name: readField(formData, "name"),
+    motto: readField(formData, "motto") || undefined,
     description: readField(formData, "description") || undefined,
     color: readField(formData, "color") || undefined,
   });
@@ -134,12 +153,18 @@ export async function updateCommunityAction(
     return { error: firstIssue(parsed.error) };
   }
 
-  const { id } = idParsed.data;
-  const { name, description, color } = parsed.data;
+  const { name, motto, description, color } = parsed.data;
 
   const current = await prisma.community.findFirst({
     where: { id, deletedAt: null },
-    select: { id: true, name: true, description: true, color: true, slug: true },
+    select: {
+      id: true,
+      name: true,
+      motto: true,
+      description: true,
+      color: true,
+      slug: true,
+    },
   });
 
   if (!current) {
@@ -168,6 +193,7 @@ export async function updateCommunityAction(
         where: { id },
         data: {
           name,
+          motto: motto ?? null,
           description: description ?? null,
           color: color ?? current.color,
           slug,
@@ -181,7 +207,7 @@ export async function updateCommunityAction(
           entityType: "Community",
           entityId: id,
           before: current,
-          after: { name, description, color, slug },
+          after: { name, motto: motto ?? null, description, color, slug },
         },
         tx,
       );
@@ -268,5 +294,167 @@ export async function toggleCommunityAction(
     success: willDeactivate
       ? "Comunidad desactivada. Sus miembros conservan la asignación hasta que los muevas."
       : "Comunidad reactivada.",
+  };
+}
+
+/**
+ * Rotación de cargos internos de una comunidad.
+ *
+ * AA puede operar en cualquier comunidad; COORDINADOR solo en la propia.
+ * Al asignar el cargo interno COORDINADOR se sincroniza el rol de sistema y se
+ * retira el cargo a cualquier otra persona para mantener un único coordinador.
+ */
+export async function setCommunityMemberRoleAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("community:roles_manage");
+
+  const parsed = communityMemberRoleSchema.safeParse({
+    communityId: readField(formData, "communityId"),
+    userId: readField(formData, "userId"),
+    role: readField(formData, "role"),
+  });
+
+  if (!parsed.success) {
+    return { error: firstIssue(parsed.error) };
+  }
+
+  const { communityId, userId } = parsed.data;
+  const role = (parsed.data.role || null) as
+    | "COORDINADOR"
+    | "SECRETARIO"
+    | "TESORERO"
+    | "ADMINISTRADOR"
+    | null;
+
+  if (!canManageCommunityRoles(actor, communityId)) {
+    return {
+      error: "Solo puedes rotar cargos en tu propia comunidad.",
+    };
+  }
+
+  const [community, target] = await Promise.all([
+    prisma.community.findFirst({
+      where: { id: communityId, deletedAt: null },
+      select: { id: true, name: true },
+    }),
+    prisma.user.findFirst({
+      where: {
+        id: userId,
+        communityId,
+        role: { in: ["PP", "COORDINADOR"] },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        preferredName: true,
+        role: true,
+        communityRole: true,
+      },
+    }),
+  ]);
+
+  if (!community) return { error: "La comunidad ya no existe." };
+  if (!target) {
+    return { error: "El miembro no pertenece a esta comunidad." };
+  }
+
+  if (target.communityRole === role) {
+    return { success: "El cargo ya está asignado." };
+  }
+
+  const nextSystemRole = systemRoleForCommunityRole(role);
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.communityRoleHistory.updateMany({
+      where: { userId, communityId, endedAt: null },
+      data: { endedAt: now },
+    });
+
+    if (role === "COORDINADOR") {
+      const previousCoordinators = await tx.user.findMany({
+        where: {
+          communityId,
+          communityRole: "COORDINADOR",
+          id: { not: userId },
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+
+      for (const previous of previousCoordinators) {
+        await tx.user.update({
+          where: { id: previous.id },
+          data: { communityRole: null, role: "PP" },
+        });
+        await tx.communityRoleHistory.updateMany({
+          where: {
+            userId: previous.id,
+            communityId,
+            endedAt: null,
+          },
+          data: { endedAt: now },
+        });
+        await recordAudit(
+          {
+            actor,
+            action: "community.role_rotate",
+            entityType: "User",
+            entityId: previous.id,
+            before: { communityRole: "COORDINADOR", role: "COORDINADOR" },
+            after: { communityRole: null, role: "PP", communityId },
+          },
+          tx,
+        );
+      }
+    }
+
+    await tx.user.update({
+      where: { id: userId },
+      data: { communityRole: role, role: nextSystemRole },
+    });
+
+    if (role) {
+      await tx.communityRoleHistory.create({
+        data: {
+          communityId,
+          userId,
+          role,
+          assignedAt: now,
+        },
+      });
+    }
+
+    await recordAudit(
+      {
+        actor,
+        action: role ? "community.role_assign" : "community.role_remove",
+        entityType: "User",
+        entityId: userId,
+        before: {
+          communityRole: target.communityRole,
+          role: target.role,
+        },
+        after: {
+          communityRole: role,
+          role: nextSystemRole,
+          communityId,
+          communityName: community.name,
+        },
+      },
+      tx,
+    );
+  });
+
+  revalidateCommunities();
+
+  return {
+    success: role
+      ? "Cargo interno actualizado y rol de sistema sincronizado."
+      : "Cargo interno retirado. La persona vuelve a Pionero/a.",
   };
 }

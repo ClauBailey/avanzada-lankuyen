@@ -28,6 +28,7 @@ export interface NavItem {
 export const memberNav: NavItem[] = [
   { href: "/inicio", label: "Inicio", icon: "home", exact: true },
   { href: "/perfil", label: "Mi perfil", icon: "user" },
+  { href: "/mi-comunidad", label: "Mi comunidad", icon: "community" },
   { href: "/miembros", label: "Miembros", icon: "users-round" },
   { href: "/logros", label: "Logros", icon: "trophy" },
   { href: "/calendario", label: "Calendario", icon: "calendar" },

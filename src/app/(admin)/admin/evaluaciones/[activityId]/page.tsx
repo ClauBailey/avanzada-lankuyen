@@ -57,6 +57,7 @@ export default async function AdminEvaluacionDetallePage({
           select: {
             firstName: true,
             lastName: true,
+            preferredName: true,
             username: true,
             community: { select: { name: true, color: true } },
           },
@@ -76,6 +77,7 @@ export default async function AdminEvaluacionDetallePage({
     id: evaluation.id,
     firstName: evaluation.user.firstName,
     lastName: evaluation.user.lastName,
+    preferredName: evaluation.user.preferredName,
     username: evaluation.user.username,
     community: evaluation.user.community,
     scores: {

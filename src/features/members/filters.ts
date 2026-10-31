@@ -26,6 +26,7 @@ export interface MemberDirectoryWhere {
   OR?: Array<{
     firstName?: TextFilter;
     lastName?: TextFilter;
+    preferredName?: TextFilter;
     username?: TextFilter;
   }>;
   communityId?: string | null;
@@ -55,6 +56,7 @@ export function buildMemberDirectoryWhere(
     where.OR = [
       { firstName: { contains: query, mode: "insensitive" } },
       { lastName: { contains: query, mode: "insensitive" } },
+      { preferredName: { contains: query, mode: "insensitive" } },
       { username: { contains: query, mode: "insensitive" } },
     ];
   }

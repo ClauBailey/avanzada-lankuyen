@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { buttonVariants } from "@/components/ui/button";
 import { formatLongDate } from "@/lib/dates";
 import { ROLE_LABELS } from "@/lib/constants";
+import { getDisplayFirstName, getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requireAA } from "@/server/auth/session";
 
@@ -129,6 +130,7 @@ export default async function AdminPage() {
         id: true,
         firstName: true,
         lastName: true,
+        preferredName: true,
         username: true,
         role: true,
         isActive: true,
@@ -156,7 +158,7 @@ export default async function AdminPage() {
             Panel de administración
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-anil-100/70 sm:text-base">
-            {formatLongDate()} · Hola, {user.firstName}. Desde aquí acompañas la
+            {formatLongDate()} · Hola, {getDisplayFirstName(user)}. Desde aquí acompañas la
             progresión, las comunidades y los procesos de la Avanzada.
           </p>
           <div className="mt-6 flex flex-wrap gap-2.5">
@@ -276,7 +278,7 @@ export default async function AdminPage() {
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-ink">
-                        {member.firstName} {member.lastName}
+                        {getDisplayName(member)}
                       </p>
                       <p className="truncate text-xs text-ink-soft">
                         @{member.username} · {ROLE_LABELS[member.role]}

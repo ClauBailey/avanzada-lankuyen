@@ -28,6 +28,8 @@ export const PERMISSIONS = [
   "member:view",
   "user:manage",
   "community:manage",
+  "community:identity_edit",
+  "community:roles_manage",
   "material:view",
   "material:manage",
   "logbook:view",
@@ -81,6 +83,8 @@ const COORDINADOR_PERMISSIONS = [
   "material:view",
   "logbook:view",
   "logbook:create",
+  "community:identity_edit",
+  "community:roles_manage",
   "notification:view",
 ] as const satisfies readonly Permission[];
 

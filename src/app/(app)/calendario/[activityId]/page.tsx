@@ -50,6 +50,7 @@ import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 import { can } from "@/server/rbac/can";
 import { cn } from "@/lib/utils";
+import { getDisplayName } from "@/lib/user-display";
 
 export const metadata = {
   title: "Actividad",
@@ -87,6 +88,7 @@ export default async function ActivityDetailPage({
             select: {
               firstName: true,
               lastName: true,
+              preferredName: true,
               community: { select: { name: true, color: true } },
             },
           },
@@ -104,7 +106,9 @@ export default async function ActivityDetailPage({
           rejectionReason: true,
           createdAt: true,
           reviewedAt: true,
-          reviewedBy: { select: { firstName: true, lastName: true } },
+          reviewedBy: {
+            select: { firstName: true, lastName: true, preferredName: true },
+          },
         },
       },
       responses: {
@@ -128,7 +132,9 @@ export default async function ActivityDetailPage({
           status: true,
           notes: true,
           ratifiedAt: true,
-          ratifiedBy: { select: { firstName: true, lastName: true } },
+          ratifiedBy: {
+            select: { firstName: true, lastName: true, preferredName: true },
+          },
         },
       },
       evaluations: {
@@ -301,7 +307,7 @@ export default async function ActivityDetailPage({
                         )}
                       >
                         <span className="font-medium text-ink">
-                          {leader.user.firstName} {leader.user.lastName}
+                          {getDisplayName(leader.user)}
                         </span>
                         <CommunityTag
                           name={leader.user.community?.name}
@@ -339,8 +345,7 @@ export default async function ActivityDetailPage({
                       </a>
                       {approvedSheet.reviewedBy ? (
                         <span className="text-[11px] text-ink-soft">
-                          Aprobada por {approvedSheet.reviewedBy.firstName}{" "}
-                          {approvedSheet.reviewedBy.lastName}
+                          Aprobada por {getDisplayName(approvedSheet.reviewedBy)}
                         </span>
                       ) : null}
                     </div>
@@ -536,7 +541,7 @@ export default async function ActivityDetailPage({
                     <p>
                       Ratificada por{" "}
                       {record.ratifiedBy
-                        ? `${record.ratifiedBy.firstName} ${record.ratifiedBy.lastName}`
+                        ? getDisplayName(record.ratifiedBy)
                         : "un Adulto Acompañante"}{" "}
                       el {formatTimestamp(record.ratifiedAt)}.
                     </p>

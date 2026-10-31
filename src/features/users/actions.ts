@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { ActionState } from "@/lib/action-state";
+import type { AdultTeamRole } from "@/generated/prisma/enums";
 import { firstIssue, readField } from "@/lib/form-data";
 import { generateTemporaryPassword } from "@/lib/temporary-password";
 import {
@@ -10,16 +11,28 @@ import {
   assertCanDeleteAccount,
 } from "@/features/users/delete-account";
 import {
+  assignAaSchema,
+  assignCommunityAaSchema,
   createUserSchema,
   setUserActiveSchema,
   setUserCommunitySchema,
   setUserRoleSchema,
+  updatePreferredNameSchema,
+  updateUserIdentitySchema,
   userIdSchema,
 } from "@/features/users/schemas";
 import type { UserActionState } from "@/features/users/types";
+import {
+  daysWithAssignedAa,
+  earlyReassignmentMessage,
+  isAdultTeamRole,
+  isEarlyAaReassignment,
+  isYouthRole,
+} from "@/lib/community-rules";
+import { getDisplayName } from "@/lib/user-display";
 import { recordAudit } from "@/server/audit";
 import { hashPassword } from "@/server/auth/password";
-import { requirePermission, requireUser } from "@/server/auth/session";
+import { requirePermission, requireReadyUser, requireUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 
 function revalidateUsers(userId?: string) {
@@ -27,9 +40,16 @@ function revalidateUsers(userId?: string) {
   revalidatePath("/admin/insignias");
   revalidatePath("/admin");
   revalidatePath("/miembros");
+  revalidatePath("/perfil");
+  revalidatePath("/mi-comunidad");
   if (userId) {
     revalidatePath(`/admin/usuarios/${userId}`);
   }
+}
+
+function toDateOnly(value: string | undefined) {
+  if (!value) return null;
+  return new Date(`${value}T00:00:00.000Z`);
 }
 
 function isUniqueViolation(error: unknown) {
@@ -50,10 +70,13 @@ export async function createUserAction(
   const parsed = createUserSchema.safeParse({
     firstName: readField(formData, "firstName"),
     lastName: readField(formData, "lastName"),
+    preferredName: readField(formData, "preferredName"),
+    birthDate: readField(formData, "birthDate"),
     username: readField(formData, "username"),
     email: readField(formData, "email"),
     role: readField(formData, "role"),
     communityId: readField(formData, "communityId") || undefined,
+    adultTeamRole: readField(formData, "adultTeamRole") || undefined,
     passwordMode: readField(formData, "passwordMode") || "auto",
     password: readField(formData, "password") || undefined,
   });
@@ -86,13 +109,15 @@ export async function createUserAction(
     return { error: "Ese correo ya está registrado en otra cuenta." };
   }
 
-  const communityId = data.communityId ?? null;
-  const community = await prisma.community.findFirst({
-    where: { id: communityId ?? "", isActive: true, deletedAt: null },
-    select: { id: true, name: true },
-  });
+  const communityId = data.role === "AA" ? null : (data.communityId ?? null);
+  const community = communityId
+    ? await prisma.community.findFirst({
+        where: { id: communityId, isActive: true, deletedAt: null },
+        select: { id: true, name: true },
+      })
+    : null;
 
-  if (!community) {
+  if (communityId && !community) {
     return { error: "La comunidad seleccionada no está activa." };
   }
 
@@ -102,7 +127,19 @@ export async function createUserAction(
       : generateTemporaryPassword();
 
   const passwordHash = await hashPassword(temporaryPassword);
-  const fullName = `${data.firstName} ${data.lastName}`;
+  const fullName = getDisplayName({
+    firstName: data.firstName,
+    lastName: data.lastName,
+    preferredName: data.preferredName,
+  });
+  const preferredName = data.preferredName?.trim() || null;
+  const birthDate = toDateOnly(data.birthDate);
+  const adultTeamRole: AdultTeamRole | null =
+    data.role === "AA"
+      ? isAdultTeamRole(data.adultTeamRole ?? "")
+        ? (data.adultTeamRole as AdultTeamRole)
+        : "RESPONSABLE_AVANZADA"
+      : null;
 
   let createdUserId: string;
 
@@ -115,8 +152,12 @@ export async function createUserAction(
           passwordHash,
           firstName: data.firstName,
           lastName: data.lastName,
+          preferredName,
+          birthDate,
           role: data.role,
           communityId,
+          communityRole: null,
+          adultTeamRole,
           mustChangePassword: true,
           isActive: true,
           createdById: actor.id,
@@ -133,7 +174,10 @@ export async function createUserAction(
           after: {
             username: created.username,
             role: created.role,
+            preferredName,
+            birthDate: data.birthDate ?? null,
             communityId,
+            adultTeamRole,
             email,
             mustChangePassword: true,
           },
@@ -182,23 +226,33 @@ export async function setUserCommunityAction(
     return { error: firstIssue(parsed.error) };
   }
 
-  const { userId, communityId } = parsed.data;
+  const { userId, communityId: rawCommunityId } = parsed.data;
+  const communityId = rawCommunityId || null;
 
   const target = await prisma.user.findFirst({
     where: { id: userId, deletedAt: null },
-    select: { id: true, role: true, communityId: true },
+    select: { id: true, role: true, communityId: true, communityRole: true },
   });
 
   if (!target) {
     return { error: "La cuenta ya no existe." };
   }
 
-  const community = await prisma.community.findFirst({
-    where: { id: communityId, isActive: true, deletedAt: null },
-    select: { id: true, name: true },
-  });
+  if (target.role === "AA") {
+    return {
+      error:
+        "Los Adultos Acompañantes no pertenecen a comunidades juveniles. Usa el Equipo Adulto para asignar su cargo.",
+    };
+  }
 
-  if (!community) {
+  const community = communityId
+    ? await prisma.community.findFirst({
+        where: { id: communityId, isActive: true, deletedAt: null },
+        select: { id: true, name: true },
+      })
+    : null;
+
+  if (communityId && !community) {
     return { error: "La comunidad seleccionada no está activa." };
   }
 
@@ -207,9 +261,20 @@ export async function setUserCommunityAction(
   }
 
   await prisma.$transaction(async (tx) => {
+    if (target.communityId) {
+      await tx.communityRoleHistory.updateMany({
+        where: {
+          userId,
+          communityId: target.communityId,
+          endedAt: null,
+        },
+        data: { endedAt: new Date() },
+      });
+    }
+
     await tx.user.update({
       where: { id: userId },
-      data: { communityId },
+      data: { communityId, communityRole: null },
     });
 
     await recordAudit(
@@ -218,15 +283,26 @@ export async function setUserCommunityAction(
         action: "user.community_change",
         entityType: "User",
         entityId: userId,
-        before: { communityId: target.communityId },
-        after: { communityId, communityName: community.name },
+        before: {
+          communityId: target.communityId,
+          communityRole: target.communityRole,
+        },
+        after: {
+          communityId,
+          communityName: community?.name ?? null,
+          communityRole: null,
+        },
       },
       tx,
     );
   });
 
   revalidateUsers(userId);
-  return { success: `Comunidad actualizada a «${community.name}».` };
+  return {
+    success: community
+      ? `Comunidad actualizada a «${community.name}».`
+      : "El joven quedó sin comunidad durante su período introductorio.",
+  };
 }
 
 export async function setUserRoleAction(
@@ -252,7 +328,12 @@ export async function setUserRoleAction(
 
   const target = await prisma.user.findFirst({
     where: { id: userId, deletedAt: null },
-    select: { id: true, role: true, communityId: true },
+    select: {
+      id: true,
+      role: true,
+      communityId: true,
+      communityRole: true,
+    },
   });
 
   if (!target) {
@@ -267,17 +348,42 @@ export async function setUserRoleAction(
     return { success: "El rol ya está asignado." };
   }
 
-  if (!target.communityId) {
+  const communityId = target.communityId;
+  if (!communityId) {
     return {
       error: "Asigna una comunidad antes de cambiar el rol de esta cuenta.",
     };
   }
 
+  const nextCommunityRole =
+    role === "COORDINADOR"
+      ? target.communityRole ?? "COORDINADOR"
+      : target.communityRole === "COORDINADOR"
+        ? null
+        : target.communityRole;
+
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: userId },
-      data: { role },
+      data: { role, communityRole: nextCommunityRole },
     });
+
+    if (target.communityRole !== nextCommunityRole) {
+      await tx.communityRoleHistory.updateMany({
+        where: { userId, communityId, endedAt: null },
+        data: { endedAt: new Date() },
+      });
+
+      if (nextCommunityRole) {
+        await tx.communityRoleHistory.create({
+          data: {
+            communityId,
+            userId,
+            role: nextCommunityRole,
+          },
+        });
+      }
+    }
 
     await recordAudit(
       {
@@ -285,8 +391,11 @@ export async function setUserRoleAction(
         action: "user.role_change",
         entityType: "User",
         entityId: userId,
-        before: { role: target.role },
-        after: { role },
+        before: {
+          role: target.role,
+          communityRole: target.communityRole,
+        },
+        after: { role, communityRole: nextCommunityRole },
       },
       tx,
     );
@@ -398,6 +507,7 @@ export async function resetUserPasswordAction(
       username: true,
       firstName: true,
       lastName: true,
+      preferredName: true,
       role: true,
     },
   });
@@ -435,7 +545,7 @@ export async function resetUserPasswordAction(
     credentials: {
       username: target.username,
       password: temporaryPassword,
-      fullName: `${target.firstName} ${target.lastName}`,
+      fullName: getDisplayName(target),
       role: target.role,
     },
   };
@@ -511,5 +621,399 @@ export async function deleteUserAccountAction(
 
   return {
     success: `La cuenta @${target.username} y su progreso fueron eliminados permanentemente.`,
+  };
+}
+
+/**
+ * Nombre social editable por la propia persona.
+ * Tiene prioridad visual absoluta en toda la interfaz y en los PNG compartibles.
+ */
+export async function updatePreferredNameAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireReadyUser();
+
+  const parsed = updatePreferredNameSchema.safeParse({
+    preferredName: readField(formData, "preferredName"),
+  });
+
+  if (!parsed.success) {
+    return { error: firstIssue(parsed.error) };
+  }
+
+  const preferredName = parsed.data.preferredName.trim() || null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: user.id },
+      data: { preferredName },
+    });
+
+    await recordAudit(
+      {
+        actor: user,
+        action: "user.preferred_name",
+        entityType: "User",
+        entityId: user.id,
+        before: { preferredName: user.preferredName ?? null },
+        after: { preferredName },
+      },
+      tx,
+    );
+  });
+
+  revalidatePath("/perfil");
+  revalidatePath("/inicio");
+  revalidatePath("/miembros");
+  revalidatePath("/", "layout");
+
+  return {
+    success: preferredName
+      ? `Tu nombre social ahora es «${preferredName}».`
+      : "Se restauró tu nombre registral.",
+  };
+}
+
+/** Edición administrativa de identidad: nombre social, nacimiento y cargo adulto. */
+export async function updateUserIdentityAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("user:manage");
+
+  const parsed = updateUserIdentitySchema.safeParse({
+    userId: readField(formData, "userId"),
+    preferredName: readField(formData, "preferredName"),
+    birthDate: readField(formData, "birthDate"),
+    adultTeamRole: readField(formData, "adultTeamRole"),
+  });
+
+  if (!parsed.success) {
+    return { error: firstIssue(parsed.error) };
+  }
+
+  const { userId } = parsed.data;
+  const target = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: {
+      id: true,
+      role: true,
+      preferredName: true,
+      birthDate: true,
+      adultTeamRole: true,
+    },
+  });
+
+  if (!target) {
+    return { error: "La cuenta ya no existe." };
+  }
+
+  const preferredName = parsed.data.preferredName?.trim() || null;
+  const birthDate = toDateOnly(parsed.data.birthDate);
+  const adultTeamRole: AdultTeamRole | null =
+    target.role === "AA"
+      ? isAdultTeamRole(parsed.data.adultTeamRole ?? "")
+        ? (parsed.data.adultTeamRole as AdultTeamRole)
+        : target.adultTeamRole ?? "RESPONSABLE_AVANZADA"
+      : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: { preferredName, birthDate, adultTeamRole },
+    });
+
+    await recordAudit(
+      {
+        actor,
+        action: "user.identity_update",
+        entityType: "User",
+        entityId: userId,
+        before: {
+          preferredName: target.preferredName,
+          birthDate: target.birthDate?.toISOString().slice(0, 10) ?? null,
+          adultTeamRole: target.adultTeamRole,
+        },
+        after: {
+          preferredName,
+          birthDate: parsed.data.birthDate || null,
+          adultTeamRole,
+        },
+      },
+      tx,
+    );
+  });
+
+  revalidateUsers(userId);
+  revalidatePath("/", "layout");
+
+  return { success: "Identidad actualizada." };
+}
+
+/** Asigna o cambia el AA de acompañamiento personal 1 a 1 de un joven. */
+export async function assignAaAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("user:manage");
+
+  const parsed = assignAaSchema.safeParse({
+    userId: readField(formData, "userId"),
+    assignedAaId: readField(formData, "assignedAaId"),
+    confirmEarlyReassignment: readField(formData, "confirmEarlyReassignment"),
+  });
+
+  if (!parsed.success) {
+    return { error: firstIssue(parsed.error) };
+  }
+
+  const { userId } = parsed.data;
+  const assignedAaId = parsed.data.assignedAaId || null;
+
+  const target = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      preferredName: true,
+      role: true,
+      assignedAaId: true,
+      assignedSince: true,
+    },
+  });
+
+  if (!target) return { error: "La cuenta ya no existe." };
+  if (!isYouthRole(target.role)) {
+    return {
+      error: "Solo Pioneros/as y Coordinadores reciben acompañamiento 1 a 1.",
+    };
+  }
+
+  if (target.assignedAaId === assignedAaId) {
+    return { success: "El acompañamiento ya está asignado." };
+  }
+
+  const aa = assignedAaId
+    ? await prisma.user.findFirst({
+        where: {
+          id: assignedAaId,
+          role: "AA",
+          isActive: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          preferredName: true,
+        },
+      })
+    : null;
+
+  if (assignedAaId && !aa) {
+    return { error: "Selecciona un Adulto Acompañante activo." };
+  }
+
+  const confirmed =
+    parsed.data.confirmEarlyReassignment === "on" ||
+    parsed.data.confirmEarlyReassignment === "true";
+
+  if (
+    target.assignedAaId &&
+    assignedAaId &&
+    isEarlyAaReassignment(target.assignedSince) &&
+    !confirmed
+  ) {
+    return {
+      error: earlyReassignmentMessage(
+        daysWithAssignedAa(target.assignedSince),
+      ),
+    };
+  }
+
+  const previousAa = target.assignedAaId
+    ? await prisma.user.findUnique({
+        where: { id: target.assignedAaId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          preferredName: true,
+        },
+      })
+    : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        assignedAaId,
+        assignedSince: assignedAaId ? new Date() : null,
+      },
+    });
+
+    await recordAudit(
+      {
+        actor,
+        action: "user.aa_assignment",
+        entityType: "User",
+        entityId: userId,
+        before: {
+          assignedAaId: target.assignedAaId,
+          assignedAaName: previousAa ? getDisplayName(previousAa) : null,
+          assignedSince: target.assignedSince?.toISOString() ?? null,
+        },
+        after: {
+          assignedAaId,
+          assignedAaName: aa ? getDisplayName(aa) : null,
+          assignedSince: assignedAaId ? new Date().toISOString() : null,
+        },
+      },
+      tx,
+    );
+  });
+
+  revalidateUsers(userId);
+  revalidatePath("/admin/comunidades");
+
+  return {
+    success: aa
+      ? `Acompañamiento asignado a ${getDisplayName(aa)}.`
+      : "Acompañamiento retirado.",
+  };
+}
+
+/** Asigna el mismo AA a todos los jóvenes activos de una comunidad. */
+export async function assignCommunityAaAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("user:manage");
+
+  const parsed = assignCommunityAaSchema.safeParse({
+    communityId: readField(formData, "communityId"),
+    assignedAaId: readField(formData, "assignedAaId"),
+    confirmEarlyReassignment: readField(formData, "confirmEarlyReassignment"),
+  });
+
+  if (!parsed.success) {
+    return { error: firstIssue(parsed.error) };
+  }
+
+  const { communityId } = parsed.data;
+  const assignedAaId = parsed.data.assignedAaId || null;
+
+  const community = await prisma.community.findFirst({
+    where: { id: communityId, deletedAt: null },
+    select: { id: true, name: true },
+  });
+
+  if (!community) return { error: "La comunidad ya no existe." };
+
+  const aa = assignedAaId
+    ? await prisma.user.findFirst({
+        where: {
+          id: assignedAaId,
+          role: "AA",
+          isActive: true,
+          deletedAt: null,
+        },
+        select: { id: true, firstName: true, lastName: true, preferredName: true },
+      })
+    : null;
+
+  if (assignedAaId && !aa) {
+    return { error: "Selecciona un Adulto Acompañante activo." };
+  }
+
+  const youth = await prisma.user.findMany({
+    where: {
+      communityId,
+      role: { in: ["PP", "COORDINADOR"] },
+      isActive: true,
+      deletedAt: null,
+    },
+    select: { id: true, assignedAaId: true, assignedSince: true },
+  });
+
+  if (youth.length === 0) {
+    return { error: "La comunidad no tiene jóvenes activos para asignar." };
+  }
+
+  const changes = youth.filter(
+    (member) => member.assignedAaId !== assignedAaId,
+  );
+
+  if (changes.length === 0) {
+    return { success: "Todos los jóvenes ya tienen ese acompañamiento." };
+  }
+
+  const confirmed =
+    parsed.data.confirmEarlyReassignment === "on" ||
+    parsed.data.confirmEarlyReassignment === "true";
+
+  const early = changes.filter(
+    (member) =>
+      member.assignedAaId &&
+      assignedAaId &&
+      isEarlyAaReassignment(member.assignedSince),
+  );
+
+  if (early.length > 0 && !confirmed) {
+    return {
+      error: `${early.length} ${
+        early.length === 1 ? "joven lleva" : "jóvenes llevan"
+      } menos de un año con su AA actual. Confirma el cambio para continuar.`,
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.updateMany({
+      where: { id: { in: changes.map((member) => member.id) } },
+      data: {
+        assignedAaId,
+        assignedSince: assignedAaId ? new Date() : null,
+      },
+    });
+
+    await recordAudit(
+      {
+        actor,
+        action: "community.aa_batch_assignment",
+        entityType: "Community",
+        entityId: communityId,
+        before: {
+          assignedAaId: "multiple",
+          previousAaIds: [
+            ...new Set(
+              changes
+                .map((member) => member.assignedAaId)
+                .filter((id): id is string => Boolean(id)),
+            ),
+          ],
+          youthIds: changes.map((member) => member.id),
+        },
+        after: {
+          assignedAaId,
+          assignedAaName: aa ? getDisplayName(aa) : null,
+          count: changes.length,
+          communityName: community.name,
+        },
+      },
+      tx,
+    );
+  });
+
+  revalidateUsers();
+  revalidatePath("/admin/comunidades");
+
+  return {
+    success: aa
+      ? `${changes.length} ${
+          changes.length === 1 ? "joven quedó" : "jóvenes quedaron"
+        } con ${getDisplayName(aa)} como acompañamiento.`
+      : "Se retiró el acompañamiento a los jóvenes de la comunidad.",
   };
 }

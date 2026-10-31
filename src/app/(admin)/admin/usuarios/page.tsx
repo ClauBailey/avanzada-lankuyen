@@ -17,7 +17,12 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Prisma } from "@/generated/prisma/client";
+import {
+  ADULT_TEAM_ROLE_LABELS,
+  type AdultTeamRole,
+} from "@/lib/community-rules";
 import { ROLE_LABELS } from "@/lib/constants";
+import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 
@@ -51,6 +56,7 @@ export default async function AdminUsuariosPage({
     where.OR = [
       { firstName: { contains: query, mode: "insensitive" } },
       { lastName: { contains: query, mode: "insensitive" } },
+      { preferredName: { contains: query, mode: "insensitive" } },
       { username: { contains: query, mode: "insensitive" } },
       { email: { contains: query, mode: "insensitive" } },
     ];
@@ -77,9 +83,11 @@ export default async function AdminUsuariosPage({
         id: true,
         firstName: true,
         lastName: true,
+        preferredName: true,
         username: true,
         email: true,
         role: true,
+        adultTeamRole: true,
         isActive: true,
         mustChangePassword: true,
         isLogbookKeeper: true,
@@ -169,7 +177,7 @@ export default async function AdminUsuariosPage({
               </thead>
               <tbody className="divide-y divide-line/60">
                 {users.map((member) => {
-                  const fullName = `${member.firstName} ${member.lastName}`;
+                  const fullName = getDisplayName(member);
 
                   return (
                     <tr key={member.id} className="align-top hover:bg-canvas/40">
@@ -199,11 +207,26 @@ export default async function AdminUsuariosPage({
                         </div>
                       </td>
                       <td className="px-3 py-3.5">
-                        <UserCommunitySelect
-                          userId={member.id}
-                          communityId={member.communityId}
-                          communities={communities}
-                        />
+                        {member.role === "AA" ? (
+                          <div className="space-y-1">
+                            <Badge variant="gold">Equipo Adulto</Badge>
+                            {member.adultTeamRole ? (
+                              <p className="text-[11px] text-ink-soft">
+                                {
+                                  ADULT_TEAM_ROLE_LABELS[
+                                    member.adultTeamRole as AdultTeamRole
+                                  ]
+                                }
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <UserCommunitySelect
+                            userId={member.id}
+                            communityId={member.communityId}
+                            communities={communities}
+                          />
+                        )}
                       </td>
                       <td className="px-3 py-3.5">
                         {member.role === "AA" ? (

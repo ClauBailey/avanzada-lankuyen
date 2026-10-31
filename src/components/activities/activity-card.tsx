@@ -26,6 +26,7 @@ import {
 } from "@/lib/activity-types";
 import { APP_TIMEZONE } from "@/lib/constants";
 import { formatShortDate, formatTime } from "@/lib/dates";
+import { getDisplayName } from "@/lib/user-display";
 import type { ActivityType } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ export interface ActivityCardLeader {
   id: string;
   firstName: string;
   lastName: string;
+  preferredName?: string | null;
   community: { name: string; color: string | null } | null;
 }
 
@@ -158,7 +160,7 @@ export function ActivityCard({
                   className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-ink"
                 >
                   <span className="font-medium">
-                    {leader.firstName} {leader.lastName}
+                    {getDisplayName(leader)}
                   </span>
                   {leader.community ? (
                     <CommunityTag

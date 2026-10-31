@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ratifyAttendanceAction } from "@/features/attendance/actions";
 import { ATTENDANCE_LABELS, RSVP_LABELS } from "@/lib/activity-types";
+import { getDisplayName } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 
 type AttendanceStatus = "PRESENTE" | "AUSENTE" | "JUSTIFICADO";
@@ -43,6 +44,7 @@ export interface RatifierMember {
   id: string;
   firstName: string;
   lastName: string;
+  preferredName?: string | null;
   username: string;
   role: "PP" | "COORDINADOR";
   community: { id: string; name: string; color: string | null } | null;
@@ -150,10 +152,11 @@ export function AttendanceRatifier({
 
       if (!term) return true;
 
-      const haystack = `${member.firstName} ${member.lastName} ${member.username}`
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+      const haystack =
+        `${member.firstName} ${member.lastName} ${member.preferredName ?? ""} ${member.username}`
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
       return haystack.includes(term);
     });
   }, [members, communityFilter, rsvpFilter, query]);
@@ -377,7 +380,7 @@ export function AttendanceRatifier({
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-display text-sm font-semibold text-ink">
-                        {member.firstName} {member.lastName}
+                        {getDisplayName(member)}
                       </p>
                       <span className="font-mono text-[11px] text-ink-soft">
                         @{member.username}

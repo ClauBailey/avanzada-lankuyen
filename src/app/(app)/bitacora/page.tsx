@@ -10,6 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatDateOnly } from "@/lib/dates";
 import { logbookStatusLabel } from "@/lib/logbook";
+import { getDisplayName } from "@/lib/user-display";
 import { can } from "@/server/rbac/can";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
@@ -36,6 +37,7 @@ export default async function BitacoraPage() {
           select: {
             firstName: true,
             lastName: true,
+            preferredName: true,
             community: { select: { name: true } },
           },
         },
@@ -43,7 +45,7 @@ export default async function BitacoraPage() {
     }),
     prisma.user.findFirst({
       where: { isLogbookKeeper: true, isActive: true, deletedAt: null },
-      select: { firstName: true, lastName: true },
+      select: { firstName: true, lastName: true, preferredName: true },
     }),
     prisma.logbookEntry.findMany({
       where: {
@@ -68,7 +70,7 @@ export default async function BitacoraPage() {
     title: entry.title,
     adventureDate: entry.adventureDate.toISOString(),
     contentMd: entry.contentMd,
-    authorName: `${entry.author.firstName} ${entry.author.lastName}`,
+    authorName: getDisplayName(entry.author),
     communityName: entry.author.community?.name ?? null,
     photoFileId: entry.photoFileId,
   }));
@@ -130,9 +132,7 @@ export default async function BitacoraPage() {
 
       <LogbookBook
         entries={pages}
-        keeperName={
-          keeper ? `${keeper.firstName} ${keeper.lastName}` : null
-        }
+        keeperName={keeper ? getDisplayName(keeper) : null}
         canReview={canReview}
         canWrite={canWrite}
         reviewHref="/bitacora/revision"

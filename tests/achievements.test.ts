@@ -301,9 +301,12 @@ describe("directorio social sin AA", () => {
 
     assert.equal(where.communityId, null);
     assert.deepEqual(where.role, { in: ["PP", "COORDINADOR"] });
-    assert.equal(where.OR?.length, 3);
+    assert.equal(where.OR?.length, 4);
     assert.deepEqual(where.OR?.[0], {
       firstName: { contains: "antonia", mode: "insensitive" },
+    });
+    assert.deepEqual(where.OR?.[2], {
+      preferredName: { contains: "antonia", mode: "insensitive" },
     });
   });
 

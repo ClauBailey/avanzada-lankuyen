@@ -5,8 +5,9 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { MobileNav, SidebarNav } from "@/components/layout/nav-links";
 import { logoutAction } from "@/features/auth/actions";
 import { APP_NAME, ROLE_LABELS, ROLE_SHORT_LABELS, UNIT_TAGLINE } from "@/lib/constants";
+import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
 import { adminNav, memberNav } from "@/lib/navigation";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/server/auth/session";
 
 interface AppShellProps {
@@ -17,8 +18,13 @@ interface AppShellProps {
 }
 
 export function AppShell({ user, variant, unreadCount, children }: AppShellProps) {
-  const items = variant === "admin" ? adminNav : memberNav;
-  const fullName = `${user.firstName} ${user.lastName}`;
+  const baseItems = variant === "admin" ? adminNav : memberNav;
+  const items = baseItems.filter(
+    (item) =>
+      item.href !== "/mi-comunidad" ||
+      (user.role === "COORDINADOR" && Boolean(user.communityId)),
+  );
+  const fullName = getDisplayName(user);
   const roleLabel = ROLE_LABELS[user.role];
 
   return (
@@ -70,7 +76,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
             <div className="flex items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white ring-1 ring-white/15">
-                {getInitials(user.firstName, user.lastName)}
+                {getDisplayInitials(user)}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-white">{fullName}</p>
@@ -139,7 +145,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
               <div className="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3">
                 <span className="flex size-8 items-center justify-center rounded-lg bg-anil-100 text-xs font-bold text-anil-800">
-                  {getInitials(user.firstName, user.lastName)}
+                  {getDisplayInitials(user)}
                 </span>
                 <div className="hidden sm:block">
                   <p className="max-w-[150px] truncate text-xs font-semibold text-ink">

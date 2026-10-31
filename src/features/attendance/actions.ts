@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/lib/action-state";
 import type { Prisma } from "@/generated/prisma/client";
 import { firstIssue, readField } from "@/lib/form-data";
+import { getDisplayName } from "@/lib/user-display";
 import { ratifySchema, rsvpSchema } from "@/features/attendance/schemas";
 import { recordAudit } from "@/server/audit";
 import { requirePermission } from "@/server/auth/session";
@@ -253,7 +254,7 @@ export async function submitRsvpAction(
       }
 
       const audience = await getAudience(tx, user.communityId);
-      const fullName = `${user.firstName} ${user.lastName}`;
+      const fullName = getDisplayName(user);
       const isConfirmed = status === "CONFIRMADO";
 
       for (const recipient of audience) {

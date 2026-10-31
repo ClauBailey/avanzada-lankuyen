@@ -626,20 +626,21 @@ async function main() {
   }
 
   console.log("→ Asegurando comunidad base…");
-  const baseCommunity =
-    (await prisma.community.findFirst({
-      where: { deletedAt: null },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    })) ??
-    (await prisma.community.create({
+  const existingCommunity = await prisma.community.findFirst({
+    where: { deletedAt: null },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  if (!existingCommunity) {
+    await prisma.community.create({
       data: {
         name: "Comunidad Lankuyen",
         slug: "comunidad-lankuyen",
         color: "#4b50a8",
       },
       select: { id: true },
-    }));
+    });
+  }
 
   console.log("→ Creando Adulto Acompañante inicial…");
   const username = (process.env.SEED_AA_USERNAME ?? "aa.lankuyen")
@@ -650,15 +651,21 @@ async function main() {
 
   const existing = await prisma.user.findUnique({
     where: { username },
-    select: { id: true, communityId: true },
+    select: { id: true, communityId: true, adultTeamRole: true },
   });
   if (existing) {
-    if (!existing.communityId) {
+    if (existing.communityId || !existing.adultTeamRole) {
       await prisma.user.update({
         where: { id: existing.id },
-        data: { communityId: baseCommunity.id },
+        data: {
+          communityId: null,
+          communityRole: null,
+          adultTeamRole: existing.adultTeamRole ?? "RESPONSABLE_AVANZADA",
+        },
       });
-      console.log("   Se asignó la comunidad base al AA existente.");
+      console.log(
+        "   Se retiró la comunidad juvenil del AA y se aseguró su cargo adulto.",
+      );
     }
     console.log(`   El usuario "${username}" ya existe; no se modificó.`);
   } else {
@@ -676,7 +683,9 @@ async function main() {
         firstName: process.env.SEED_AA_FIRST_NAME?.trim() || "Adulto",
         lastName: process.env.SEED_AA_LAST_NAME?.trim() || "Acompañante",
         role: "AA",
-        communityId: baseCommunity.id,
+        communityId: null,
+        communityRole: null,
+        adultTeamRole: "RESPONSABLE_AVANZADA",
         mustChangePassword: true,
         isActive: true,
       },
