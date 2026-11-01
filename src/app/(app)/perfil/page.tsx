@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  ArrowRight,
   Award,
   BookOpen,
   Compass,
@@ -10,14 +11,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { AttendanceSummaryCard } from "@/components/attendance/attendance-summary-card";
 import { BadgeCard, type BadgeGrantView, type BadgeView } from "@/components/progression/badge-card";
 import { StageTimeline, type StageEntry } from "@/components/progression/stage-timeline";
 import { PreferredNameForm } from "@/components/profile/preferred-name-form";
-import { getAttendanceSummary } from "@/features/attendance/queries";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLE_LABELS } from "@/lib/constants";
+import { SYMBOLIC_MOMENTS } from "@/lib/symbolic-path";
 import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth/session";
@@ -30,7 +30,7 @@ export default async function PerfilPage() {
   const user = await requireUser();
   const isAA = user.role === "AA";
 
-  const [badges, grants, reflections, attendanceSummary] = await Promise.all([
+  const [badges, grants, reflections, milestones, promise] = await Promise.all([
     prisma.badge.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
@@ -52,8 +52,24 @@ export default async function PerfilPage() {
       where: { userId: user.id },
       select: { stageCode: true, content: true, updatedAt: true },
     }),
-    getAttendanceSummary(user.id),
+    isAA
+      ? Promise.resolve([])
+      : prisma.journeyMilestone.findMany({
+          where: { userId: user.id },
+          select: { moment: true, occurredAt: true },
+        }),
+    isAA
+      ? Promise.resolve(null)
+      : prisma.userPromise.findUnique({
+          where: { userId: user.id },
+          select: { status: true },
+        }),
   ]);
+
+  const milestoneByMoment = new Map(
+    milestones.map((milestone) => [milestone.moment, milestone]),
+  );
+  const promiseStatus = promise?.status ?? null;
 
   const grantByBadge = new Map<string, BadgeGrantView>(
     grants.map((grant) => [
@@ -211,6 +227,71 @@ export default async function PerfilPage() {
         </CardContent>
       </Card>
 
+      {!isAA ? (
+        <Card className="relative overflow-hidden border-anil-200/80 bg-gradient-to-br from-surface via-surface to-anil-50/40 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-anil-700">
+                <Compass className="size-3.5" aria-hidden="true" />
+                Camino simbólico
+              </p>
+              <h2 className="mt-1 font-display text-2xl font-semibold text-ink">
+                Cinco momentos, sin orden obligatorio
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink-soft">
+                La investidura, el Sendero, la Cumbre, la Promesa y el paso al
+                Clan son memoria y sentido. Ninguno es requisito de otro: se
+                abren cuando tienen sentido para ti.
+              </p>
+
+              <ul className="mt-4 flex flex-wrap gap-1.5">
+                {SYMBOLIC_MOMENTS.map((moment) => {
+                  const lived = milestoneByMoment.has(moment.key);
+                  const requested =
+                    moment.key === "PROMESA" &&
+                    promiseStatus === "SOLICITADA";
+                  const celebrated =
+                    moment.key === "PROMESA" &&
+                    promiseStatus === "CELEBRADA";
+
+                  return (
+                    <li
+                      key={moment.key}
+                      className={
+                        lived || celebrated
+                          ? "rounded-full border border-gold/50 bg-gold-soft/40 px-2.5 py-0.5 text-[10px] font-semibold text-[#7a5a16]"
+                          : requested
+                            ? "rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-800"
+                            : "rounded-full border border-line bg-canvas/60 px-2.5 py-0.5 text-[10px] font-semibold text-ink-soft"
+                      }
+                    >
+                      {moment.title}
+                      {lived || celebrated
+                        ? " · vivido"
+                        : requested
+                          ? " · solicitada"
+                          : ""}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <Link
+              href="/camino"
+              className={buttonVariants({
+                variant: "primary",
+                size: "sm",
+                className: "shrink-0",
+              })}
+            >
+              Recorrer mi camino
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </Card>
+      ) : null}
+
       {isAA ? (
         <Card className="relative overflow-hidden border-dashed p-6 sm:p-8">
           <div className="topo-bg pointer-events-none absolute inset-0 opacity-[0.3]" />
@@ -241,14 +322,12 @@ export default async function PerfilPage() {
 
       {!isAA ? (
         <>
-          <AttendanceSummaryCard summary={attendanceSummary} />
-
           {/* Bloque 1 — Promesa */}
           <section className="space-y-4">
             <SectionHeader
               eyebrow="Bloque 1"
               title="La Promesa"
-              description="El sello que marca tu compromiso personal con la Avanzada. Es la insignia que corona el camino."
+              description="El compromiso personal que nace de dentro. No depende de tu etapa ni de tu antigüedad: puedes prepararla y celebrarla cuando sientas que es tu momento."
               icon={Flag}
             />
 
@@ -266,6 +345,25 @@ export default async function PerfilPage() {
                 La insignia de la Promesa aún no está cargada en el catálogo.
               </p>
             )}
+
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-gold/40 bg-gold-soft/20 px-4 py-3.5">
+              <Flag className="size-4 shrink-0 text-gold" aria-hidden="true" />
+              <p className="min-w-0 flex-1 text-xs leading-relaxed text-ink-soft">
+                {promiseStatus === "CELEBRADA"
+                  ? "Tu Promesa ya está registrada en tu camino simbólico."
+                  : promiseStatus === "SOLICITADA"
+                    ? "Tu solicitud de Promesa está en preparación junto al Equipo Adulto."
+                    : "Elige la fórmula que quieres pronunciar y solicita tu ceremonia."}
+              </p>
+              <Link
+                href="/camino"
+                className={buttonVariants({ variant: "gold", size: "sm" })}
+              >
+                {promiseStatus === "CELEBRADA"
+                  ? "Ver mi Promesa"
+                  : "Preparar mi Promesa"}
+              </Link>
+            </div>
           </section>
 
           {/* Bloque 2 — Etapas */}
@@ -273,7 +371,7 @@ export default async function PerfilPage() {
             <SectionHeader
               eyebrow="Bloque 2"
               title="Etapas del camino"
-              description="Del Sendero a la Cumbre. Cada etapa tiene su insignia y un espacio íntimo para escribir qué sentiste al vivirla."
+              description="Sendero y Cumbre marcan comienzos, no requisitos. Puedes iniciar una etapa sin haber vivido la otra, y cada insignia abre un espacio íntimo para escribir qué sentiste."
               icon={Mountain}
             />
 

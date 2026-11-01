@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
-import { Check, Lock, Send } from "lucide-react";
+import { Check, Compass, Lock, Send } from "lucide-react";
 
 import { Alert } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
@@ -10,22 +11,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { submitActivityEvaluationAction } from "@/features/evaluations/actions";
 import { EMPTY_ACTION_STATE } from "@/lib/action-state";
 import {
-  EVALUATION_AREAS,
-  EVALUATION_SCALE,
-  type EvaluationScores,
+  DEVELOPMENT_AREAS,
+  OBJECTIVE_ACHIEVEMENT_LEVELS,
+  type DevelopmentAreaKey,
+  type ObjectiveAchievementLevel,
 } from "@/lib/evaluations";
-import { cn } from "@/lib/utils";
+
+export interface OwnEvaluation {
+  objectiveAchievementLevel: ObjectiveAchievementLevel;
+  experiencedAreas: DevelopmentAreaKey[];
+  organizationFeedback: string | null;
+  emotionalResonance: string | null;
+  learningsForNextTime: string | null;
+}
 
 interface EvaluationFormProps {
   activityId: string;
-  initialScores: EvaluationScores | null;
-  initialComment: string | null;
+  initialEvaluation: OwnEvaluation | null;
+  showCompassPrompt?: boolean;
 }
 
 export function EvaluationForm({
   activityId,
-  initialScores,
-  initialComment,
+  initialEvaluation,
+  showCompassPrompt = false,
 }: EvaluationFormProps) {
   const [state, action] = useActionState(
     submitActivityEvaluationAction,
@@ -33,81 +42,153 @@ export function EvaluationForm({
   );
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={action} className="space-y-6">
       <input type="hidden" name="activityId" value={activityId} />
 
       <div className="rounded-xl border border-anil-100 bg-anil-50/60 px-3.5 py-3 text-xs leading-relaxed text-anil-900">
-        Evalúa cada área de <strong>1 a 7</strong>, donde 1 es muy bajo y 7 es
-        muy alto. Puedes volver a guardar tu evaluación si necesitas corregirla.
+        Esta no es una nota. Observa la actividad desde lo que viviste: qué
+        logramos respecto de los objetivos, qué áreas de desarrollo aparecieron
+        y qué palabras quieres dejar al grupo.
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {EVALUATION_AREAS.map((area) => (
-          <fieldset
-            key={area.key}
-            className="rounded-2xl border border-line bg-canvas/35 p-4"
-          >
-            <legend className="px-1 font-display text-sm font-semibold text-ink">
-              {area.label}
-            </legend>
-            <p className="mt-1 min-h-10 text-[11px] leading-relaxed text-ink-soft">
-              {area.description}
-            </p>
-
-            <div className="mt-3 flex items-center justify-between gap-1">
-              {EVALUATION_SCALE.map((value) => (
-                <label
-                  key={value}
-                  className="cursor-pointer"
-                  title={`${area.label}: ${value} de 7`}
-                >
-                  <input
-                    type="radio"
-                    name={area.key}
-                    value={value}
-                    required
-                    defaultChecked={initialScores?.[area.key] === value}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className={cn(
-                      "flex size-8 items-center justify-center rounded-lg border border-line bg-surface text-xs font-semibold text-ink-soft shadow-sm transition-colors",
-                      "hover:border-anil-300 hover:text-anil-800",
-                      "peer-checked:border-anil-800 peer-checked:bg-anil-800 peer-checked:text-white",
-                      "peer-focus-visible:ring-2 peer-focus-visible:ring-anil-500/40 peer-focus-visible:ring-offset-1",
-                    )}
-                  >
-                    {value}
+      <fieldset className="space-y-2">
+        <legend className="font-display text-sm font-semibold text-ink">
+          ¿Cómo se lograron los objetivos de la actividad?
+        </legend>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {OBJECTIVE_ACHIEVEMENT_LEVELS.map((level) => (
+            <label
+              key={level.key}
+              className="cursor-pointer rounded-2xl border border-line bg-surface p-3.5 shadow-sm transition-colors has-checked:border-anil-700 has-checked:bg-anil-50 has-checked:ring-1 has-checked:ring-anil-700/30"
+            >
+              <span className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name="objectiveAchievementLevel"
+                  value={level.key}
+                  required
+                  defaultChecked={
+                    initialEvaluation?.objectiveAchievementLevel === level.key
+                  }
+                  className="mt-0.5 size-4 accent-anil-800"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-ink">
+                    {level.label}
                   </span>
-                  <span className="sr-only">
-                    {area.label}: {value} de 7
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-soft">
+                    {level.description}
                   </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        ))}
-      </div>
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
-      <div className="space-y-2">
-        <Label htmlFor={`evaluation-comment-${activityId}`}>
-          Evaluación escrita{" "}
-          <span className="font-normal normal-case tracking-normal text-ink-soft">
-            (opcional)
-          </span>
-        </Label>
-        <Textarea
-          id={`evaluation-comment-${activityId}`}
-          name="comment"
-          defaultValue={initialComment ?? ""}
-          placeholder="¿Cómo encontraron la actividad? Puedes comentar lo que observaron, lo que funcionó y lo que conviene cuidar la próxima vez…"
-          maxLength={2000}
-          className="min-h-28 bg-surface"
-        />
+      <fieldset className="space-y-2">
+        <legend className="font-display text-sm font-semibold text-ink">
+          ¿Qué áreas de desarrollo sentiste presentes?
+        </legend>
         <p className="text-[11px] text-ink-soft">
-          Hasta 2000 caracteres. Esta respuesta será visible para los AA.
+          Marca todas las que reconozcas; no hay una cantidad correcta.
         </p>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {DEVELOPMENT_AREAS.map((area) => (
+            <label
+              key={area.key}
+              className="flex cursor-pointer items-start gap-2 rounded-xl border border-line bg-surface px-3 py-2.5 text-xs text-ink shadow-sm transition-colors has-checked:border-anil-300 has-checked:bg-anil-50/60"
+            >
+              <input
+                type="checkbox"
+                name="experiencedAreas"
+                value={area.key}
+                defaultChecked={initialEvaluation?.experiencedAreas.includes(
+                  area.key,
+                )}
+                className="mt-0.5 size-3.5 accent-anil-800"
+              />
+              <span>
+                <span className="block font-semibold text-ink">
+                  {area.label}
+                </span>
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-soft">
+                  {area.description}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-2">
+          <Label htmlFor={`organization-${activityId}`}>
+            Organización y logística
+          </Label>
+          <Textarea
+            id={`organization-${activityId}`}
+            name="organizationFeedback"
+            defaultValue={initialEvaluation?.organizationFeedback ?? ""}
+            placeholder="Preparación, materiales, tiempos, coordinación con las familias…"
+            maxLength={2000}
+            className="min-h-28 bg-surface"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`resonance-${activityId}`}>
+            Clima y resonancia emocional
+          </Label>
+          <Textarea
+            id={`resonance-${activityId}`}
+            name="emotionalResonance"
+            defaultValue={initialEvaluation?.emotionalResonance ?? ""}
+            placeholder="El ritmo, el clima humano, lo que se sintió en el grupo…"
+            maxLength={2000}
+            className="min-h-28 bg-surface"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`learnings-${activityId}`}>
+            Aprendizajes para la próxima vez
+          </Label>
+          <Textarea
+            id={`learnings-${activityId}`}
+            name="learningsForNextTime"
+            defaultValue={initialEvaluation?.learningsForNextTime ?? ""}
+            placeholder="Qué conviene cuidar, cambiar o volver a intentar…"
+            maxLength={2000}
+            className="min-h-28 bg-surface"
+          />
+        </div>
       </div>
+
+      {showCompassPrompt ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-gold/40 bg-gold-soft/25 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2.5">
+            <Compass
+              className="mt-0.5 size-4 shrink-0 text-gold"
+              aria-hidden="true"
+            />
+            <div>
+              <p className="text-sm font-semibold text-ink">
+                ¿Viviste algo en esta actividad que quieras guardar en tu
+                Brújula?
+              </p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft">
+                Tu Brújula personal reúne las experiencias que te van formando.
+                Estará disponible en la próxima etapa del camino.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/camino"
+            className="shrink-0 text-xs font-semibold text-anil-800 underline-offset-2 hover:underline"
+          >
+            Ver mi camino simbólico
+          </Link>
+        </div>
+      ) : null}
 
       {state.error ? <Alert variant="error">{state.error}</Alert> : null}
       {state.success ? (
@@ -122,11 +203,12 @@ export function EvaluationForm({
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line/70 pt-4">
         <p className="inline-flex items-center gap-1.5 text-[11px] text-ink-soft">
           <Lock className="size-3.5" aria-hidden="true" />
-          Tu evaluación queda asociada a tu cuenta y solo la ven los AA.
+          Tu observación queda asociada a tu cuenta y solo la lee el Equipo
+          Adulto.
         </p>
-        <SubmitButton pendingLabel="Guardando evaluación…">
+        <SubmitButton pendingLabel="Guardando observación…">
           <Send aria-hidden="true" />
-          {initialScores ? "Actualizar evaluación" : "Enviar evaluación"}
+          {initialEvaluation ? "Actualizar observación" : "Enviar observación"}
         </SubmitButton>
       </div>
     </form>

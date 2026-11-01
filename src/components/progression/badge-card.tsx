@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { formatFullDate } from "@/lib/dates";
+import { STAGE_MEANINGS } from "@/lib/symbolic-path";
 import { cn } from "@/lib/utils";
 
 export interface BadgeView {
@@ -95,7 +96,7 @@ export function BadgeCard({
         {!obtained ? (
           <span className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-line bg-surface text-ink-soft shadow-sm">
             <Lock className="size-3.5" aria-hidden="true" />
-            <span className="sr-only">Pendiente</span>
+            <span className="sr-only">{pendingLabel(badge)}</span>
           </span>
         ) : null}
       </div>
@@ -113,7 +114,7 @@ export function BadgeCard({
           {obtained ? (
             <Badge variant="gold">Obtenida</Badge>
           ) : (
-            <Badge variant="outline">Pendiente</Badge>
+            <Badge variant="outline">{pendingLabel(badge)}</Badge>
           )}
         </div>
 
@@ -184,11 +185,30 @@ export function BadgeCard({
             ) : null}
           </div>
         ) : (
-          <p className="mt-3 text-[11px] text-ink-soft/70">
-            Cuando tu AA la otorgue, la imagen se activará a todo color.
+          <p className="mt-3 text-[11px] leading-relaxed text-ink-soft">
+            {pendingMeaning(badge)}
           </p>
         )}
       </div>
     </article>
   );
+}
+
+/**
+ * Las insignias de etapa marcan un comienzo, no un bloqueo. La Promesa y las
+ * competencias tampoco se activan por una etapa previa: se viven y se reconocen.
+ */
+function pendingLabel(badge: BadgeView) {
+  if (badge.category === "ETAPA") return "Por vivir";
+  if (badge.category === "PROMESA") return "Por celebrar";
+  return "Por reconocer";
+}
+
+function pendingMeaning(badge: BadgeView) {
+  if (badge.code === "ETAPA_SENDERO") return STAGE_MEANINGS.SENDERO.meaning;
+  if (badge.code === "ETAPA_CUMBRE") return STAGE_MEANINGS.CUMBRE.meaning;
+  if (badge.category === "PROMESA") {
+    return "La Promesa nace de tu decisión. No depende de la etapa ni de la antigüedad: puedes prepararla y celebrarla cuando sientas que es tu momento.";
+  }
+  return "Las competencias se reconocen al vivirlas. Tu Adulto Acompañante acompaña ese reconocimiento cuando la experiencia se hace presente.";
 }

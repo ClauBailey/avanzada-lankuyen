@@ -5,6 +5,7 @@ import { CommunityForm } from "@/components/admin/community-form";
 import { CommunityMemberRoles } from "@/components/communities/community-member-roles";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { communitySizeAdvisory } from "@/lib/community-rules";
 import { getDisplayName } from "@/lib/user-display";
@@ -103,6 +104,33 @@ export default async function MiComunidadPage() {
             <Card>
               <CardHeader className="border-b border-line/70">
                 <CardDescription className="text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
+                  Seguridad en terreno
+                </CardDescription>
+                <CardTitle>Asistencia de mi comunidad</CardTitle>
+              </CardHeader>
+              <CardContent className="p-5">
+                <p className="text-sm leading-relaxed text-ink-soft">
+                  Ratifica la lista real de tu comunidad para cuidar la
+                  seguridad y la responsabilidad legal en cada actividad. Sin
+                  porcentajes ni comparaciones: solo presencia, aviso previo y
+                  ausencia.
+                </p>
+                <Link
+                  href="/mi-comunidad/asistencia"
+                  className={buttonVariants({
+                    size: "sm",
+                    className: "mt-4",
+                  })}
+                >
+                  <UsersRound className="size-4" aria-hidden="true" />
+                  Ir a asistencia
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="border-b border-line/70">
+                <CardDescription className="text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
                   Identidad
                 </CardDescription>
                 <CardTitle>Nombre, lema y color</CardTitle>
@@ -111,34 +139,34 @@ export default async function MiComunidadPage() {
                 <CommunityForm mode="edit" community={community} />
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader className="border-b border-line/70">
-                <CardDescription className="text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
-                  Cargos internos
-                </CardDescription>
-                <CardTitle>Rotación del grupo</CardTitle>
-              </CardHeader>
-              <CardContent className="p-5">
-                <CommunityMemberRoles
-                  communityId={community.id}
-                  canManage
-                  members={members.map((member) => ({
-                    id: member.id,
-                    name: getDisplayName(member),
-                    username: member.username,
-                    role: member.role,
-                    communityRole: member.communityRole,
-                  }))}
-                />
-                <p className="mt-3 text-[11px] leading-relaxed text-ink-soft">
-                  Al asignar el cargo de Coordinador/a, el rol de sistema se
-                  sincroniza automáticamente. El cambio queda registrado en el
-                  historial de cargos y en la auditoría.
-                </p>
-              </CardContent>
-            </Card>
           </div>
+
+          <Card>
+            <CardHeader className="border-b border-line/70">
+              <CardDescription className="text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
+                Cargos internos
+              </CardDescription>
+              <CardTitle>Rotación del grupo</CardTitle>
+            </CardHeader>
+            <CardContent className="p-5">
+              <CommunityMemberRoles
+                communityId={community.id}
+                canManage
+                members={members.map((member) => ({
+                  id: member.id,
+                  name: getDisplayName(member),
+                  username: member.username,
+                  role: member.role,
+                  communityRole: member.communityRole,
+                }))}
+              />
+              <p className="mt-3 text-[11px] leading-relaxed text-ink-soft">
+                Al asignar el cargo de Coordinador/a, el rol de sistema se
+                sincroniza automáticamente. El cambio queda registrado en el
+                historial de cargos y en la auditoría.
+              </p>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

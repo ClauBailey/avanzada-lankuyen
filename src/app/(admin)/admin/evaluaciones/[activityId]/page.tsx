@@ -45,13 +45,11 @@ export default async function AdminEvaluacionDetallePage({
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
-        affectivityScore: true,
-        corporalityScore: true,
-        spiritualityScore: true,
-        characterScore: true,
-        creativityScore: true,
-        sociabilityScore: true,
-        comment: true,
+        objectiveAchievementLevel: true,
+        experiencedAreas: true,
+        organizationFeedback: true,
+        emotionalResonance: true,
+        learningsForNextTime: true,
         updatedAt: true,
         user: {
           select: {
@@ -66,7 +64,6 @@ export default async function AdminEvaluacionDetallePage({
     }),
     prisma.user.count({
       where: {
-        role: { in: ["PP", "COORDINADOR"] },
         isActive: true,
         deletedAt: null,
       },
@@ -80,15 +77,11 @@ export default async function AdminEvaluacionDetallePage({
     preferredName: evaluation.user.preferredName,
     username: evaluation.user.username,
     community: evaluation.user.community,
-    scores: {
-      affectivityScore: evaluation.affectivityScore,
-      corporalityScore: evaluation.corporalityScore,
-      spiritualityScore: evaluation.spiritualityScore,
-      characterScore: evaluation.characterScore,
-      creativityScore: evaluation.creativityScore,
-      sociabilityScore: evaluation.sociabilityScore,
-    },
-    comment: evaluation.comment,
+    objectiveAchievementLevel: evaluation.objectiveAchievementLevel,
+    experiencedAreas: evaluation.experiencedAreas,
+    organizationFeedback: evaluation.organizationFeedback,
+    emotionalResonance: evaluation.emotionalResonance,
+    learningsForNextTime: evaluation.learningsForNextTime,
     updatedAt: evaluation.updatedAt,
   }));
 
@@ -148,9 +141,8 @@ export default async function AdminEvaluacionDetallePage({
 
       {!hasEnded ? (
         <Alert variant="info">
-          La actividad todavía no termina. Las evaluaciones de PP y
-          coordinadores se habilitarán automáticamente después de la hora de
-          término.
+          La actividad todavía no termina. Las observaciones cualitativas se
+          habilitarán automáticamente después de la hora de término.
         </Alert>
       ) : null}
 

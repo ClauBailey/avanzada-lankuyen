@@ -50,6 +50,7 @@ export interface RatifierMember {
   community: { id: string; name: string; color: string | null } | null;
   rsvpStatus: RsvpStatus | null;
   justificationText: string | null;
+  justificationHidden?: boolean;
   files: RatifierFile[];
   recordStatus: AttendanceStatus | null;
   recordNotes: string | null;
@@ -417,8 +418,10 @@ export function AttendanceRatifier({
                           Justificación
                         </p>
                         <p className="mt-1 whitespace-pre-line">
-                          {member.justificationText ||
-                            "Sin texto: solo se adjuntó un documento."}
+                          {member.justificationHidden
+                            ? "El motivo de esta inasistencia está reservado al propio autor y al Equipo Adulto."
+                            : member.justificationText ||
+                              "Sin texto: solo se adjuntó un documento."}
                         </p>
                         {member.files.length > 0 ? (
                           <ul className="mt-2 space-y-1">

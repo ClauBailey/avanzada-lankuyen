@@ -16,6 +16,7 @@ export type NavIconName =
   | "trophy"
   | "users-round"
   | "settings"
+  | "compass"
   | "arrow-left";
 
 export interface NavItem {
@@ -28,6 +29,7 @@ export interface NavItem {
 export const memberNav: NavItem[] = [
   { href: "/inicio", label: "Inicio", icon: "home", exact: true },
   { href: "/perfil", label: "Mi perfil", icon: "user" },
+  { href: "/camino", label: "Mi camino", icon: "compass" },
   { href: "/mi-comunidad", label: "Mi comunidad", icon: "community" },
   { href: "/miembros", label: "Miembros", icon: "users-round" },
   { href: "/logros", label: "Logros", icon: "trophy" },

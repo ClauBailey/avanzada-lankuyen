@@ -60,7 +60,7 @@ export function badgeShareMotto(code: string, category: string) {
   if (code.includes("SENDERO")) {
     return "Cada paso del sendero deja una huella que la unidad recuerda.";
   }
-  return "Siempre más alto, siempre más lejos, siempre juntos.";
+  return "¡Siempre Adelante!";
 }
 
 /** Nombre del PNG descargable: insignia-[slug]-[username].png */

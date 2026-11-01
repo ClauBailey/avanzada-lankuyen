@@ -16,7 +16,9 @@ import {
 import { BadgeAdminCard } from "@/components/admin/badge-admin-card";
 import { AaAssignmentSelect } from "@/components/admin/aa-assignment-select";
 import { UserIdentityForm } from "@/components/admin/user-identity-form";
-import { AttendanceSummaryCard } from "@/components/attendance/attendance-summary-card";
+import { JourneyView } from "@/components/journey/journey-view";
+import type { MilestoneView } from "@/components/journey/milestone-form";
+import type { PromiseView } from "@/components/journey/promise-form";
 import {
   UserActiveToggle,
   UserCommunitySelect,
@@ -31,7 +33,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAttendanceSummary } from "@/features/attendance/queries";
 import {
   aaLoadAdvisory,
   ADULT_TEAM_ROLE_LABELS,
@@ -42,6 +43,7 @@ import {
 } from "@/lib/community-rules";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatFullDate, formatTimestamp } from "@/lib/dates";
+import type { SymbolicMomentKey } from "@/lib/symbolic-path";
 import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/server/db";
@@ -108,9 +110,10 @@ export default async function AdminUsuarioDetallePage({
     grants,
     reflections,
     communities,
-    attendanceSummary,
     aaCandidates,
     aaLoadCount,
+    milestones,
+    promise,
   ] =
     await Promise.all([
     prisma.badge.findMany({
@@ -143,7 +146,6 @@ export default async function AdminUsuarioDetallePage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, isActive: true },
     }),
-    getAttendanceSummary(member.id),
     prisma.user.findMany({
       where: { role: "AA", isActive: true, deletedAt: null },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
@@ -175,7 +177,62 @@ export default async function AdminUsuarioDetallePage({
           },
         })
       : Promise.resolve(0),
+    isAA
+      ? Promise.resolve([])
+      : prisma.journeyMilestone.findMany({
+          where: { userId: member.id },
+          select: {
+            moment: true,
+            occurredAt: true,
+            place: true,
+            story: true,
+            accompaniedBy: true,
+          },
+        }),
+    isAA
+      ? Promise.resolve(null)
+      : prisma.userPromise.findUnique({
+          where: { userId: member.id },
+          select: {
+            formula: true,
+            status: true,
+            desiredPlace: true,
+            motivation: true,
+            celebratedAt: true,
+            celebrationPlace: true,
+            story: true,
+            accompaniedBy: true,
+          },
+        }),
   ]);
+
+  const milestoneByMoment: Partial<
+    Record<SymbolicMomentKey, MilestoneView>
+  > = {};
+
+  for (const milestone of milestones) {
+    milestoneByMoment[milestone.moment] = {
+      occurredAt: milestone.occurredAt.toISOString(),
+      place: milestone.place,
+      story: milestone.story,
+      accompaniedBy: milestone.accompaniedBy,
+    };
+  }
+
+  const promiseView: PromiseView | null = promise
+    ? {
+        formula: promise.formula,
+        status: promise.status,
+        desiredPlace: promise.desiredPlace,
+        motivation: promise.motivation,
+        celebratedAt: promise.celebratedAt
+          ? promise.celebratedAt.toISOString()
+          : null,
+        celebrationPlace: promise.celebrationPlace,
+        story: promise.story,
+        accompaniedBy: promise.accompaniedBy,
+      }
+    : null;
 
   const grantByBadge = new Map(
     grants.map((grant) => [
@@ -486,7 +543,31 @@ export default async function AdminUsuarioDetallePage({
         </Card>
       </div>
 
-      {!isAA ? <AttendanceSummaryCard summary={attendanceSummary} /> : null}
+      {!isAA ? (
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="font-display text-xl font-semibold text-ink">
+                Camino simbólico de {getDisplayName(member).split(" ")[0]}
+              </h2>
+              <p className="text-xs text-ink-soft">
+                Registra la investidura, el inicio de una etapa, la Promesa o el
+                paso al Clan. Ningún hito exige otro: cada uno se abre cuando
+                tiene sentido para la persona.
+              </p>
+            </div>
+            <Badge variant="outline">Acompañamiento AA</Badge>
+          </div>
+
+          <JourneyView
+            milestones={milestoneByMoment}
+            promise={promiseView}
+            targetUserId={member.id}
+            canEdit
+            displayName={fullName}
+          />
+        </section>
+      ) : null}
 
       {!isAA ? (
         <section className="space-y-3">

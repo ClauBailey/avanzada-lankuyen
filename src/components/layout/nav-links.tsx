@@ -10,6 +10,7 @@ import {
   CalendarDays,
   CalendarPlus,
   ClipboardCheck,
+  Compass,
   FileCheck2,
   FileText,
   Home,
@@ -47,6 +48,7 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   award: Award,
   trophy: Trophy,
   "users-round": UsersRound,
+  compass: Compass,
   settings: Settings2,
   "arrow-left": ArrowLeft,
 };

@@ -20,16 +20,17 @@ if (!connectionString) {
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
-// Nombres provisionales de las 7 competencias: los AA podrán editarlos
-// desde el panel de insignias (Módulo 2) sin tocar código.
+// Las siete competencias oficiales (Manual pp. 278–279). Se conservan los
+// códigos históricos COMP_* para no perder las concesiones ya realizadas.
 const BADGES = [
   {
     code: "ETAPA_SENDERO",
     category: "ETAPA",
     stageCode: "SENDERO",
+    competencyArea: null,
     name: "Sendero",
     description:
-      "El Sendero es la oportunidad de las y los jóvenes para explorar y elegir sus caminos de manera individual, pero apoyados siempre por su grupo de amigas y amigos.",
+      "El Sendero comienza cuando la persona decide explorar sus propios caminos: sus intereses, sus preguntas y las formas de servir que la llaman. La insignia no corona un final; enciende una etapa.",
     imagePath: "/badges/etapa-sendero.svg",
     sortOrder: 10,
   },
@@ -37,9 +38,10 @@ const BADGES = [
     code: "ETAPA_CUMBRE",
     category: "ETAPA",
     stageCode: "CUMBRE",
+    competencyArea: null,
     name: "Cumbre",
     description:
-      "La Cumbre es el lugardesde donde las y los jóvenes pueden mirar haciaatrás para ver los diferentes caminos que han tomado para llegar hasta ahí y proyectarse hacia elfuturo con una visión más amplia.",
+      "La Cumbre comienza cuando la persona se siente lista para proyectar lo aprendido hacia el futuro. Mirar desde lo alto no es terminar el camino: es descubrir hacia dónde seguir.",
     imagePath: "/badges/etapa-cumbre.svg",
     sortOrder: 20,
   },
@@ -47,9 +49,10 @@ const BADGES = [
     code: "COMP_APRENDER",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Aprender a aprender",
+    competencyArea: "CULTURA",
+    name: "Cultura",
     description:
-      "Competencia provisional. La persona que aprende con curiosidad, se plantea preguntas y busca sus propias respuestas.",
+      "Se reconoce cuando la persona se acerca al arte, la memoria y las preguntas que abren mundos, y comparte lo que descubre con su comunidad.",
     imagePath: "/badges/comp-aprender.svg",
     sortOrder: 30,
   },
@@ -57,9 +60,10 @@ const BADGES = [
     code: "COMP_NATURALEZA",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Vida en la naturaleza",
+    competencyArea: "MEDIOAMBIENTE",
+    name: "Medioambiente",
     description:
-      "Competencia provisional. Cuidar el entorno, desenvolverse al aire libre y descubrir la vida al aire libre.",
+      "Se reconoce cuando la persona cuida el entorno, comprende su impacto y sostiene acciones concretas para dejar el lugar mejor de como lo encontró.",
     imagePath: "/badges/comp-naturaleza.svg",
     sortOrder: 40,
   },
@@ -67,9 +71,10 @@ const BADGES = [
     code: "COMP_CREATIVIDAD",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Creatividad y expresión",
+    competencyArea: "INNOVACION",
+    name: "Innovación",
     description:
-      "Competencia provisional. Expresarse con libertad, imaginar soluciones y crear con las manos y la voz.",
+      "Se reconoce cuando la persona imagina soluciones, prueba caminos nuevos y transforma una dificultad en una oportunidad para el grupo.",
     imagePath: "/badges/comp-creatividad.svg",
     sortOrder: 50,
   },
@@ -77,9 +82,10 @@ const BADGES = [
     code: "COMP_EQUIPO",
     category: "COMPETENCIA",
     stageCode: null,
+    competencyArea: "TRABAJO_EN_EQUIPO",
     name: "Trabajo en equipo",
     description:
-      "Competencia provisional. Construir con otras personas, repartir tareas y sostener los acuerdos del grupo.",
+      "Se reconoce cuando la persona construye con otras, reparte tareas, escucha y sostiene los acuerdos del grupo.",
     imagePath: "/badges/comp-equipo.svg",
     sortOrder: 60,
   },
@@ -87,9 +93,10 @@ const BADGES = [
     code: "COMP_LIDERAZGO",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Liderazgo y servicio",
+    competencyArea: "CIUDADANIA",
+    name: "Ciudadanía",
     description:
-      "Competencia provisional. Tomar la iniciativa, acompañar a otras personas y servir a la comunidad.",
+      "Se reconoce cuando la persona participa, toma la iniciativa y sirve a su comunidad con sentido de responsabilidad y cuidado.",
     imagePath: "/badges/comp-liderazgo.svg",
     sortOrder: 70,
   },
@@ -97,9 +104,10 @@ const BADGES = [
     code: "COMP_RELACIONES",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Relaciones interpersonales",
+    competencyArea: "COMUNICACION",
+    name: "Comunicación",
     description:
-      "Competencia provisional. Escuchar, dialogar y construir vínculos sanos con las demás personas.",
+      "Se reconoce cuando la persona escucha, dialoga y expresa lo que piensa y siente de forma clara y respetuosa.",
     imagePath: "/badges/comp-relaciones.svg",
     sortOrder: 80,
   },
@@ -107,9 +115,10 @@ const BADGES = [
     code: "COMP_ESPIRITUALIDAD",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Fe y espiritualidad",
+    competencyArea: "VIDA_AIRE_LIBRE_Y_DEPORTES",
+    name: "Vida al aire libre y deportes",
     description:
-      "Competencia provisional. Descubrir el sentido profundo de la vida y celebrar la fe en comunidad.",
+      "Se reconoce cuando la persona disfruta la vida al aire libre, cuida su cuerpo y encuentra en el movimiento una forma de encuentro y bienestar.",
     imagePath: "/badges/comp-espiritualidad.svg",
     sortOrder: 90,
   },
@@ -117,9 +126,10 @@ const BADGES = [
     code: "PROMESA",
     category: "PROMESA",
     stageCode: null,
+    competencyArea: null,
     name: "Promesa",
     description:
-      "La Promesa de la Avanzada: el compromiso personal que marca un antes y un después en el camino.",
+      "La Promesa nace de la decisión libre de la persona. No depende de la etapa ni de la antigüedad: se prepara y se celebra cuando tiene sentido para ella.",
     imagePath: "/badges/promesa.svg",
     sortOrder: 100,
   },
@@ -538,6 +548,7 @@ async function main() {
         code: badge.code,
         category: badge.category,
         stageCode: badge.stageCode,
+        competencyArea: badge.competencyArea,
         name: badge.name,
         description: badge.description,
         imagePath: badge.imagePath,
@@ -550,6 +561,7 @@ async function main() {
         sortOrder: badge.sortOrder,
         category: badge.category,
         stageCode: badge.stageCode,
+        competencyArea: badge.competencyArea,
       },
     });
   }

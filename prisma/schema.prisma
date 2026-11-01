@@ -58,6 +58,64 @@ enum StageCode {
   CUMBRE
 }
 
+/**
+ * Los cinco momentos simbólicos del camino, sin orden obligatorio ni bloqueos.
+ * La Promesa puede vivir con independencia de la etapa en que esté la persona.
+ */
+enum SymbolicMoment {
+  BIENVENIDA_INVESTIDURA
+  SENDERO
+  CUMBRE
+  PROMESA
+  PASO_AL_CLAN
+}
+
+/**
+ * Fórmulas de la Promesa que la persona puede elegir libremente (Manual p. 49).
+ */
+enum PromiseFormula {
+  LEY_GUIA
+  LEY_SCOUT
+  LEY
+}
+
+enum PromiseStatus {
+  PREPARACION
+  SOLICITADA
+  CELEBRADA
+}
+
+/**
+ * Las siete áreas oficiales de competencias (Manual p. 278–279).
+ */
+enum CompetencyArea {
+  CULTURA
+  TRABAJO_EN_EQUIPO
+  INNOVACION
+  COMUNICACION
+  CIUDADANIA
+  MEDIOAMBIENTE
+  VIDA_AIRE_LIBRE_Y_DEPORTES
+}
+
+/**
+ * Evaluación cualitativa posterior a una actividad: observación, no nota.
+ */
+enum ObjectiveAchievementLevel {
+  LOGRADO_PLENAMENTE
+  LOGRADO_PARCIALMENTE
+  NO_LOGRADO_REPLANTEAR
+}
+
+enum DevelopmentArea {
+  CORPORALIDAD
+  CREATIVIDAD
+  CARACTER
+  AFECTIVIDAD
+  SOCIABILIDAD
+  ESPIRITUALIDAD
+}
+
 enum ActivityType {
   REUNION
   SALIDA
@@ -98,6 +156,8 @@ enum NotificationType {
   BITACORA_APROBADA
   BITACORA_RECHAZADA
   LOGRO_DESBLOQUEADO
+  PROMESA_SOLICITADA
+  COMPETENCIA_RECONOCIDA
 }
 
 enum LogbookEntryStatus {
@@ -183,6 +243,12 @@ model User {
   grantedBadges       UserBadge[]         @relation("UserBadgeGrantedBy")
   revokedBadges       UserBadge[]         @relation("UserBadgeRevokedBy")
   reflections         StageReflection[]
+  journeyMilestones   JourneyMilestone[]  @relation("JourneyMilestoneUser")
+  accompaniedMilestones JourneyMilestone[] @relation("JourneyMilestoneAccompaniedBy")
+  registeredMilestones  JourneyMilestone[] @relation("JourneyMilestoneRegisteredBy")
+  promise             UserPromise?        @relation("UserPromiseUser")
+  accompaniedPromises UserPromise[]       @relation("UserPromiseAccompaniedBy")
+  registeredPromises  UserPromise[]       @relation("UserPromiseRegisteredBy")
   createdActivities   Activity[]          @relation("ActivityCreatedBy")
   ledActivities       ActivityLeader[]    @relation("ActivityLeaderUser")
   assignedLeaderShips ActivityLeader[]    @relation("ActivityLeaderAssignedBy")
@@ -240,6 +306,7 @@ model Badge {
   code        String        @unique @db.VarChar(50)
   category    BadgeCategory
   stageCode   StageCode?    @map("stage_code")
+  competencyArea CompetencyArea? @map("competency_area")
   name        String        @db.VarChar(100)
   description String        @db.Text
   imagePath   String        @map("image_path") @db.VarChar(255)
@@ -288,6 +355,65 @@ model StageReflection {
 
   @@unique([userId, stageCode])
   @@map("stage_reflections")
+}
+
+/**
+ * Momentos del camino simbólico registrados por la persona o su AA.
+ *
+ * No hay orden obligatorio: el paso al Clan, la investidura, el inicio de una
+ * etapa o un nuevo paso por SENDERO se guardan como memoria, nunca como
+ * condición para acceder a otra cosa.
+ */
+model JourneyMilestone {
+  id              String          @id @default(uuid()) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  moment          SymbolicMoment
+  occurredAt      DateTime        @map("occurred_at") @db.Date
+  place           String?         @db.VarChar(180)
+  story           String?         @db.Text
+  accompaniedBy   String?         @map("accompanied_by") @db.VarChar(180)
+  accompaniedById String?         @map("accompanied_by_id") @db.Uuid
+  registeredById  String?         @map("registered_by_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user              User  @relation("JourneyMilestoneUser", fields: [userId], references: [id], onDelete: Cascade)
+  accompaniedByUser User? @relation("JourneyMilestoneAccompaniedBy", fields: [accompaniedById], references: [id], onDelete: SetNull)
+  registeredBy      User? @relation("JourneyMilestoneRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, moment])
+  @@index([userId])
+  @@map("journey_milestones")
+}
+
+/**
+ * Preparación y celebración de la Promesa.
+ *
+ * Se solicita y se registra con independencia de la etapa, la antigüedad o los
+ * objetivos. La fórmula pertenece a la persona que la pronuncia.
+ */
+model UserPromise {
+  id               String         @id @default(uuid()) @db.Uuid
+  userId           String         @unique @map("user_id") @db.Uuid
+  formula          PromiseFormula?
+  status           PromiseStatus  @default(PREPARACION)
+  desiredPlace     String?        @map("desired_place") @db.VarChar(180)
+  motivation       String?        @db.Text
+  requestedAt      DateTime?      @map("requested_at") @db.Timestamptz(3)
+  celebratedAt     DateTime?      @map("celebrated_at") @db.Date
+  celebrationPlace String?        @map("celebration_place") @db.VarChar(180)
+  story            String?        @db.Text
+  accompaniedBy    String?        @map("accompanied_by") @db.VarChar(180)
+  accompaniedById  String?        @map("accompanied_by_id") @db.Uuid
+  registeredById   String?        @map("registered_by_id") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user              User  @relation("UserPromiseUser", fields: [userId], references: [id], onDelete: Cascade)
+  accompaniedByUser User? @relation("UserPromiseAccompaniedBy", fields: [accompaniedById], references: [id], onDelete: SetNull)
+  registeredBy      User? @relation("UserPromiseRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
+
+  @@map("user_promises")
 }
 
 // ------------------------------------------------------------
@@ -454,18 +580,16 @@ model AttendanceRecord {
 // ------------------------------------------------------------
 
 model ActivityEvaluation {
-  id                 String   @id @default(uuid()) @db.Uuid
-  activityId         String   @map("activity_id") @db.Uuid
-  userId             String   @map("user_id") @db.Uuid
-  affectivityScore   Int      @map("affectivity_score")
-  corporalityScore   Int      @map("corporality_score")
-  spiritualityScore  Int      @map("spirituality_score")
-  characterScore     Int      @map("character_score")
-  creativityScore    Int      @map("creativity_score")
-  sociabilityScore   Int      @map("sociability_score")
-  comment            String?  @db.Text
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                        String                    @id @default(uuid()) @db.Uuid
+  activityId                String                    @map("activity_id") @db.Uuid
+  userId                    String                    @map("user_id") @db.Uuid
+  objectiveAchievementLevel ObjectiveAchievementLevel @map("objective_achievement_level")
+  experiencedAreas          DevelopmentArea[]         @map("experienced_areas")
+  organizationFeedback      String?                   @map("organization_feedback") @db.Text
+  emotionalResonance        String?                   @map("emotional_resonance") @db.Text
+  learningsForNextTime      String?                   @map("learnings_for_next_time") @db.Text
+  createdAt                 DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
   user     User     @relation("ActivityEvaluationUser", fields: [userId], references: [id], onDelete: Cascade)

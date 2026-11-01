@@ -8,7 +8,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Flag,
   KeyRound,
+  Sparkles,
   Trophy,
   UserPlus,
   type LucideIcon,
@@ -90,6 +92,14 @@ const typeStyles: Record<
   LOGRO_DESBLOQUEADO: {
     icon: Trophy,
     className: "bg-gold-soft text-[#7a5a16]",
+  },
+  PROMESA_SOLICITADA: {
+    icon: Flag,
+    className: "bg-gold-soft text-[#7a5a16]",
+  },
+  COMPETENCIA_RECONOCIDA: {
+    icon: Sparkles,
+    className: "bg-anil-50 text-anil-700",
   },
 };
 

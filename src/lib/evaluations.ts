@@ -1,85 +1,141 @@
 /**
- * Áreas de desarrollo scout evaluadas después de cada actividad.
+ * Evaluación cualitativa de actividades (Constitución Art. III).
  *
- * Se mantienen en un módulo puro para compartir etiquetas entre formularios,
- * vistas AA y pruebas unitarias sin arrastrar dependencias del servidor.
+ * No existen notas, escalas 1–7, promedios ni comparaciones entre personas.
+ * Solo se observa el nivel de logro respecto de los objetivos, las áreas de
+ * desarrollo que se hicieron presentes y las palabras de quien participó.
+ *
+ * Módulo puro: lo comparten formularios, vistas AA y pruebas unitarias.
  */
-export const EVALUATION_AREAS = [
+
+export const OBJECTIVE_ACHIEVEMENT_LEVELS = [
   {
-    key: "affectivityScore",
-    label: "Afectividad",
+    key: "LOGRADO_PLENAMENTE",
+    label: "Logrado plenamente",
+    shortLabel: "Plenamente",
     description:
-      "Vínculos, cuidado de los demás y clima emocional que dejó la actividad.",
+      "La actividad alcanzó los objetivos que nos habíamos propuesto.",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-900",
   },
   {
-    key: "corporalityScore",
+    key: "LOGRADO_PARCIALMENTE",
+    label: "Logrado parcialmente",
+    shortLabel: "Parcialmente",
+    description:
+      "Avanzamos en los objetivos, aunque quedaron aspectos por profundizar.",
+    className: "border-amber-200 bg-amber-50 text-amber-900",
+  },
+  {
+    key: "NO_LOGRADO_REPLANTEAR",
+    label: "No logrado · replantear",
+    shortLabel: "Replantear",
+    description:
+      "Los objetivos no se alcanzaron y conviene pensar otra forma de vivirlos.",
+    className: "border-rose-200 bg-rose-50 text-rose-900",
+  },
+] as const;
+
+export type ObjectiveAchievementLevel =
+  (typeof OBJECTIVE_ACHIEVEMENT_LEVELS)[number]["key"];
+
+export const DEVELOPMENT_AREAS = [
+  {
+    key: "CORPORALIDAD",
     label: "Corporalidad",
     description:
       "Cuerpo, energía, movimiento y cuidado de la salud durante el encuentro.",
   },
   {
-    key: "spiritualityScore",
-    label: "Espiritualidad",
-    description:
-      "Sentido, interioridad, valores y conexión con lo trascendente.",
-  },
-  {
-    key: "characterScore",
-    label: "Carácter",
-    description:
-      "Autonomía, responsabilidad, constancia y toma de decisiones.",
-  },
-  {
-    key: "creativityScore",
+    key: "CREATIVIDAD",
     label: "Creatividad",
     description:
       "Imaginación, expresión y búsqueda de soluciones propias.",
   },
   {
-    key: "sociabilityScore",
+    key: "CARACTER",
+    label: "Carácter",
+    description:
+      "Autonomía, responsabilidad, constancia y toma de decisiones.",
+  },
+  {
+    key: "AFECTIVIDAD",
+    label: "Afectividad",
+    description:
+      "Vínculos, cuidado de los demás y clima emocional que dejó la actividad.",
+  },
+  {
+    key: "SOCIABILIDAD",
     label: "Sociabilidad",
     description:
       "Trabajo en equipo, comunicación y convivencia con el grupo.",
   },
+  {
+    key: "ESPIRITUALIDAD",
+    label: "Espiritualidad",
+    description:
+      "Sentido, interioridad, valores y conexión con lo trascendente.",
+  },
 ] as const;
 
-export type EvaluationAreaKey = (typeof EVALUATION_AREAS)[number]["key"];
+export type DevelopmentAreaKey = (typeof DEVELOPMENT_AREAS)[number]["key"];
 
-export type EvaluationScores = Record<EvaluationAreaKey, number>;
-
-export const EVALUATION_SCALE = [1, 2, 3, 4, 5, 6, 7] as const;
-
-export function average(values: readonly number[]): number | null {
-  if (values.length === 0) return null;
-  const total = values.reduce((sum, value) => sum + value, 0);
-  return Math.round((total / values.length) * 10) / 10;
+export interface QualitativeEvaluation {
+  objectiveAchievementLevel: ObjectiveAchievementLevel;
+  experiencedAreas: readonly DevelopmentAreaKey[];
 }
 
-export function overallEvaluationAverage(
-  evaluations: ReadonlyArray<EvaluationScores>,
-): number | null {
-  if (evaluations.length === 0) return null;
-
-  return average(
-    evaluations.flatMap((evaluation) =>
-      EVALUATION_AREAS.map((area) => evaluation[area.key]),
-    ),
+export function levelDefinition(level: ObjectiveAchievementLevel) {
+  return (
+    OBJECTIVE_ACHIEVEMENT_LEVELS.find((item) => item.key === level) ??
+    OBJECTIVE_ACHIEVEMENT_LEVELS[1]
   );
 }
 
-export function areaAverages(
-  evaluations: ReadonlyArray<EvaluationScores>,
-): Record<EvaluationAreaKey, number | null> {
-  return Object.fromEntries(
-    EVALUATION_AREAS.map((area) => [
-      area.key,
-      average(evaluations.map((evaluation) => evaluation[area.key])),
-    ]),
-  ) as Record<EvaluationAreaKey, number | null>;
+/**
+ * Distribución de niveles de logro. Devuelve conteos, nunca promedios.
+ */
+export function levelDistribution(
+  evaluations: ReadonlyArray<
+    Pick<QualitativeEvaluation, "objectiveAchievementLevel">
+  >,
+) {
+  return OBJECTIVE_ACHIEVEMENT_LEVELS.map((level) => ({
+    ...level,
+    count: evaluations.filter(
+      (evaluation) => evaluation.objectiveAchievementLevel === level.key,
+    ).length,
+  }));
 }
 
-/** Formato breve para pantallas: "5,6" y un guion cuando no hay respuestas. */
-export function formatEvaluationScore(value: number | null): string {
-  if (value === null) return "—";
-  return value.toFixed(1).replace(".", ",");
+/**
+ * Frecuencia con que cada área de desarrollo fue percibida.
+ */
+export function areaFrequency(
+  evaluations: ReadonlyArray<Pick<QualitativeEvaluation, "experiencedAreas">>,
+) {
+  const counts = new Map<DevelopmentAreaKey, number>();
+
+  for (const evaluation of evaluations) {
+    for (const area of evaluation.experiencedAreas) {
+      counts.set(area, (counts.get(area) ?? 0) + 1);
+    }
+  }
+
+  return DEVELOPMENT_AREAS.map((area) => ({
+    ...area,
+    count: counts.get(area.key) ?? 0,
+  }));
+}
+
+/** Texto legible de las áreas marcadas, sin puntajes. */
+export function formatExperiencedAreas(
+  areas: readonly DevelopmentAreaKey[],
+): string {
+  if (areas.length === 0) return "Sin áreas marcadas";
+
+  return areas
+    .map(
+      (key) => DEVELOPMENT_AREAS.find((area) => area.key === key)?.label ?? key,
+    )
+    .join(" · ");
 }

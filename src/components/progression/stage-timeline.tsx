@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { CalendarCheck2, Compass, Lock, Mountain, Quote, Share2 } from "lucide-react";
+import { CalendarCheck2, Compass, Mountain, Quote, Share2 } from "lucide-react";
 
 import {
   BadgeShareDialog,
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatFullDate } from "@/lib/dates";
+import { STAGE_MEANINGS } from "@/lib/symbolic-path";
 import { cn } from "@/lib/utils";
 
 export interface StageEntry {
@@ -41,6 +42,10 @@ export function StageTimeline({ stages, shareIdentity }: StageTimelineProps) {
       {stages.map((stage, index) => {
         const obtained = Boolean(stage.grant);
         const StageIcon = index === 0 ? Compass : Mountain;
+        const meaning =
+          stage.badge.code === "ETAPA_CUMBRE"
+            ? STAGE_MEANINGS.CUMBRE
+            : STAGE_MEANINGS.SENDERO;
 
         return (
           <li key={stage.badge.id} className="relative pl-12 sm:pl-16">
@@ -69,17 +74,11 @@ export function StageTimeline({ stages, shareIdentity }: StageTimelineProps) {
                       obtained ? "opacity-100" : "grayscale opacity-40",
                     )}
                   />
-                  {!obtained ? (
-                    <span className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full border border-line bg-surface text-ink-soft">
-                      <Lock className="size-3" aria-hidden="true" />
-                      <span className="sr-only">Pendiente</span>
-                    </span>
-                  ) : null}
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-anil-600">
-                    Etapa {index + 1}
+                    Un comienzo, no un requisito
                   </p>
 
                   <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -89,7 +88,7 @@ export function StageTimeline({ stages, shareIdentity }: StageTimelineProps) {
                     {obtained ? (
                       <Badge variant="gold">Obtenida</Badge>
                     ) : (
-                      <Badge variant="outline">Pendiente</Badge>
+                      <Badge variant="outline">Por vivir</Badge>
                     )}
                   </div>
 
@@ -121,8 +120,11 @@ export function StageTimeline({ stages, shareIdentity }: StageTimelineProps) {
                       ) : null}
                     </div>
                   ) : (
-                    <p className="mt-2 text-[11px] text-ink-soft/70">
-                      Cuando tu AA la otorgue, la imagen se activará a todo color.
+                    <p className="mt-3 rounded-lg border-l-2 border-anil-200 bg-anil-50/50 px-3 py-2 text-[11px] leading-relaxed text-ink-soft">
+                      <span className="font-semibold text-anil-800">
+                        {meaning.motto}.
+                      </span>{" "}
+                      {meaning.meaning}
                     </p>
                   )}
                 </div>

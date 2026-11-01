@@ -42,9 +42,10 @@ import {
   formatTimestamp,
 } from "@/lib/dates";
 import {
-  average,
-  formatEvaluationScore,
-  type EvaluationScores,
+  areaFrequency,
+  levelDistribution,
+  type DevelopmentAreaKey,
+  type ObjectiveAchievementLevel,
 } from "@/lib/evaluations";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
@@ -141,13 +142,11 @@ export default async function ActivityDetailPage({
         where: { userId: user.id },
         take: 1,
         select: {
-          affectivityScore: true,
-          corporalityScore: true,
-          spiritualityScore: true,
-          characterScore: true,
-          creativityScore: true,
-          sociabilityScore: true,
-          comment: true,
+          objectiveAchievementLevel: true,
+          experiencedAreas: true,
+          organizationFeedback: true,
+          emotionalResonance: true,
+          learningsForNextTime: true,
           updatedAt: true,
         },
       },
@@ -165,14 +164,15 @@ export default async function ActivityDetailPage({
   const response = activity.responses[0] ?? null;
   const record = activity.records[0] ?? null;
   const ownEvaluation = activity.evaluations[0] ?? null;
-  const ownScores: EvaluationScores | null = ownEvaluation
+  const ownEvaluationView = ownEvaluation
     ? {
-        affectivityScore: ownEvaluation.affectivityScore,
-        corporalityScore: ownEvaluation.corporalityScore,
-        spiritualityScore: ownEvaluation.spiritualityScore,
-        characterScore: ownEvaluation.characterScore,
-        creativityScore: ownEvaluation.creativityScore,
-        sociabilityScore: ownEvaluation.sociabilityScore,
+        objectiveAchievementLevel:
+          ownEvaluation.objectiveAchievementLevel as ObjectiveAchievementLevel,
+        experiencedAreas:
+          ownEvaluation.experiencedAreas as DevelopmentAreaKey[],
+        organizationFeedback: ownEvaluation.organizationFeedback,
+        emotionalResonance: ownEvaluation.emotionalResonance,
+        learningsForNextTime: ownEvaluation.learningsForNextTime,
       }
     : null;
   const isLeader = activity.leaders.some((leader) => leader.userId === user.id);
@@ -186,34 +186,23 @@ export default async function ActivityDetailPage({
   const canRespond = !isAA && isFuture && !isRatified;
   const initialFile = response?.justificationFiles[0]?.file ?? null;
 
-  const evaluationSummary =
+  const qualitativeSummary =
     canViewEvaluations && hasEnded
-      ? await prisma.activityEvaluation.aggregate({
+      ? await prisma.activityEvaluation.findMany({
           where: { activityId },
-          _avg: {
-            affectivityScore: true,
-            corporalityScore: true,
-            spiritualityScore: true,
-            characterScore: true,
-            creativityScore: true,
-            sociabilityScore: true,
+          select: {
+            objectiveAchievementLevel: true,
+            experiencedAreas: true,
           },
-          _count: true,
         })
       : null;
 
-  const evaluationAverage = evaluationSummary
-    ? average(
-        [
-          evaluationSummary._avg.affectivityScore,
-          evaluationSummary._avg.corporalityScore,
-          evaluationSummary._avg.spiritualityScore,
-          evaluationSummary._avg.characterScore,
-          evaluationSummary._avg.creativityScore,
-          evaluationSummary._avg.sociabilityScore,
-        ].filter((value): value is number => value !== null),
-      )
-    : null;
+  const evaluationDistribution = qualitativeSummary
+    ? levelDistribution(qualitativeSummary)
+    : [];
+  const evaluationAreas = qualitativeSummary
+    ? areaFrequency(qualitativeSummary).filter((area) => area.count > 0)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -454,9 +443,9 @@ export default async function ActivityDetailPage({
                     Cómo se vivió la actividad
                   </h2>
                   <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink-soft">
-                    Evaluación de las seis áreas de desarrollo scout. Es
-                    obligatoria la nota de cada área; el comentario escrito es
-                    opcional.
+                    Observación cualitativa sobre los objetivos, las áreas de
+                    desarrollo y lo que quieras dejarle al grupo. No hay notas
+                    ni promedios.
                   </p>
                 </div>
                 {ownEvaluation ? (
@@ -469,8 +458,8 @@ export default async function ActivityDetailPage({
               <div className="mt-5">
                 <EvaluationForm
                   activityId={activity.id}
-                  initialScores={ownScores}
-                  initialComment={ownEvaluation?.comment ?? null}
+                  initialEvaluation={ownEvaluationView}
+                  showCompassPrompt={!isAA}
                 />
               </div>
 
@@ -568,44 +557,52 @@ export default async function ActivityDetailPage({
             )}
           </Card>
 
-          {canViewEvaluations && hasEnded && evaluationSummary ? (
+          {canViewEvaluations && hasEnded && qualitativeSummary ? (
             <Card className="border-anil-200 bg-anil-50/40 p-5">
               <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
                 <Star className="size-3.5" aria-hidden="true" />
                 Evaluaciones
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-line bg-surface px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
-                    Respuestas
-                  </p>
-                  <p className="mt-1 font-display text-xl font-semibold text-ink">
-                    {evaluationSummary._count}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-line bg-surface px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
-                    Promedio
-                  </p>
-                  <p className="mt-1 font-display text-xl font-semibold text-ink">
-                    {formatEvaluationScore(evaluationAverage)}
-                    <span className="ml-0.5 text-[10px] font-medium text-ink-soft">
-                      /7
-                    </span>
-                  </p>
-                </div>
+              <div className="mt-3 rounded-xl border border-line bg-surface px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
+                  Observaciones recibidas
+                </p>
+                <p className="mt-1 font-display text-xl font-semibold text-ink">
+                  {qualitativeSummary.length}
+                </p>
               </div>
+              <ul className="mt-3 space-y-1.5">
+                {evaluationDistribution.map((level) => (
+                  <li
+                    key={level.key}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px]"
+                  >
+                    <span className="font-semibold text-ink">{level.label}</span>
+                    <span className="font-display text-base font-semibold text-ink">
+                      {level.count}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {evaluationAreas.length > 0 ? (
+                <p className="mt-2 text-[11px] leading-relaxed text-ink-soft">
+                  Áreas presentes:{" "}
+                  {evaluationAreas
+                    .map((area) => `${area.label} (${area.count})`)
+                    .join(" · ")}
+                </p>
+              ) : null}
               <p className="mt-3 text-xs leading-relaxed text-ink-soft">
-                {evaluationSummary._count === 0
-                  ? "Los PP y coordinadores aún no han respondido esta evaluación."
-                  : "Revisa las seis áreas y los comentarios de cada evaluador."}
+                {qualitativeSummary.length === 0
+                  ? "Los participantes aún no han dejado su observación."
+                  : "Revisa la distribución y el muro de reflexiones."}
               </p>
               <Link
                 href={`/admin/evaluaciones/${activity.id}`}
                 className={buttonVariants({ size: "sm", className: "mt-3" })}
               >
                 <Star className="size-4" aria-hidden="true" />
-                Ver todas las respuestas
+                Ver todas las reflexiones
               </Link>
             </Card>
           ) : null}

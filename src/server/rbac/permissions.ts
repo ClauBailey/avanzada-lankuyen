@@ -18,6 +18,8 @@ export const PERMISSIONS = [
   "semester:manage",
   "attendance:rsvp",
   "attendance:ratify",
+  "journey:register",
+  "promise:manage",
   "route_sheet:upload",
   "route_sheet:review",
   "badge:view",
@@ -53,6 +55,8 @@ const PP_PERMISSIONS = [
   "calendar:view",
   "activity:evaluate",
   "attendance:rsvp",
+  "journey:register",
+  "promise:manage",
   "route_sheet:upload",
   "badge:view",
   "achievement:view",
@@ -76,6 +80,9 @@ const COORDINADOR_PERMISSIONS = [
   "calendar:view",
   "activity:evaluate",
   "attendance:rsvp",
+  "attendance:ratify",
+  "journey:register",
+  "promise:manage",
   "route_sheet:upload",
   "badge:view",
   "achievement:view",
@@ -89,12 +96,10 @@ const COORDINADOR_PERMISSIONS = [
 ] as const satisfies readonly Permission[];
 
 /**
- * Los AA administran toda la unidad, pero no responden evaluaciones: solo las
- * leen. La acción de envío también vuelve a exigir `activity:evaluate`.
+ * Los AA administran toda la unidad y también registran su propia observación
+ * cualitativa después de cada actividad: su voz acompaña, no califica.
  */
-const AA_PERMISSIONS = PERMISSIONS.filter(
-  (permission) => permission !== "activity:evaluate",
-) as readonly Permission[];
+const AA_PERMISSIONS = PERMISSIONS as readonly Permission[];
 
 export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   PP: new Set<Permission>(PP_PERMISSIONS),

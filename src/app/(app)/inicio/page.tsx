@@ -184,7 +184,7 @@ export default async function InicioPage() {
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-anil-100/75 sm:text-base">
             {isAA
               ? "Tienes la vista completa de la unidad. Acompaña los procesos, revisa las hojas de ruta y mantén el calendario al día."
-              : "Este es tu espacio para avanzar por el Sendero y alcanzar la Cumbre. Revisa tus próximas actividades y registra tu asistencia."}
+              : "Este es tu espacio para recorrer tu camino simbólico a tu ritmo. Revisa tus próximas actividades y registra tu asistencia."}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-2.5">
