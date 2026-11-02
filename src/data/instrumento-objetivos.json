@@ -1,0 +1,170 @@
+[
+  {
+    "code": "COR-01",
+    "area": "CORPORALIDAD",
+    "terminalObjective": "Reconocer y cuidar su cuerpo como territorio propio, habitándolo con confianza y responsabilidad a lo largo de la vida.",
+    "intermediateObjective": "Reconocer sus límites y posibilidades corporales, sosteniendo hábitos de descanso, alimentación e higiene personal durante los encuentros y campamentos.",
+    "sortOrder": 10
+  },
+  {
+    "code": "COR-02",
+    "area": "CORPORALIDAD",
+    "terminalObjective": "Vivir el movimiento y la vida al aire libre como una forma permanente de encuentro, bienestar y cuidado de la salud.",
+    "intermediateObjective": "Participar en caminatas, juegos y deportes al aire libre, reconociendo el esfuerzo del propio cuerpo y aprendiendo a regular su energía.",
+    "sortOrder": 20
+  },
+  {
+    "code": "COR-03",
+    "area": "CORPORALIDAD",
+    "terminalObjective": "Cuidar la seguridad y la integridad física propia y de los demás en cualquier entorno, dentro y fuera de la unidad.",
+    "intermediateObjective": "Aplicar medidas básicas de seguridad en terreno, identificando riesgos y avisando a tiempo cuando una situación puede dañar a alguien.",
+    "sortOrder": 30
+  },
+  {
+    "code": "COR-04",
+    "area": "CORPORALIDAD",
+    "terminalObjective": "Habitar la propia corporalidad con autonomía, aceptando los cambios de la edad y respetando la diversidad de los cuerpos.",
+    "intermediateObjective": "Expresar con naturalidad lo que siente su cuerpo y respetar los tiempos, límites y formas de ser de sus compañeros y compañeras.",
+    "sortOrder": 40
+  },
+  {
+    "code": "CRE-01",
+    "area": "CREATIVIDAD",
+    "terminalObjective": "Crear con libertad y sentido, transformando ideas, preguntas y materiales en expresiones que dejen huella en su comunidad.",
+    "intermediateObjective": "Imaginar y llevar a cabo una creación propia —un relato, una canción, un objeto o una solución— y compartirla con su comunidad.",
+    "sortOrder": 50
+  },
+  {
+    "code": "CRE-02",
+    "area": "CREATIVIDAD",
+    "terminalObjective": "Resolver problemas de manera creativa, ensayando caminos nuevos y aprendiendo tanto de los aciertos como de los errores.",
+    "intermediateObjective": "Proponer al menos dos alternativas frente a una dificultad concreta del grupo y probar una de ellas sin miedo a equivocarse.",
+    "sortOrder": 60
+  },
+  {
+    "code": "CRE-03",
+    "area": "CREATIVIDAD",
+    "terminalObjective": "Valorar el arte, la memoria y las preguntas que abren mundos, integrando la curiosidad como parte de su forma de aprender.",
+    "intermediateObjective": "Explorar una manifestación artística o cultural que no conocía y contar a su comunidad qué le despertó.",
+    "sortOrder": 70
+  },
+  {
+    "code": "CRE-04",
+    "area": "CREATIVIDAD",
+    "terminalObjective": "Improvisar y adaptarse con ingenio a los imprevistos, sosteniendo la calma y el humor en situaciones cambiantes.",
+    "intermediateObjective": "Aportar una idea original cuando un plan cambia de golpe, ayudando a que el grupo encuentre una salida posible.",
+    "sortOrder": 80
+  },
+  {
+    "code": "CAR-01",
+    "area": "CARACTER",
+    "terminalObjective": "Actuar con autonomía y responsabilidad, tomando decisiones propias y sosteniendo los compromisos que asume.",
+    "intermediateObjective": "Cumplir los acuerdos y tareas que eligió asumir dentro de su comunidad, avisando con honestidad cuando no puede hacerlo.",
+    "sortOrder": 90
+  },
+  {
+    "code": "CAR-02",
+    "area": "CARACTER",
+    "terminalObjective": "Sostener la constancia frente a la dificultad, reconociendo el valor del esfuerzo y de los procesos que requieren tiempo.",
+    "intermediateObjective": "Terminar un proceso o proyecto que le costó sostener, identificando qué le ayudó a no abandonarlo.",
+    "sortOrder": 100
+  },
+  {
+    "code": "CAR-03",
+    "area": "CARACTER",
+    "terminalObjective": "Elegir con criterio propio, dialogando con otras voces sin dejarse llevar por la presión del grupo.",
+    "intermediateObjective": "Expresar una opinión distinta con respeto y sostenerla cuando siente que algo no es justo o no le hace bien.",
+    "sortOrder": 110
+  },
+  {
+    "code": "CAR-04",
+    "area": "CARACTER",
+    "terminalObjective": "Asumir las consecuencias de sus actos y aprender de ellos, construyendo una forma de estar en el mundo coherente con sus valores.",
+    "intermediateObjective": "Reconocer un error propio, reparar lo que sea posible y proponer un cambio concreto para la próxima vez.",
+    "sortOrder": 120
+  },
+  {
+    "code": "AFE-01",
+    "area": "AFECTIVIDAD",
+    "terminalObjective": "Reconocer y expresar sus emociones con libertad y cuidado, construyendo vínculos afectivos sanos y recíprocos.",
+    "intermediateObjective": "Nombrar lo que siente en un momento difícil y pedir o aceptar acompañamiento cuando lo necesita.",
+    "sortOrder": 130
+  },
+  {
+    "code": "AFE-02",
+    "area": "AFECTIVIDAD",
+    "terminalObjective": "Cuidar a los demás desde la empatía y el respeto, reconociendo la dignidad de cada persona.",
+    "intermediateObjective": "Escuchar a un compañero o compañera que está pasando por un momento difícil, sin juzgar ni contar lo que le confió.",
+    "sortOrder": 140
+  },
+  {
+    "code": "AFE-03",
+    "area": "AFECTIVIDAD",
+    "terminalObjective": "Construir relaciones de confianza y reciprocidad, aprendiendo a pedir ayuda y a ofrecer la propia.",
+    "intermediateObjective": "Pedir ayuda a una persona de confianza cuando enfrenta una situación que lo supera y ofrecer la suya a quien lo necesite.",
+    "sortOrder": 150
+  },
+  {
+    "code": "AFE-04",
+    "area": "AFECTIVIDAD",
+    "terminalObjective": "Reconocer y poner límites afectivos saludables, distinguiendo el cuidado del control y el respeto de la obediencia.",
+    "intermediateObjective": "Identificar una situación que le incomoda y comunicar su límite con claridad y respeto.",
+    "sortOrder": 160
+  },
+  {
+    "code": "SOC-01",
+    "area": "SOCIABILIDAD",
+    "terminalObjective": "Participar activamente en la vida de su comunidad, aportando al bien común y sosteniendo los acuerdos colectivos.",
+    "intermediateObjective": "Colaborar en una tarea de comunidad asumiendo un rol concreto y cumpliendo el acuerdo tomado con el grupo.",
+    "sortOrder": 170
+  },
+  {
+    "code": "SOC-02",
+    "area": "SOCIABILIDAD",
+    "terminalObjective": "Comunicarse con claridad y respeto, escuchando activamente y expresando lo propio sin dañar a los demás.",
+    "intermediateObjective": "Participar en una conversación de grupo escuchando antes de responder y expresando su punto de vista de forma respetuosa.",
+    "sortOrder": 180
+  },
+  {
+    "code": "SOC-03",
+    "area": "SOCIABILIDAD",
+    "terminalObjective": "Construir comunidad con personas diversas, reconociendo el valor de la diferencia y la riqueza del encuentro.",
+    "intermediateObjective": "Integrar a una persona nueva o a quien suele quedar al margen, invitándola a participar en una actividad del grupo.",
+    "sortOrder": 190
+  },
+  {
+    "code": "SOC-04",
+    "area": "SOCIABILIDAD",
+    "terminalObjective": "Servir a otros con generosidad y sentido de ciudadanía, contribuyendo a un entorno más justo y solidario.",
+    "intermediateObjective": "Participar en un servicio concreto a otra persona o a la comunidad, reconociendo el efecto que tuvo su aporte.",
+    "sortOrder": 200
+  },
+  {
+    "code": "ESP-01",
+    "area": "ESPIRITUALIDAD",
+    "terminalObjective": "Encontrar sentido a su vida y a sus decisiones, construyendo una interioridad que sostenga su forma de estar en el mundo.",
+    "intermediateObjective": "Dedicar un momento de silencio o reflexión personal y compartir con confianza lo que descubrió sobre sí mismo.",
+    "sortOrder": 210
+  },
+  {
+    "code": "ESP-02",
+    "area": "ESPIRITUALIDAD",
+    "terminalObjective": "Reconocer y agradecer la vida, la naturaleza y las personas que lo acompañan, cultivando una mirada contemplativa.",
+    "intermediateObjective": "Expresar gratitud concreta por algo o alguien de su vida y reconocer cómo eso lo sostiene.",
+    "sortOrder": 220
+  },
+  {
+    "code": "ESP-03",
+    "area": "ESPIRITUALIDAD",
+    "terminalObjective": "Vivir con coherencia entre lo que cree y lo que hace, integrando sus valores en las decisiones cotidianas.",
+    "intermediateObjective": "Identificar un valor que le importa y elegir una acción concreta de la semana que lo refleje.",
+    "sortOrder": 230
+  },
+  {
+    "code": "ESP-04",
+    "area": "ESPIRITUALIDAD",
+    "terminalObjective": "Abrirse al misterio y a la trascendencia, encontrando preguntas y respuestas propias que den horizonte a su camino.",
+    "intermediateObjective": "Formular una pregunta personal sobre el sentido de la vida y dialogar sobre ella con respeto y curiosidad.",
+    "sortOrder": 240
+  }
+]

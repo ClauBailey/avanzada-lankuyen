@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { RsvpPanel } from "@/components/attendance/rsvp-panel";
+import { ActivityCompassReflection } from "@/components/evaluations/activity-compass-reflection";
 import { EvaluationForm } from "@/components/evaluations/evaluation-form";
 import { CommunityTag } from "@/components/brand/community-tag";
 import { PageHeader } from "@/components/shared/page-header";
@@ -150,6 +151,16 @@ export default async function ActivityDetailPage({
           updatedAt: true,
         },
       },
+      compassReflections: {
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          objective: { select: { currentText: true } },
+        },
+      },
       _count: { select: { records: true, responses: true, evaluations: true } },
     },
   });
@@ -185,6 +196,14 @@ export default async function ActivityDetailPage({
   const isFuture = activity.startsAt > now;
   const canRespond = !isAA && isFuture && !isRatified;
   const initialFile = response?.justificationFiles[0]?.file ?? null;
+
+  const compassObjectives = !isAA
+    ? await prisma.userCompassObjective.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, currentText: true },
+      })
+    : [];
 
   const qualitativeSummary =
     canViewEvaluations && hasEnded
@@ -462,6 +481,24 @@ export default async function ActivityDetailPage({
                   showCompassPrompt={!isAA}
                 />
               </div>
+
+              {!isAA ? (
+                <div className="mt-5">
+                  <ActivityCompassReflection
+                    activityId={activity.id}
+                    objectives={compassObjectives}
+                    reflections={activity.compassReflections.map(
+                      (reflection) => ({
+                        id: reflection.id,
+                        content: reflection.content,
+                        createdAt: reflection.createdAt.toISOString(),
+                        objectiveText:
+                          reflection.objective?.currentText ?? null,
+                      }),
+                    )}
+                  />
+                </div>
+              ) : null}
 
               {ownEvaluation ? (
                 <p className="mt-3 text-[11px] text-ink-soft">

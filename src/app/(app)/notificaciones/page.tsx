@@ -9,6 +9,7 @@ import {
   ChevronRight,
   FileText,
   Flag,
+  Handshake,
   KeyRound,
   Sparkles,
   Trophy,
@@ -100,6 +101,10 @@ const typeStyles: Record<
   COMPETENCIA_RECONOCIDA: {
     icon: Sparkles,
     className: "bg-anil-50 text-anil-700",
+  },
+  CONSENSO_SOLICITADO: {
+    icon: Handshake,
+    className: "bg-gold-soft text-[#7a5a16]",
   },
 };
 

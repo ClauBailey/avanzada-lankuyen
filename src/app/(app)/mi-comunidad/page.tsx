@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, TriangleAlert, UsersRound } from "lucide-react";
+import { ArrowLeft, BookOpen, TriangleAlert, UsersRound } from "lucide-react";
 
 import { CommunityForm } from "@/components/admin/community-form";
 import { CommunityMemberRoles } from "@/components/communities/community-member-roles";
@@ -140,6 +140,29 @@ export default async function MiComunidadPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader className="border-b border-line/70">
+              <CardDescription className="text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
+                Bitácora privada
+              </CardDescription>
+              <CardTitle>La memoria de nuestra comunidad</CardTitle>
+            </CardHeader>
+            <CardContent className="p-5">
+              <p className="text-sm leading-relaxed text-ink-soft">
+                Acuerdos, anécdotas y tradiciones del grupo. Solo los miembros
+                activos de la comunidad pueden leerla y escribir en ella; el AA
+                encargado ve únicamente lo que ustedes decidan compartir.
+              </p>
+              <Link
+                href="/mi-comunidad/bitacora"
+                className={buttonVariants({ size: "sm", className: "mt-4" })}
+              >
+                <BookOpen className="size-4" aria-hidden="true" />
+                Abrir la bitácora
+              </Link>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="border-b border-line/70">

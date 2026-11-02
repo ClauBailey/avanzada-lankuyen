@@ -19,11 +19,24 @@ interface AppShellProps {
 
 export function AppShell({ user, variant, unreadCount, children }: AppShellProps) {
   const baseItems = variant === "admin" ? adminNav : memberNav;
-  const items = baseItems.filter(
-    (item) =>
-      item.href !== "/mi-comunidad" ||
-      (user.role === "COORDINADOR" && Boolean(user.communityId)),
-  );
+  const items = baseItems.filter((item) => {
+    if (item.href === "/mi-comunidad") {
+      return user.role === "COORDINADOR" && Boolean(user.communityId);
+    }
+    if (item.href === "/mi-comunidad/bitacora") {
+      return (
+        (user.role === "PP" || user.role === "COORDINADOR") &&
+        Boolean(user.communityId)
+      );
+    }
+    if (item.href === "/brujula") {
+      return user.role !== "AA";
+    }
+    if (item.href === "/acompanamiento") {
+      return user.role === "AA";
+    }
+    return true;
+  });
   const fullName = getDisplayName(user);
   const roleLabel = ROLE_LABELS[user.role];
 

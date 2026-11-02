@@ -116,6 +116,15 @@ enum DevelopmentArea {
   ESPIRITUALIDAD
 }
 
+/**
+ * Autoevaluación del joven en su Brújula. No hay aprobación adulta:
+ * solo el paso de «en exploración / en camino» a «logrado en mi vida cotidiana».
+ */
+enum CompassObjectiveStatus {
+  EXPLORANDO
+  LOGRADO_EN_VIDA_COTIDIANA
+}
+
 enum ActivityType {
   REUNION
   SALIDA
@@ -158,6 +167,7 @@ enum NotificationType {
   LOGRO_DESBLOQUEADO
   PROMESA_SOLICITADA
   COMPETENCIA_RECONOCIDA
+  CONSENSO_SOLICITADO
 }
 
 enum LogbookEntryStatus {
@@ -201,6 +211,7 @@ model Community {
 
   users       User[]
   roleHistory CommunityRoleHistory[]
+  logEntries  CommunityLogEntry[]
 
   @@map("communities")
 }
@@ -267,6 +278,11 @@ model User {
   auditLogs           AuditLog[]
   achievements        UserAchievement[]   @relation("UserAchievements")
   awardedAchievements UserAchievement[]   @relation("AwardedAchievements")
+  compassObjectives   UserCompassObjective[] @relation("UserCompassObjectiveUser")
+  compassReflections  UserCompassReflection[] @relation("UserCompassReflectionUser")
+  mentoringNotesReceived MentoringNote[]   @relation("MentoringNoteStudent")
+  mentoringNotesWritten  MentoringNote[]   @relation("MentoringNoteAuthor")
+  communityLogEntries CommunityLogEntry[]  @relation("CommunityLogEntryAuthor")
 
   @@index([communityId])
   @@index([role])
@@ -498,6 +514,7 @@ model Activity {
   routeSheets RouteSheet[]
   evaluations ActivityEvaluation[]
   logbookEntries LogbookEntry[]
+  compassReflections UserCompassReflection[]
 
   @@index([semesterId, startsAt])
   @@index([startsAt])
@@ -774,6 +791,145 @@ model LogbookEntry {
   @@index([authorId])
   @@index([activityId])
   @@map("logbook_entries")
+}
+
+// ------------------------------------------------------------
+// La Brújula: objetivos personales y acompañamiento 1 a 1
+// ------------------------------------------------------------
+
+/**
+ * Catálogo referencial de objetivos intermedios (15–17 años) y terminales.
+ * Se siembra desde `src/data/instrumento-objetivos.json` y está disponible
+ * completo desde el ingreso: no se bloquea por edad, antigüedad ni etapa.
+ */
+model CompassObjectiveTemplate {
+  id                    String          @id @default(uuid()) @db.Uuid
+  code                  String          @unique @db.VarChar(40)
+  area                  DevelopmentArea
+  terminalObjective     String          @db.Text
+  intermediateObjective String          @db.Text
+  sortOrder             Int             @default(0) @map("sort_order")
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  adoptions UserCompassObjective[]
+
+  @@index([area, sortOrder])
+  @@map("compass_objective_templates")
+}
+
+/**
+ * Objetivo que el joven adopta o crea en su propia Brújula.
+ * Solo el titular escribe; el AA encargado únicamente lee.
+ */
+model UserCompassObjective {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  userId               String                 @map("user_id") @db.Uuid
+  area                 DevelopmentArea
+  templateId           String?                @map("template_id") @db.Uuid
+  terminalObjectiveRef String?                @map("terminal_objective_ref") @db.Text
+  currentText          String                 @map("current_text") @db.Text
+  status               CompassObjectiveStatus @default(EXPLORANDO)
+  sharedWithCommunity  Boolean                @default(false) @map("shared_with_community")
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User                          @relation("UserCompassObjectiveUser", fields: [userId], references: [id], onDelete: Cascade)
+  template  CompassObjectiveTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  versions  UserCompassObjectiveVersion[]
+  reflections UserCompassReflection[]
+
+  @@index([userId, area])
+  @@index([templateId])
+  @@map("user_compass_objectives")
+}
+
+/**
+ * Historial inmutable de redacciones. Cada adopción, reformulación o creación
+ * inserta una fila nueva; nunca se actualiza ni se borra una versión previa.
+ */
+model UserCompassObjectiveVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  objectiveId String   @map("objective_id") @db.Uuid
+  text        String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  objective UserCompassObjective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+
+  @@index([objectiveId, createdAt])
+  @@map("user_compass_objective_versions")
+}
+
+/**
+ * Reflexión personal o autoevaluación de ciclo. Puede nacer desde una
+ * actividad y siempre pertenece al joven que la escribe.
+ */
+model UserCompassReflection {
+  id                    String   @id @default(uuid()) @db.Uuid
+  userId                String   @map("user_id") @db.Uuid
+  objectiveId           String?  @map("objective_id") @db.Uuid
+  activityId            String?  @map("activity_id") @db.Uuid
+  isCycleSelfEvaluation  Boolean  @default(false) @map("is_cycle_self_evaluation")
+  cycleLabel            String?  @map("cycle_label") @db.VarChar(120)
+  content               String   @db.Text
+  sharedWithAa          Boolean  @default(true) @map("shared_with_aa")
+  sharedWithCommunity   Boolean  @default(false) @map("shared_with_community")
+  consensusNote         String?  @map("consensus_note") @db.Text
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user      User                   @relation("UserCompassReflectionUser", fields: [userId], references: [id], onDelete: Cascade)
+  objective UserCompassObjective?  @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  activity  Activity?              @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([objectiveId])
+  @@index([activityId])
+  @@map("user_compass_reflections")
+}
+
+/**
+ * Nota privada del AA encargado sobre el joven. Se comparte solo si el propio
+ * AA activa `sharedWithStudent`. El historial sigue al `assignedAaId` vigente.
+ */
+model MentoringNote {
+  id               String   @id @default(uuid()) @db.Uuid
+  studentId        String   @map("student_id") @db.Uuid
+  authorAaId       String?  @map("author_aa_id") @db.Uuid
+  content          String   @db.Text
+  sharedWithStudent Boolean @default(false) @map("shared_with_student")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  student User  @relation("MentoringNoteStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  author  User? @relation("MentoringNoteAuthor", fields: [authorAaId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, createdAt])
+  @@index([authorAaId])
+  @@map("mentoring_notes")
+}
+
+// ------------------------------------------------------------
+// Bitácora privada de comunidad
+// ------------------------------------------------------------
+
+model CommunityLogEntry {
+  id                    String   @id @default(uuid()) @db.Uuid
+  communityId           String   @map("community_id") @db.Uuid
+  authorId              String?  @map("author_id") @db.Uuid
+  authorNameSnapshot    String   @map("author_name_snapshot") @db.VarChar(160)
+  title                 String   @db.VarChar(160)
+  content               String   @db.Text
+  sharedWithAa          Boolean  @default(false) @map("shared_with_aa")
+  sharedWithCoordinators Boolean @default(false) @map("shared_with_coordinators")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User?     @relation("CommunityLogEntryAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([communityId, createdAt])
+  @@index([authorId])
+  @@map("community_log_entries")
 }
 
 // ------------------------------------------------------------

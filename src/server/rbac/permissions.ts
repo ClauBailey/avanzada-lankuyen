@@ -41,6 +41,11 @@ export const PERMISSIONS = [
   "notification:view",
   "audit:view",
   "admin:access",
+  "compass:view",
+  "compass:write",
+  "mentoring:note",
+  "community_log:view",
+  "community_log:manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -65,6 +70,10 @@ const PP_PERMISSIONS = [
   "logbook:view",
   "logbook:create",
   "notification:view",
+  "compass:view",
+  "compass:write",
+  "community_log:view",
+  "community_log:manage",
 ] as const satisfies readonly Permission[];
 
 /**
@@ -93,13 +102,29 @@ const COORDINADOR_PERMISSIONS = [
   "community:identity_edit",
   "community:roles_manage",
   "notification:view",
+  "compass:view",
+  "compass:write",
+  "community_log:view",
+  "community_log:manage",
 ] as const satisfies readonly Permission[];
 
 /**
  * Los AA administran toda la unidad y también registran su propia observación
  * cualitativa después de cada actividad: su voz acompaña, no califica.
+ *
+ * La escritura de La Brújula pertenece exclusivamente al joven (Art. I) y la
+ * Bitácora de Comunidad pertenece a la comunidad (Art. V): el AA no recibe
+ * esos permisos aunque administre el resto de la unidad.
  */
-const AA_PERMISSIONS = PERMISSIONS as readonly Permission[];
+const AA_EXCLUDED_PERMISSIONS = new Set<Permission>([
+  "compass:write",
+  "community_log:view",
+  "community_log:manage",
+]);
+
+const AA_PERMISSIONS = PERMISSIONS.filter(
+  (permission) => !AA_EXCLUDED_PERMISSIONS.has(permission),
+);
 
 export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   PP: new Set<Permission>(PP_PERMISSIONS),

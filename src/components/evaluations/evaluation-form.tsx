@@ -176,16 +176,17 @@ export function EvaluationForm({
                 Brújula?
               </p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-ink-soft">
-                Tu Brújula personal reúne las experiencias que te van formando.
-                Estará disponible en la próxima etapa del camino.
+                Tu Brújula personal reúne los objetivos y experiencias que te
+                van formando. Puedes guardarla aquí abajo o explorarla completa
+                en Mi Brújula.
               </p>
             </div>
           </div>
           <Link
-            href="/camino"
+            href="/brujula"
             className="shrink-0 text-xs font-semibold text-anil-800 underline-offset-2 hover:underline"
           >
-            Ver mi camino simbólico
+            Ver Mi Brújula
           </Link>
         </div>
       ) : null}

@@ -8,8 +8,11 @@
  */
 import "dotenv/config";
 
+import { readFile } from "node:fs/promises";
+
 import { hash } from "@node-rs/argon2";
 import { PrismaPg } from "@prisma/adapter-pg";
+import type { DevelopmentArea } from "../src/generated/prisma/enums";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 const connectionString = process.env.DATABASE_URL;
@@ -540,8 +543,7 @@ function getCurrentSemester() {
 }
 
 async function main() {
-  console.log("→ Sembrando insignias…");
-  for (const badge of BADGES) {
+  console.log("→ Sembrando insignias…");  for (const badge of BADGES) {
     await prisma.badge.upsert({
       where: { code: badge.code },
       create: {
@@ -566,8 +568,42 @@ async function main() {
     });
   }
 
-  console.log("Sembrando logros RPG...");
-  for (const achievement of ACHIEVEMENTS) {
+  console.log("→ Sembrando objetivos de La Brújula…");
+  const objectivesUrl = new URL(
+    "../src/data/instrumento-objetivos.json",
+    import.meta.url,
+  );
+  const objectives = JSON.parse(
+    await readFile(objectivesUrl, "utf8"),
+  ) as Array<{
+    code: string;
+    area: DevelopmentArea;
+    terminalObjective: string;
+    intermediateObjective: string;
+    sortOrder?: number;
+  }>;
+
+  for (const objective of objectives) {
+    await prisma.compassObjectiveTemplate.upsert({
+      where: { code: objective.code },
+      create: {
+        code: objective.code,
+        area: objective.area,
+        terminalObjective: objective.terminalObjective,
+        intermediateObjective: objective.intermediateObjective,
+        sortOrder: objective.sortOrder ?? 0,
+      },
+      update: {
+        area: objective.area,
+        terminalObjective: objective.terminalObjective,
+        intermediateObjective: objective.intermediateObjective,
+        sortOrder: objective.sortOrder ?? 0,
+      },
+    });
+  }
+  console.log(`   ${objectives.length} objetivos disponibles desde el ingreso.`);
+
+  console.log("Sembrando logros RPG...");  for (const achievement of ACHIEVEMENTS) {
     await prisma.achievement.upsert({
       where: { code: achievement.code },
       create: {
