@@ -125,7 +125,10 @@ export default async function AdminObjetivosPage({
         />
       </div>
 
-      <nav aria-label="Filtrar por Área de Desarrollo" className="flex flex-wrap gap-2">
+      <nav
+        aria-label="Filtrar por Área de Desarrollo"
+        className="no-scrollbar flex flex-nowrap gap-2 overflow-x-auto pb-1"
+      >
         <Link
           href="/admin/objetivos"
           className={buttonVariants({

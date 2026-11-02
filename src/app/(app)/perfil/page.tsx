@@ -1,13 +1,14 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Award,
   BookOpen,
   Compass,
   Flag,
+  KeyRound,
   Mountain,
   ShieldCheck,
   Sparkles,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -15,9 +16,10 @@ import { BadgeCard, type BadgeGrantView, type BadgeView } from "@/components/pro
 import { StageTimeline, type StageEntry } from "@/components/progression/stage-timeline";
 import { DataSovereigntyCard } from "@/components/profile/data-sovereignty-card";
 import { PreferredNameForm } from "@/components/profile/preferred-name-form";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ROLE_LABELS } from "@/lib/constants";
+import { ADULT_TEAM_ROLE_LABELS, ROLE_LABELS } from "@/lib/constants";
 import { formatTimestamp } from "@/lib/dates";
 import { SYMBOLIC_MOMENTS } from "@/lib/symbolic-path";
 import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
@@ -31,6 +33,26 @@ export const metadata = {
 export default async function PerfilPage() {
   const user = await requireUser();
   const isAA = user.role === "AA";
+
+  const assignedYouth = isAA
+    ? await prisma.user.findMany({
+        where: {
+          assignedAaId: user.id,
+          role: { in: ["PP", "COORDINADOR"] },
+          isActive: true,
+          deletedAt: null,
+        },
+        orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          preferredName: true,
+          community: { select: { name: true, color: true } },
+        },
+      })
+    : [];
 
   const [badges, grants, reflections, milestones, promise, deletionRequest] =
     await Promise.all([
@@ -238,17 +260,20 @@ export default async function PerfilPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-anil-700" aria-hidden="true" />
-            Soberanía de tus Datos y Paso al Clan
+            {isAA
+              ? "Soberanía de tus Datos"
+              : "Soberanía de tus Datos y Paso al Clan"}
           </CardTitle>
           <CardDescription>
-            Tu historia te pertenece: puedes llevarla contigo en un archivo
-            portable, imprimirla como memoria y pedir el Paso al Clan cuando
-            tenga sentido para ti.
+            {isAA
+              ? "Tu información te pertenece: puedes exportarla en un archivo portable o imprimirla como memoria personal."
+              : "Tu historia te pertenece: puedes llevarla contigo en un archivo portable, imprimirla como memoria y pedir el Paso al Clan cuando tenga sentido para ti."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <DataSovereigntyCard
             displayName={displayName}
+            canRequestClan={!isAA}
             requestedAt={
               deletionRequest?.accountDeletionRequestedAt
                 ? formatTimestamp(deletionRequest.accountDeletionRequestedAt)
@@ -324,29 +349,119 @@ export default async function PerfilPage() {
       ) : null}
 
       {isAA ? (
-        <Card className="relative overflow-hidden border-dashed p-6 sm:p-8">
-          <div className="topo-bg pointer-events-none absolute inset-0 opacity-[0.3]" />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-anil-700">
-                Vista de acompañamiento
+        <Card className="border-anil-200 bg-white p-6 sm:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700">
+                Ficha del Equipo Adulto
               </p>
-              <h2 className="mt-2 font-display text-2xl font-semibold text-ink">
-                La progresión se ve desde el panel
+              <h2 className="mt-1 font-display text-2xl font-semibold text-ink">
+                {displayName}
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-                Como AA puedes otorgar insignias, leer las reflexiones de cada
-                Pionero o pionera y editar el catálogo. Tu cuenta no tiene bloque de
-                insignias propias.
+              <p className="mt-1 text-sm text-ink-soft">
+                @{user.username} · {user.firstName} {user.lastName}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Badge variant="gold">
+                  {user.adultTeamRole
+                    ? ADULT_TEAM_ROLE_LABELS[user.adultTeamRole]
+                    : "Equipo Adulto"}
+                </Badge>
+                <Badge variant="outline">
+                  {assignedYouth.length} persona
+                  {assignedYouth.length === 1 ? "" : "s"} joven
+                  {assignedYouth.length === 1 ? "" : "es"} acompañada
+                  {assignedYouth.length === 1 ? "" : "s"}
+                </Badge>
+              </div>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-soft">
+                Acompañas personalmente la progresión de un grupo pequeño,
+                sostienes el calendario y cuidas la identidad de la unidad. Tu
+                cuenta no recibe insignias ni recorre un camino simbólico
+                propio.
               </p>
             </div>
             <Link
-              href="/admin/insignias"
-              className={buttonVariants({ variant: "primary", size: "sm" })}
+              href="/acompanamiento"
+              className={buttonVariants({
+                variant: "primary",
+                size: "sm",
+                className: "shrink-0",
+              })}
             >
-              <Award className="size-4" aria-hidden="true" />
-              Gestionar insignias
+              <UsersRound className="size-4" aria-hidden="true" />
+              Ir a acompañamiento
             </Link>
+          </div>
+
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            <Link
+              href="/cambiar-password"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              <KeyRound className="size-4" aria-hidden="true" />
+              Cambiar mi contraseña
+            </Link>
+            <Link
+              href="/admin/objetivos"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              <Compass className="size-4" aria-hidden="true" />
+              Catálogo de objetivos
+            </Link>
+            <Link
+              href="/admin/comunidades"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              <UsersRound className="size-4" aria-hidden="true" />
+              Comunidades y acompañamiento
+            </Link>
+            <Link
+              href="/admin/usuarios"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              <ShieldCheck className="size-4" aria-hidden="true" />
+              Gestión de usuarios
+            </Link>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-line/70 bg-slate-50 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+              Personas jóvenes que acompañas
+            </p>
+            {assignedYouth.length === 0 ? (
+              <p className="mt-2 text-sm text-ink-soft">
+                Todavía no tienes personas jóvenes asignadas. La coordinación
+                puede asignártelas desde Comunidades.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {assignedYouth.map((youth) => (
+                  <li key={youth.id}>
+                    <Link
+                      href={`/acompanamiento/${youth.id}`}
+                      className="flex items-center justify-between gap-2 rounded-xl border border-line/70 bg-white px-3 py-2 text-sm text-ink transition-colors hover:border-indigo-200"
+                    >
+                      <span className="min-w-0">
+                        <span className="block font-semibold">
+                          {getDisplayName(youth)}
+                        </span>
+                        <span className="block text-[11px] text-ink-soft">
+                          @{youth.username}
+                          {youth.community
+                            ? ` · ${youth.community.name}`
+                            : ""}
+                        </span>
+                      </span>
+                      <ArrowRight
+                        className="size-4 shrink-0 text-ink-soft"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </Card>
       ) : null}

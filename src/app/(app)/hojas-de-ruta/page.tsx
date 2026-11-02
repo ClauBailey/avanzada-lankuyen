@@ -15,6 +15,7 @@ import {
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { CommunityRouteSheetBoard } from "@/components/route-sheets/community-route-sheet-board";
 import { RouteSheetStatusBadge } from "@/components/route-sheets/route-sheet-status-badge";
 import { RouteSheetStructuredView } from "@/components/route-sheets/route-sheet-structured-view";
 import { RouteSheetUploadForm } from "@/components/route-sheets/route-sheet-upload-form";
@@ -39,6 +40,7 @@ import {
 } from "@/lib/route-sheets";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
+import { getAppSettings } from "@/server/settings";
 
 export const metadata = {
   title: "Hojas de ruta",
@@ -53,11 +55,19 @@ function latestByStatus<T extends { status: RouteSheetStatus }>(
 
 export default async function HojasDeRutaPage() {
   const user = await requirePermission("calendar:view");
+  const isAA = user.role === "AA";
+  const settings = await getAppSettings();
   const now = new Date();
 
   const activeCycle = await prisma.programCycle.findFirst({
     where: { isActive: true },
     select: { id: true, name: true },
+  });
+
+  const communities = await prisma.community.findMany({
+    where: { isActive: true, deletedAt: null },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, color: true },
   });
 
   const projectOptions = await prisma.project.findMany({
@@ -78,7 +88,12 @@ export default async function HojasDeRutaPage() {
         deletedAt: null,
         isPublished: true,
         startsAt: { gte: now },
-        leaders: { some: { userId: user.id } },
+        OR: [
+          { leaders: { some: { userId: user.id } } },
+          ...(user.communityId
+            ? [{ scope: "COMUNIDAD" as const }]
+            : []),
+        ],
       },
       orderBy: { startsAt: "asc" },
       take: 12,
@@ -86,6 +101,7 @@ export default async function HojasDeRutaPage() {
         id: true,
         title: true,
         type: true,
+        scope: true,
         startsAt: true,
         endsAt: true,
         location: true,
@@ -115,7 +131,9 @@ export default async function HojasDeRutaPage() {
             createdAt: true,
             reviewedAt: true,
             fileId: true,
+            communityId: true,
             structuredData: true,
+            community: { select: { id: true, name: true, color: true } },
             project: { select: { id: true, title: true } },
             file: {
               select: {
@@ -175,11 +193,18 @@ export default async function HojasDeRutaPage() {
     }),
   ]);
 
-  const totalPendingAssignments = assignments.filter((activity) =>
-    activity.routeSheets.some(
+  const totalPendingAssignments = assignments.filter((activity) => {
+    const visibleSheets =
+      activity.scope === "COMUNIDAD"
+        ? activity.routeSheets.filter(
+            (sheet) => isAA || sheet.communityId === user.communityId,
+          )
+        : activity.routeSheets.filter((sheet) => sheet.communityId === null);
+
+    return visibleSheets.some(
       (sheet) => sheet.status === "PENDIENTE_AUTORIZACION",
-    ),
-  ).length;
+    );
+  }).length;
 
   return (
     <div className="space-y-8">
@@ -252,21 +277,44 @@ export default async function HojasDeRutaPage() {
         ) : (
           <div className="space-y-4">
             {assignments.map((activity) => {
-              const approved = latestByStatus(activity.routeSheets, "APROBADA");
+              const isCommunityActivity = activity.scope === "COMUNIDAD";
+              const activitySheets = isCommunityActivity
+                ? activity.routeSheets.filter(
+                    (sheet) => isAA || sheet.communityId === user.communityId,
+                  )
+                : activity.routeSheets.filter(
+                    (sheet) => sheet.communityId === null,
+                  );
+
+              const approved = latestByStatus(activitySheets, "APROBADA");
               const pending = latestByStatus(
-                activity.routeSheets,
+                activitySheets,
                 "PENDIENTE_AUTORIZACION",
               );
-              const rejected = latestByStatus(activity.routeSheets, "RECHAZADA");
+              const rejected = latestByStatus(activitySheets, "RECHAZADA");
               const latest = approved ?? pending ?? rejected ?? null;
-              const maxVersion = activity.routeSheets.reduce(
+              const maxVersion = activitySheets.reduce(
                 (max, sheet) => Math.max(max, sheet.version),
                 0,
               );
               const nextVersion = maxVersion + 1;
-              const state: RouteSheetStatus | null = latest?.status ?? null;
-              const needsUpload = !approved && !pending;
-              const highlight = needsUpload;
+              const aaCommunityBoard = isAA && isCommunityActivity;
+              const isLeaderHere = activity.leaders.some(
+                (leader) => leader.userId === user.id,
+              );
+              const canUploadThis =
+                !isCommunityActivity ||
+                isAA ||
+                isLeaderHere ||
+                user.role === "COORDINADOR" ||
+                settings.allowAnyPpRouteSheetUpload;
+              const state: RouteSheetStatus | null = aaCommunityBoard
+                ? null
+                : (latest?.status ?? null);
+              const needsUpload = aaCommunityBoard
+                ? true
+                : Boolean(canUploadThis && !approved && !pending);
+              const highlight = aaCommunityBoard ? false : needsUpload;
 
               return (
                 <Card
@@ -333,7 +381,22 @@ export default async function HojasDeRutaPage() {
                   </CardHeader>
 
                   <CardContent className="space-y-4 p-5">
-                    {approved ? (
+                    {isAA && isCommunityActivity ? (
+                      <div className="rounded-xl border border-line bg-canvas/30 p-3">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                          Tablero por Comunidad
+                        </p>
+                        <CommunityRouteSheetBoard
+                          communities={communities}
+                          sheets={activity.routeSheets}
+                          hrefForCommunity={(communityId) =>
+                            `/admin/hojas-de-ruta?activity=${activity.id}&community=${communityId}&status=all`
+                          }
+                        />
+                      </div>
+                    ) : null}
+
+                    {isAA && isCommunityActivity ? null : approved ? (
                       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
                         <CheckCircle2
                           className="size-5 shrink-0 text-emerald-700"
@@ -439,11 +502,21 @@ export default async function HojasDeRutaPage() {
                           nextVersion={nextVersion}
                           isResubmission={Boolean(rejected)}
                           projects={projectOptions}
+                          communityId={
+                            isCommunityActivity ? user.communityId : null
+                          }
+                          communities={communities.map((community) => ({
+                            id: community.id,
+                            name: community.name,
+                          }))}
+                          allowCommunitySelect={
+                            isAA && isCommunityActivity
+                          }
                         />
                       </div>
                     ) : null}
 
-                    {activity.routeSheets.length > 0 ? (
+                    {activitySheets.length > 0 ? (
                       <details className="rounded-xl border border-line bg-canvas/30">
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2.5 text-xs font-semibold text-anil-700">
                           <span className="inline-flex items-center gap-1.5">
@@ -451,13 +524,13 @@ export default async function HojasDeRutaPage() {
                             Historial de versiones
                           </span>
                           <span className="text-[11px] font-normal text-ink-soft">
-                            {activity.routeSheets.length} versión
-                            {activity.routeSheets.length === 1 ? "" : "es"}
+                            {activitySheets.length} versión
+                            {activitySheets.length === 1 ? "" : "es"}
                           </span>
                         </summary>
 
                         <ul className="space-y-2 border-t border-line/70 px-3.5 py-3">
-                          {activity.routeSheets.map((sheet) => (
+                          {activitySheets.map((sheet) => (
                             <li
                               key={sheet.id}
                               className="rounded-lg border border-line/70 bg-surface px-3 py-2"
@@ -467,6 +540,11 @@ export default async function HojasDeRutaPage() {
                                   {routeSheetVersionLabel(sheet.version)}
                                 </span>
                                 <RouteSheetStatusBadge status={sheet.status} />
+                                {sheet.community ? (
+                                  <Badge variant="outline">
+                                    {sheet.community.name}
+                                  </Badge>
+                                ) : null}
                                 <span className="text-[11px] text-ink-soft">
                                   {formatTimestamp(sheet.createdAt)}
                                 </span>

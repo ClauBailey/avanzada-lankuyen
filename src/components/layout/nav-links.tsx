@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Award,
@@ -17,6 +18,7 @@ import {
   Handshake,
   Home,
   LayoutDashboard,
+  Menu,
   Settings2,
   Star,
   Trophy,
@@ -24,12 +26,14 @@ import {
   Users,
   UsersRound,
   Vote,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
   isNavItemActive,
+  type NavGroup,
   type NavIconName,
   type NavItem,
 } from "@/lib/navigation";
@@ -55,6 +59,7 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   vote: Vote,
   "folder-kanban": FolderKanban,
   handshake: Handshake,
+  menu: Menu,
   settings: Settings2,
   "arrow-left": ArrowLeft,
 };
@@ -103,52 +108,152 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
 }
 
 export function MobileNav({
-  items,
+  primaryItems,
+  moreGroups,
   unreadCount = 0,
 }: {
-  items: NavItem[];
+  primaryItems: NavItem[];
+  moreGroups: NavGroup[];
   unreadCount?: number;
 }) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
 
   return (
-    <nav
-      aria-label="Navegación principal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_-20px_rgba(20,22,58,0.4)] backdrop-blur lg:hidden"
-    >
-      <div className="scrollbar-thin flex overflow-x-auto px-1.5">
-        {items.map((item) => {
-          const active = isNavItemActive(pathname, item);
-          const Icon = navIcons[item.icon];
+    <>
+      <nav
+        aria-label="Navegación principal"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-indigo-100 bg-white/95 pb-safe shadow-[0_-8px_30px_-20px_rgba(20,22,58,0.35)] backdrop-blur md:hidden"
+      >
+        <div className="grid h-16 grid-cols-5">
+          {primaryItems.map((item) => {
+            const active = isNavItemActive(pathname, item);
+            const Icon = navIcons[item.icon];
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex min-w-[70px] flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[10px] font-semibold transition-colors",
-                active ? "text-anil-800" : "text-ink-soft hover:text-anil-700",
-              )}
-            >
-              <span
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex size-8 items-center justify-center rounded-lg transition-colors",
-                  active ? "bg-anil-100 text-anil-800" : "text-ink-soft",
+                  "flex flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors",
+                  active
+                    ? "text-indigo-700"
+                    : "text-slate-500 hover:text-indigo-700",
                 )}
               >
-                <Icon className="size-[18px]" aria-hidden="true" />
-                {item.icon === "bell" && unreadCount > 0 ? (
-                  <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-4 text-white ring-2 ring-surface">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                ) : null}
-              </span>
-              <span className="whitespace-nowrap">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+                <span
+                  className={cn(
+                    "relative flex size-8 items-center justify-center rounded-xl transition-colors",
+                    active
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "text-slate-500",
+                  )}
+                >
+                  <Icon className="size-[21px]" aria-hidden="true" />
+                  {item.icon === "bell" && unreadCount > 0 ? (
+                    <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-4 text-white ring-2 ring-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="whitespace-nowrap">{item.label}</span>
+              </Link>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-expanded={open}
+            aria-controls="mobile-more-sheet"
+            className="flex flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-slate-500 transition-colors hover:text-indigo-700"
+          >
+            <span className="flex size-8 items-center justify-center rounded-xl">
+              <Menu className="size-[21px]" aria-hidden="true" />
+            </span>
+            <span>Más</span>
+          </button>
+        </div>
+      </nav>
+
+      {open ? (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            type="button"
+            aria-label="Cerrar el menú Más"
+            onClick={() => setOpen(false)}
+            className="absolute inset-0 bg-indigo-950/40 backdrop-blur-sm"
+          />
+          <div
+            id="mobile-more-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Más módulos"
+            className="absolute inset-x-0 bottom-0 max-h-[82vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl"
+          >
+            <div className="mb-4 flex items-center justify-between rounded-2xl bg-indigo-950 px-4 py-3 text-white">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-200/70">
+                  Avanzada Lankuyen
+                </p>
+                <p className="font-display text-lg font-semibold">Más módulos</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                aria-label="Cerrar"
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            {moreGroups.map((group) => (
+              <section key={group.title} className="mb-5 last:mb-0">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  {group.title}
+                </p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {group.items.map((item) => {
+                    const active = isNavItemActive(pathname, item);
+                    const Icon = navIcons[item.icon];
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex min-h-[68px] flex-col justify-between rounded-2xl border p-3 transition-colors",
+                          active
+                            ? "border-indigo-200 bg-indigo-50 text-indigo-800"
+                            : "border-indigo-100 bg-slate-50 text-slate-700 hover:border-indigo-200 hover:bg-indigo-50/60",
+                        )}
+                      >
+                        <Icon className="size-5" aria-hidden="true" />
+                        <span className="text-xs font-semibold leading-tight">
+                          {item.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

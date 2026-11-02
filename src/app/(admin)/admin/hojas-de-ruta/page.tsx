@@ -69,12 +69,13 @@ export default async function AdminHojasDeRutaPage({
     status?: string;
     cycle?: string;
     activity?: string;
+    community?: string;
   }>;
 }) {
   await requirePermission("route_sheet:review");
   const params = await searchParams;
 
-  const [cycles, activities] = await Promise.all([
+  const [cycles, activities, communities] = await Promise.all([
     prisma.programCycle.findMany({
       orderBy: { startDate: "desc" },
       select: { id: true, name: true, isActive: true },
@@ -84,6 +85,11 @@ export default async function AdminHojasDeRutaPage({
       orderBy: { startsAt: "desc" },
       select: { id: true, title: true, cycleId: true },
     }),
+    prisma.community.findMany({
+      where: { deletedAt: null },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
   ]);
 
   const cycleId = cycles.some((item) => item.id === params.cycle)
@@ -91,6 +97,9 @@ export default async function AdminHojasDeRutaPage({
     : "";
   const activityId = activities.some((item) => item.id === params.activity)
     ? (params.activity ?? "")
+    : "";
+  const communityId = communities.some((item) => item.id === params.community)
+    ? (params.community ?? "")
     : "";
 
   const statusParam = params.status ?? "";
@@ -108,6 +117,7 @@ export default async function AdminHojasDeRutaPage({
 
   const scopeWhere: Prisma.RouteSheetWhereInput = {
     deletedAt: null,
+    ...(communityId ? { communityId } : {}),
     activity: {
       deletedAt: null,
       ...(cycleId ? { cycleId } : {}),
@@ -133,6 +143,8 @@ export default async function AdminHojasDeRutaPage({
         id: true,
         status: true,
         version: true,
+        communityId: true,
+        community: { select: { id: true, name: true, color: true } },
         title: true,
         description: true,
         rejectionReason: true,
@@ -289,9 +301,11 @@ export default async function AdminHojasDeRutaPage({
       <RouteSheetFilters
         cycles={cycles}
         activities={activities}
+        communities={communities}
         status={selectStatus}
         cycleId={cycleId}
         activityId={activityId}
+        communityId={communityId}
       />
 
       <section className="space-y-4">
@@ -375,6 +389,11 @@ export default async function AdminHojasDeRutaPage({
                           <Badge variant="outline">
                             {routeSheetVersionLabel(sheet.version)}
                           </Badge>
+                          {sheet.community ? (
+                            <Badge variant="outline">
+                              {sheet.community.name}
+                            </Badge>
+                          ) : null}
                           {isPending ? (
                             <Badge variant="warning">Requiere revisión</Badge>
                           ) : null}

@@ -2,7 +2,7 @@
 
 Plataforma web de gestión y acompañamiento para la **Avanzada de Pioneros y Pioneras Lankuyen** del **Grupo Guía y Scout Alfa Cruz**, Concepción, Chile.
 
-**Estado actual: v2.1.0** — lenguaje inclusivo de la Rama, gestión del catálogo referencial de objetivos de La Brújula por el Equipo Adulto y documentación integral.
+**Estado actual: v2.2.0** — hojas de ruta por Comunidad, rediseño móvil añil/blanco con barra de 4 accesos + «Más», y experiencia diferenciada para el Equipo Adulto y los jóvenes.
 
 ---
 
@@ -41,6 +41,9 @@ Los principios que estructuran la plataforma son:
 
 ### Comunidades juveniles, Grupos de Trabajo y Proyectos
 
+- **Hojas de Ruta por Comunidad (v2.2):** en actividades con `scope === 'COMUNIDAD'`, cada Comunidad tiene su propio hilo de hoja de ruta, su propia versión y su propio estado. Ninguna Comunidad puede sobrescribir el hilo de otra.
+- **Tablero semáforo por Comunidad:** el Equipo Adulto ve *Sin entregar*, *Pendiente de revisión*, *Con observaciones* o *Aprobada* para cada Comunidad en `/calendario/[activityId]` y `/admin/hojas-de-ruta`.
+- **Experiencia móvil (v2.2):** barra inferior de 4 accesos esenciales + cajón «Más» de 5 columnas, con navegación filtrada por rol. El AA nunca ve Mi Brújula, Mi Camino ni Mi Comunidad.
 - El **Equipo Adulto no pertenece a las comunidades juveniles**.
 - Cargos internos rotativos: coordinación, secretaría, tesorería y otros.
 - **Bitácora privada de comunidad** (`/mi-comunidad/bitacora`), con visibilidad acotada y moderación.
@@ -180,7 +183,7 @@ tests/                       # Suites constitucionales y de regresión
 | `/admin/asistencia`, `/admin/asistencia/[activityId]` | Ratificación de asistencia |
 | `/admin/evaluaciones`, `/admin/evaluaciones/[activityId]` | Observación cualitativa |
 | `/admin/bitacora` | Moderación de la bitácora |
-| `/admin/hojas-de-ruta` | Revisión de hojas de ruta |
+| `/admin/hojas-de-ruta` | Revisión de hojas de ruta y filtro por Comunidad |
 | `/admin/insignias` | Otorgamiento de insignias |
 | `/admin/red-de-apoyo` | Directorio de la Red de Apoyo |
 | `/admin/material` | Publicación de material digital |

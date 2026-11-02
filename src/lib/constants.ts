@@ -13,6 +13,11 @@ export const ROLE_LABELS = {
 
 export type AppRole = keyof typeof ROLE_LABELS;
 
+export const ADULT_TEAM_ROLE_LABELS = {
+  RESPONSABLE_AVANZADA: "Responsable de Avanzada",
+  ASISTENTE_AVANZADA: "Asistente de Avanzada",
+} as const;
+
 export const ROLE_SHORT_LABELS = {
   AA: "AA",
   PP: "PP",
