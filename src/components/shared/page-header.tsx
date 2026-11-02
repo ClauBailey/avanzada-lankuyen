@@ -39,7 +39,11 @@ export function PageHeader({
           </p>
         ) : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
 }

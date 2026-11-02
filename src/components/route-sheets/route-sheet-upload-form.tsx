@@ -25,6 +25,9 @@ interface RouteSheetUploadFormProps {
   nextVersion: number;
   isResubmission: boolean;
   projects?: { id: string; title: string }[];
+  communityId?: string | null;
+  communities?: { id: string; name: string }[];
+  allowCommunitySelect?: boolean;
 }
 
 export function RouteSheetUploadForm({
@@ -33,6 +36,9 @@ export function RouteSheetUploadForm({
   nextVersion,
   isResubmission,
   projects = [],
+  communityId = null,
+  communities = [],
+  allowCommunitySelect = false,
 }: RouteSheetUploadFormProps) {
   const [state, formAction] = useActionState(
     uploadRouteSheetAction,
@@ -49,6 +55,33 @@ export function RouteSheetUploadForm({
     <form ref={formRef} action={formAction} className="space-y-4">
       <input type="hidden" name="activityId" value={activityId} />
       <input type="hidden" name="mode" value={mode} />
+
+      {allowCommunitySelect ? (
+        <div className="space-y-2">
+          <Label htmlFor={`route-sheet-community-${activityId}`}>
+            Comunidad de la hoja de ruta
+          </Label>
+          <Select
+            id={`route-sheet-community-${activityId}`}
+            name="communityId"
+            defaultValue={communityId ?? ""}
+            required
+          >
+            <option value="">Selecciona una Comunidad</option>
+            {communities.map((community) => (
+              <option key={community.id} value={community.id}>
+                {community.name}
+              </option>
+            ))}
+          </Select>
+          <p className="text-[11px] text-ink-soft">
+            Cada Comunidad tiene su propio hilo. La hoja que subas quedará
+            separada de las demás.
+          </p>
+        </div>
+      ) : communityId ? (
+        <input type="hidden" name="communityId" value={communityId} />
+      ) : null}
 
       <div className="inline-flex rounded-xl border border-line bg-canvas/40 p-1">
         <button

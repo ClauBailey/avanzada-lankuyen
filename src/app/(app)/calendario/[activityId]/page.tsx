@@ -20,6 +20,7 @@ import { ActivityCompassReflection } from "@/components/evaluations/activity-com
 import { EvaluationForm } from "@/components/evaluations/evaluation-form";
 import { CommunityTag } from "@/components/brand/community-tag";
 import { RouteSheetStructuredView } from "@/components/route-sheets/route-sheet-structured-view";
+import { CommunityRouteSheetBoard } from "@/components/route-sheets/community-route-sheet-board";
 import { PageHeader } from "@/components/shared/page-header";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +79,7 @@ export default async function ActivityDetailPage({
       title: true,
       description: true,
       type: true,
+      scope: true,
       startsAt: true,
       endsAt: true,
       location: true,
@@ -104,6 +106,8 @@ export default async function ActivityDetailPage({
           id: true,
           fileId: true,
           structuredData: true,
+          communityId: true,
+          community: { select: { id: true, name: true, color: true } },
           title: true,
           version: true,
           status: true,
@@ -190,10 +194,24 @@ export default async function ActivityDetailPage({
       }
     : null;
   const isLeader = activity.leaders.some((leader) => leader.userId === user.id);
+  const isCommunityActivity = activity.scope === "COMUNIDAD";
+  const communities = isCommunityActivity
+    ? await prisma.community.findMany({
+        where: { isActive: true, deletedAt: null },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true, color: true },
+      })
+    : [];
+  const visibleRouteSheets = isCommunityActivity
+    ? activity.routeSheets.filter(
+        (sheet) => isAA || sheet.communityId === user.communityId,
+      )
+    : activity.routeSheets.filter((sheet) => sheet.communityId === null);
   const approvedSheet =
-    activity.routeSheets.find((sheet) => sheet.status === "APROBADA") ?? null;
-  const latestSheet = activity.routeSheets[0] ?? null;
-  const canSeeRouteSheetStatus = isAA || isLeader;
+    visibleRouteSheets.find((sheet) => sheet.status === "APROBADA") ?? null;
+  const latestSheet = visibleRouteSheets[0] ?? null;
+  const canSeeRouteSheetStatus =
+    isAA || isLeader || (isCommunityActivity && Boolean(user.communityId));
   const routeSheetHref = isAA ? "/admin/hojas-de-ruta" : "/hojas-de-ruta";
   const isRatified = activity._count.records > 0;
   const isFuture = activity.startsAt > now;
@@ -341,7 +359,22 @@ export default async function ActivityDetailPage({
                   Hoja de ruta
                 </p>
                 <div className="mt-2">
-                  {approvedSheet ? (
+                  {isAA && isCommunityActivity ? (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                        Tablero semáforo por Comunidad
+                      </p>
+                      <CommunityRouteSheetBoard
+                        communities={communities}
+                        sheets={activity.routeSheets}
+                        hrefForCommunity={(communityId) =>
+                          `/admin/hojas-de-ruta?activity=${activity.id}&community=${communityId}&status=all`
+                        }
+                      />
+                    </div>
+                  ) : null}
+
+                  {isAA && isCommunityActivity ? null : approvedSheet ? (
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         {approvedSheet.fileId ? (
@@ -366,6 +399,11 @@ export default async function ActivityDetailPage({
                               : ""}
                           </Badge>
                         )}
+                        {approvedSheet.community ? (
+                          <Badge variant="outline">
+                            {approvedSheet.community.name}
+                          </Badge>
+                        ) : null}
                         {approvedSheet.reviewedBy ? (
                           <span className="text-[11px] text-ink-soft">
                             Aprobada por{" "}

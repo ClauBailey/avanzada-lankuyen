@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, Compass, Eye, Lock, UsersRound } from "lucide-react";
+import { redirect } from "next/navigation";
+import { ArrowLeft, Compass, Eye, Lock } from "lucide-react";
 
 import { CompassBoard } from "@/components/compass/compass-board";
 import { CompassOfflineSync } from "@/components/compass/compass-offline-sync";
@@ -10,7 +11,6 @@ import type {
   SharedObjectiveView,
   SharedReflectionView,
 } from "@/components/compass/types";
-import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -30,27 +30,7 @@ export default async function BrujulaPage() {
   const user = await requirePermission("compass:view");
 
   if (user.role === "AA") {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          eyebrow="La Brújula"
-          title="Acompañar, nunca escribir"
-          description="La Brújula pertenece exclusivamente a cada persona joven. Como Adulto Acompañante puedes leerla en modo solo lectura desde tu panel de acompañamiento."
-        />
-        <EmptyState
-          icon={Compass}
-          title="Tu cuenta no tiene una Brújula propia"
-          description="Entra a Acompañamiento para leer la Brújula de las y los jóvenes que tienes asignados y registrar tus notas de acompañamiento."
-        />
-        <Link
-          href="/acompanamiento"
-          className={buttonVariants({ size: "sm", className: "w-fit" })}
-        >
-          <UsersRound className="size-4" aria-hidden="true" />
-          Ir a acompañamiento
-        </Link>
-      </div>
-    );
+    redirect("/acompanamiento");
   }
 
   const [assignedAa, objectives, templates, sharedObjectives, sharedReflections, sharedNotes] =

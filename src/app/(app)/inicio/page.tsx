@@ -5,12 +5,14 @@ import {
   Bell,
   BookOpen,
   CalendarDays,
+  Compass,
   FileText,
   MapPin,
   ShieldCheck,
   Sparkles,
   Star,
   Users,
+  UsersRound,
 } from "lucide-react";
 
 import { CommunityTag } from "@/components/brand/community-tag";
@@ -47,6 +49,9 @@ export default async function InicioPage() {
     unreadNotifications,
     publishedMaterials,
     pendingEvaluations,
+    assignedYouth,
+    pendingPromises,
+    pendingConsensus,
   ] = await Promise.all([
     prisma.userBadge.count({
       where: { userId: user.id, revokedAt: null },
@@ -108,36 +113,92 @@ export default async function InicioPage() {
             evaluations: { none: { userId: user.id } },
           },
         }),
+    isAA
+      ? prisma.user.count({
+          where: {
+            assignedAaId: user.id,
+            role: { in: ["PP", "COORDINADOR"] },
+            isActive: true,
+            deletedAt: null,
+          },
+        })
+      : Promise.resolve(0),
+    isAA
+      ? prisma.userPromise.count({
+          where: {
+            status: "SOLICITADA",
+            user: { assignedAaId: user.id },
+          },
+        })
+      : Promise.resolve(0),
+    isAA
+      ? prisma.notification.count({
+          where: {
+            recipientId: user.id,
+            type: "CONSENSO_SOLICITADO",
+            readAt: null,
+          },
+        })
+      : Promise.resolve(0),
   ]);
 
-  const quickLinks = [
-    {
-      href: "/perfil",
-      label: "Mi perfil",
-      description: "Etapas, competencias y promesa",
-      icon: Award,
-    },
-    {
-      href: "/calendario",
-      label: "Calendario",
-      description: "Actividades y asistencia",
-      icon: CalendarDays,
-    },
-    {
-      href: "/hojas-de-ruta",
-      label: "Hojas de ruta",
-      description: "Subir y descargar documentos",
-      icon: FileText,
-    },
-    {
-      href: "/material",
-      label: "Material digital",
-      description: `${publishedMaterials} recurso${
-        publishedMaterials === 1 ? "" : "s"
-      } publicado${publishedMaterials === 1 ? "" : "s"} · identidad de la unidad`,
-      icon: BookOpen,
-    },
-  ];
+  const quickLinks = isAA
+    ? [
+        {
+          href: "/acompanamiento",
+          label: "Acompañamiento 1 a 1",
+          description: `${assignedYouth} persona${
+            assignedYouth === 1 ? "" : "s"
+          } joven${assignedYouth === 1 ? "" : "es"} que acompañas`,
+          icon: UsersRound,
+        },
+        {
+          href: "/admin/hojas-de-ruta",
+          label: "Hojas de ruta",
+          description: "Revisar y autorizar por Comunidad",
+          icon: FileText,
+        },
+        {
+          href: "/admin/objetivos",
+          label: "Objetivos de La Brújula",
+          description: "Catálogo referencial del Manual",
+          icon: Compass,
+        },
+        {
+          href: "/admin/usuarios",
+          label: "Cuentas y equipos",
+          description: "Usuarios, comunidades y acompañamiento",
+          icon: Users,
+        },
+      ]
+    : [
+        {
+          href: "/perfil",
+          label: "Mi perfil",
+          description: "Etapas, competencias y promesa",
+          icon: Award,
+        },
+        {
+          href: "/calendario",
+          label: "Calendario",
+          description: "Actividades y asistencia",
+          icon: CalendarDays,
+        },
+        {
+          href: "/hojas-de-ruta",
+          label: "Hojas de ruta",
+          description: "Subir y descargar documentos",
+          icon: FileText,
+        },
+        {
+          href: "/material",
+          label: "Material digital",
+          description: `${publishedMaterials} recurso${
+            publishedMaterials === 1 ? "" : "s"
+          } publicado${publishedMaterials === 1 ? "" : "s"} · identidad de la unidad`,
+          icon: BookOpen,
+        },
+      ];
 
   const nextRsvp = nextActivity?.responses[0]?.status ?? null;
   const nextRecord = nextActivity?.records[0]?.status ?? null;
@@ -213,6 +274,32 @@ export default async function InicioPage() {
           </div>
         </div>
       </section>
+
+      {isAA ? (
+        <section className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Personas acompañadas"
+            value={assignedYouth}
+            hint="Jóvenes asignados a tu acompañamiento 1 a 1"
+            icon={UsersRound}
+            href="/acompanamiento"
+          />
+          <StatCard
+            label="Promesas por acompañar"
+            value={pendingPromises}
+            hint="Solicitudes de tus personas acompañadas"
+            icon={Sparkles}
+            href="/admin/usuarios"
+          />
+          <StatCard
+            label="Consensos pendientes"
+            value={pendingConsensus}
+            hint="Solicitudes sin leer de tus jóvenes"
+            icon={Bell}
+            href="/notificaciones"
+          />
+        </section>
+      ) : null}
 
       {!isAA && pendingEvaluations > 0 ? (
         <Link

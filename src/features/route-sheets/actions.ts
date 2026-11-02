@@ -19,6 +19,10 @@ import {
   routeSheetIdSchema,
   uploadRouteSheetSchema,
 } from "@/features/route-sheets/schemas";
+import {
+  canUploadRouteSheet,
+  resolveRouteSheetCommunityId,
+} from "@/features/route-sheets/rules";
 import { recordAudit } from "@/server/audit";
 import { requirePermission } from "@/server/auth/session";
 import { runRouteSheetReminder } from "@/server/cron/route-sheet-reminder";
@@ -96,6 +100,7 @@ export async function uploadRouteSheetAction(
 
   const parsed = uploadRouteSheetSchema.safeParse({
     activityId: readField(formData, "activityId"),
+    communityId: readField(formData, "communityId") || undefined,
     projectId: readField(formData, "projectId") || undefined,
     mode: readField(formData, "mode") || "FILE",
     title: readField(formData, "title") || undefined,
@@ -133,6 +138,7 @@ export async function uploadRouteSheetAction(
     select: {
       id: true,
       title: true,
+      scope: true,
       startsAt: true,
       leaders: {
         select: {
@@ -159,12 +165,39 @@ export async function uploadRouteSheetAction(
     }
   }
 
+  const communityResolution = resolveRouteSheetCommunityId({
+    activityScope: activity.scope,
+    actorRole: user.role,
+    actorCommunityId: user.communityId,
+    requestedCommunityId: parsed.data.communityId ?? null,
+  });
+
+  if ("error" in communityResolution) {
+    return { error: communityResolution.error };
+  }
+
+  const targetCommunityId = communityResolution.communityId;
+  let targetCommunityName: string | null = null;
+
+  if (targetCommunityId) {
+    const community = await prisma.community.findFirst({
+      where: { id: targetCommunityId, isActive: true, deletedAt: null },
+      select: { id: true, name: true },
+    });
+
+    if (!community) {
+      return { error: "La Comunidad seleccionada no está activa." };
+    }
+
+    targetCommunityName = community.name;
+  }
+
   const isLeader = activity.leaders.some(
     (leader) => leader.userId === user.id,
   );
 
   // El COORDINADOR de la comunidad organizadora también puede presentar la
-  // hoja: la comunidad organizadora es la de los encargados de la actividad.
+  // hoja en actividades de Avanzada.
   const leaderCommunityIds = new Set(
     activity.leaders
       .map((leader) => leader.user.communityId)
@@ -190,23 +223,28 @@ export async function uploadRouteSheetAction(
     }),
   );
 
-  const canUpload =
-    user.role === "AA" ||
-    isLeader ||
-    isOrganizingCoordinator ||
-    isProjectResponsible ||
-    (settings.allowAnyPpRouteSheetUpload &&
-      (user.role === "PP" || user.role === "COORDINADOR"));
+  const canUpload = canUploadRouteSheet({
+    actorRole: user.role,
+    actorCommunityId: user.communityId,
+    targetCommunityId,
+    activityScope: activity.scope,
+    isLeader,
+    isOrganizingCoordinator,
+    isProjectResponsible,
+    allowAnyPpUpload: settings.allowAnyPpRouteSheetUpload,
+  });
 
   if (!canUpload) {
     return {
       error:
-        "Solo el Equipo Adulto, los encargados de la actividad, la coordinación de la comunidad organizadora y el Responsable de un proyecto vinculado pueden presentar su hoja de ruta.",
+        activity.scope === "COMUNIDAD"
+          ? "Solo la coordinación, los encargados y los miembros activos de esa Comunidad pueden presentar su hoja de ruta. El Equipo Adulto puede hacerlo seleccionando la Comunidad."
+          : "Solo el Equipo Adulto, los encargados de la actividad, la coordinación de la comunidad organizadora y el Responsable de un proyecto vinculado pueden presentar su hoja de ruta.",
     };
   }
 
   const existing = await prisma.routeSheet.findMany({
-    where: { activityId, deletedAt: null },
+    where: { activityId, communityId: targetCommunityId, deletedAt: null },
     orderBy: { version: "desc" },
     select: { id: true, status: true, version: true },
   });
@@ -217,7 +255,9 @@ export async function uploadRouteSheetAction(
 
   if (pending) {
     return {
-      error: `La versión ${pending.version} está en revisión. Espera la respuesta de un AA antes de subir otra.`,
+      error: `La versión ${pending.version}${
+        targetCommunityName ? ` de ${targetCommunityName}` : ""
+      } está en revisión. Espera la respuesta de un AA antes de subir otra.`,
     };
   }
 
@@ -225,8 +265,9 @@ export async function uploadRouteSheetAction(
 
   if (approved) {
     return {
-      error:
-        "Esta actividad ya tiene una hoja de ruta aprobada. Si necesitas reemplazarla, contacta a un AA.",
+      error: targetCommunityName
+        ? `La Comunidad ${targetCommunityName} ya tiene una hoja de ruta aprobada para esta actividad. Si necesitas reemplazarla, contacta a un AA.`
+        : "Esta actividad ya tiene una hoja de ruta aprobada. Si necesitas reemplazarla, contacta a un AA.",
     };
   }
 
@@ -284,6 +325,7 @@ export async function uploadRouteSheetAction(
       const sheet = await tx.routeSheet.create({
         data: {
           activityId,
+          communityId: targetCommunityId,
           projectId: projectId ?? null,
           uploadedById: user.id,
           fileId,
@@ -304,8 +346,14 @@ export async function uploadRouteSheetAction(
           {
             recipientId: recipient.id,
             type: "HOJA_ENVIADA",
-            title: `Hoja de ruta enviada: ${activity.title}`,
-            body: `${fullName} subió la versión ${sheet.version} de la hoja de ruta de «${activity.title}» y está pendiente de autorización.`,
+            title: targetCommunityName
+              ? `Hoja de ruta enviada: ${activity.title} · ${targetCommunityName}`
+              : `Hoja de ruta enviada: ${activity.title}`,
+            body: `${fullName} subió la versión ${sheet.version} de la hoja de ruta${
+              targetCommunityName
+                ? ` de la Comunidad ${targetCommunityName}`
+                : ""
+            } de «${activity.title}» y está pendiente de autorización.`,
             entityType: "RouteSheet",
             entityId: sheet.id,
             actionUrl: "/admin/hojas-de-ruta",
@@ -324,6 +372,7 @@ export async function uploadRouteSheetAction(
           entityId: sheet.id,
           after: {
             activityId,
+            communityId: targetCommunityId,
             projectId: projectId ?? null,
             mode,
             version: sheet.version,
@@ -345,7 +394,9 @@ export async function uploadRouteSheetAction(
     revalidateRouteSheets(activityId);
 
     return {
-      success: `Hoja de ruta v${created.version} enviada. Un AA la revisará y te avisará por notificaciones.`,
+      success: `Hoja de ruta v${created.version}${
+        targetCommunityName ? ` de ${targetCommunityName}` : ""
+      } enviada. Un AA la revisará y te avisará por notificaciones.`,
     };
   } catch (error) {
     if (uploaded && objectKey) {
@@ -382,9 +433,11 @@ export async function approveRouteSheetAction(
     select: {
       id: true,
       activityId: true,
+      communityId: true,
       version: true,
       status: true,
       uploadedById: true,
+      community: { select: { id: true, name: true } },
       activity: {
         select: {
           title: true,
@@ -415,6 +468,7 @@ export async function approveRouteSheetAction(
     await tx.routeSheet.updateMany({
       where: {
         activityId: sheet.activityId,
+        communityId: sheet.communityId,
         status: "APROBADA",
         deletedAt: null,
         id: { not: sheet.id },
@@ -432,9 +486,22 @@ export async function approveRouteSheetAction(
       },
     });
 
+    const communityMembers = sheet.communityId
+      ? await tx.user.findMany({
+          where: {
+            communityId: sheet.communityId,
+            role: { in: ["PP", "COORDINADOR"] },
+            isActive: true,
+            deletedAt: null,
+          },
+          select: { id: true },
+        })
+      : [];
+
     const recipientIds = new Set([
       sheet.uploadedById,
       ...sheet.activity.leaders.map((leader) => leader.userId),
+      ...communityMembers.map((member) => member.id),
     ]);
 
     for (const recipientId of recipientIds) {
@@ -442,8 +509,12 @@ export async function approveRouteSheetAction(
         {
           recipientId,
           type: "HOJA_APROBADA",
-          title: `Hoja de ruta aprobada: ${sheet.activity.title}`,
-          body: `La versión ${sheet.version} de la hoja de ruta de «${sheet.activity.title}» fue aprobada. Ya está disponible para toda la unidad en el calendario.`,
+          title: sheet.community
+            ? `Hoja de ruta aprobada: ${sheet.activity.title} · ${sheet.community.name}`
+            : `Hoja de ruta aprobada: ${sheet.activity.title}`,
+          body: `La versión ${sheet.version} de la hoja de ruta${
+            sheet.community ? ` de la Comunidad ${sheet.community.name}` : ""
+          } de «${sheet.activity.title}» fue aprobada. Ya está disponible en el calendario.`,
           entityType: "RouteSheet",
           entityId: sheet.id,
           actionUrl: `/calendario/${sheet.activityId}`,
@@ -465,6 +536,7 @@ export async function approveRouteSheetAction(
           status: "APROBADA",
           version: sheet.version,
           activityId: sheet.activityId,
+          communityId: sheet.communityId,
           reviewedById: actor.id,
         },
       },
@@ -475,7 +547,9 @@ export async function approveRouteSheetAction(
   revalidateRouteSheets(sheet.activityId);
 
   return {
-    success: `Hoja de ruta v${sheet.version} aprobada. Ya es visible en el calendario.`,
+    success: `Hoja de ruta v${sheet.version}${
+      sheet.community ? ` de ${sheet.community.name}` : ""
+    } aprobada. Ya es visible en el calendario.`,
   };
 }
 
@@ -500,9 +574,11 @@ export async function rejectRouteSheetAction(
     select: {
       id: true,
       activityId: true,
+      communityId: true,
       version: true,
       status: true,
       uploadedById: true,
+      community: { select: { id: true, name: true } },
       activity: {
         select: {
           title: true,
@@ -536,9 +612,22 @@ export async function rejectRouteSheetAction(
       },
     });
 
+    const communityMembers = sheet.communityId
+      ? await tx.user.findMany({
+          where: {
+            communityId: sheet.communityId,
+            role: { in: ["PP", "COORDINADOR"] },
+            isActive: true,
+            deletedAt: null,
+          },
+          select: { id: true },
+        })
+      : [];
+
     const recipientIds = new Set([
       sheet.uploadedById,
       ...sheet.activity.leaders.map((leader) => leader.userId),
+      ...communityMembers.map((member) => member.id),
     ]);
 
     for (const recipientId of recipientIds) {
@@ -546,8 +635,12 @@ export async function rejectRouteSheetAction(
         {
           recipientId,
           type: "HOJA_RECHAZADA",
-          title: `Hoja de ruta rechazada: ${sheet.activity.title}`,
-          body: `La versión ${sheet.version} de la hoja de ruta de «${sheet.activity.title}» fue rechazada. Motivo: «${truncate(reason, 260)}». Corrige el documento y sube una nueva versión.`,
+          title: sheet.community
+            ? `Hoja de ruta con observaciones: ${sheet.activity.title} · ${sheet.community.name}`
+            : `Hoja de ruta rechazada: ${sheet.activity.title}`,
+          body: `La versión ${sheet.version} de la hoja de ruta${
+            sheet.community ? ` de la Comunidad ${sheet.community.name}` : ""
+          } de «${sheet.activity.title}» fue rechazada. Motivo: «${truncate(reason, 260)}». Corrige el documento y sube una nueva versión.`,
           entityType: "RouteSheet",
           entityId: sheet.id,
           actionUrl: "/hojas-de-ruta",
@@ -569,6 +662,7 @@ export async function rejectRouteSheetAction(
           status: "RECHAZADA",
           version: sheet.version,
           activityId: sheet.activityId,
+          communityId: sheet.communityId,
           reviewedById: actor.id,
           rejectionReason: reason,
         },
@@ -580,7 +674,9 @@ export async function rejectRouteSheetAction(
   revalidateRouteSheets(sheet.activityId);
 
   return {
-    success: `Hoja de ruta v${sheet.version} rechazada. Los encargados recibieron el motivo.`,
+    success: `Hoja de ruta v${sheet.version}${
+      sheet.community ? ` de ${sheet.community.name}` : ""
+    } rechazada. La Comunidad y los encargados recibieron el motivo.`,
   };
 }
 

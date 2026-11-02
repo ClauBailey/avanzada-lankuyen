@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft, BookOpen, TriangleAlert, UsersRound } from "lucide-react";
 
 import { CommunityForm } from "@/components/admin/community-form";
@@ -10,14 +11,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { communitySizeAdvisory } from "@/lib/community-rules";
 import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
-import { requirePermission } from "@/server/auth/session";
+import { requireUser } from "@/server/auth/session";
+import { can } from "@/server/rbac/can";
 
 export const metadata = {
   title: "Mi comunidad",
 };
 
 export default async function MiComunidadPage() {
-  const user = await requirePermission("community:identity_edit");
+  const user = await requireUser();
+
+  if (user.role === "AA") {
+    redirect("/admin/comunidades");
+  }
+
+  const canManage = can(user, "community:identity_edit");
 
   const community = user.communityId
     ? await prisma.community.findFirst({
@@ -66,9 +74,13 @@ export default async function MiComunidadPage() {
       </Link>
 
       <PageHeader
-        eyebrow="Coordinación"
+        eyebrow={canManage ? "Coordinación" : "Mi comunidad"}
         title={community ? community.name : "Mi comunidad"}
-        description="Como Coordinador/a puedes cuidar la identidad de tu comunidad y rotar los cargos internos del grupo."
+        description={
+          canManage
+            ? "Como coordinador o coordinadora puedes cuidar la identidad de tu comunidad y rotar los cargos internos del grupo."
+            : "Este es el espacio de tu comunidad: su identidad, sus cargos internos, su asistencia y su bitácora privada."
+        }
         actions={
           community ? (
             <Badge variant="default">
@@ -138,7 +150,31 @@ export default async function MiComunidadPage() {
                 <CardTitle>Nombre, lema y color</CardTitle>
               </CardHeader>
               <CardContent className="p-5">
-                <CommunityForm mode="edit" community={community} />
+                {canManage ? (
+                  <CommunityForm mode="edit" community={community} />
+                ) : (
+                  <div className="space-y-2 text-sm text-ink">
+                    <p className="font-semibold">{community.name}</p>
+                    {community.motto ? (
+                      <p className="text-ink-soft">«{community.motto}»</p>
+                    ) : null}
+                    {community.description ? (
+                      <p className="whitespace-pre-line text-ink-soft">
+                        {community.description}
+                      </p>
+                    ) : null}
+                    {community.color ? (
+                      <p className="flex items-center gap-2 text-xs text-ink-soft">
+                        <span
+                          className="size-3 rounded-full"
+                          style={{ backgroundColor: community.color }}
+                          aria-hidden="true"
+                        />
+                        Color de la comunidad
+                      </p>
+                    ) : null}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -176,7 +212,7 @@ export default async function MiComunidadPage() {
             <CardContent className="p-5">
               <CommunityMemberRoles
                 communityId={community.id}
-                canManage
+                canManage={canManage}
                 members={members.map((member) => ({
                   id: member.id,
                   name: getDisplayName(member),

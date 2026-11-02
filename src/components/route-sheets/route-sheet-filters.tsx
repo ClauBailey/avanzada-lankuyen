@@ -26,20 +26,29 @@ interface ActivityOption {
   cycleId: string | null;
 }
 
+interface CommunityOption {
+  id: string;
+  name: string;
+}
+
 interface RouteSheetFiltersProps {
   cycles: ProgramCycleOption[];
   activities: ActivityOption[];
+  communities: CommunityOption[];
   status: RouteSheetStatus | "all";
   cycleId: string;
   activityId: string;
+  communityId: string;
 }
 
 export function RouteSheetFilters({
   cycles,
   activities,
+  communities,
   status,
   cycleId,
   activityId,
+  communityId,
 }: RouteSheetFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -66,7 +75,7 @@ export function RouteSheetFilters({
 
   const hasFilters =
     status !== "PENDIENTE_AUTORIZACION" ||
-    Boolean(cycleId || activityId);
+    Boolean(cycleId || activityId || communityId);
   const cycleNameById = new Map(
     cycles.map((cycle) => [cycle.id, cycle.name]),
   );
@@ -83,7 +92,7 @@ export function RouteSheetFilters({
         Filtrar bandeja
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1.2fr_auto] lg:items-end">
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1.2fr_1fr_auto] lg:items-end">
         <div className="space-y-2">
           <Label htmlFor="route-sheet-status">Estado</Label>
           <Select
@@ -133,6 +142,22 @@ export function RouteSheetFilters({
                   ? (cycleNameById.get(activity.cycleId) ?? "—")
                   : "Sin ciclo"}{" "}
                 · {activity.title}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="route-sheet-community">Comunidad</Label>
+          <Select
+            id="route-sheet-community"
+            value={communityId}
+            onChange={(event) => apply({ community: event.target.value })}
+          >
+            <option value="">Todas</option>
+            {communities.map((community) => (
+              <option key={community.id} value={community.id}>
+                {community.name}
               </option>
             ))}
           </Select>

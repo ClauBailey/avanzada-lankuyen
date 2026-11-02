@@ -43,6 +43,7 @@ export const structuredRouteSheetSchema = z.object({
 export const uploadRouteSheetSchema = z
   .object({
     activityId: uuid("Actividad inválida."),
+    communityId: optionalUuid("Comunidad inválida."),
     projectId: optionalUuid("Proyecto inválido."),
     mode: z.enum(["STRUCTURED", "FILE"]).default("FILE"),
     title: z

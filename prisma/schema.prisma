@@ -256,6 +256,7 @@ model Community {
   logEntries  CommunityLogEntry[]
   diagnoses   CommunityDiagnosis[]
   proposals   ActivityProposal[]
+  routeSheets RouteSheet[]
 
   @@map("communities")
 }
@@ -968,6 +969,7 @@ model File {
 model RouteSheet {
   id              String           @id @default(uuid()) @db.Uuid
   activityId      String           @map("activity_id") @db.Uuid
+  communityId     String?          @map("community_id") @db.Uuid
   projectId       String?          @map("project_id") @db.Uuid
   uploadedById    String           @map("uploaded_by_id") @db.Uuid
   fileId          String?          @map("file_id") @db.Uuid
@@ -983,14 +985,16 @@ model RouteSheet {
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz(3)
 
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  activity   Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  community  Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   uploadedBy User     @relation("RouteSheetUploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
   file       File?    @relation(fields: [fileId], references: [id], onDelete: Restrict)
   reviewedBy User?    @relation("RouteSheetReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  @@unique([activityId, version])
+  @@unique([activityId, communityId, version])
   @@index([activityId, status])
+  @@index([activityId, communityId])
   @@index([projectId])
   @@map("route_sheets")
 }

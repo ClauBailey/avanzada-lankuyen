@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, Compass, Flag, Mountain, UsersRound } from "lucide-react";
+import { redirect } from "next/navigation";
+import { ArrowLeft, Compass, Flag, Mountain } from "lucide-react";
 
 import { JourneyView } from "@/components/journey/journey-view";
-import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,27 +19,7 @@ export default async function CaminoPage() {
   const user = await requirePermission("journey:register");
 
   if (user.role === "AA") {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          eyebrow="Camino simbólico"
-          title="Acompañar el camino"
-          description="Como Adulto Acompañante registras hitos y Promesas desde la ficha de cada pionero o pionera, o de cada coordinador o coordinadora."
-        />
-        <EmptyState
-          icon={UsersRound}
-          title="Tu cuenta no recorre un camino propio"
-          description="Entra a Usuarios y abre la ficha de una persona joven para registrar su investidura, el inicio de una etapa, su Promesa o el paso al Clan."
-        />
-        <Link
-          href="/admin/usuarios"
-          className={buttonVariants({ size: "sm", className: "w-fit" })}
-        >
-          <UsersRound className="size-4" aria-hidden="true" />
-          Ir a usuarios
-        </Link>
-      </div>
-    );
+    redirect("/acompanamiento");
   }
 
   const [milestones, promise] = await Promise.all([

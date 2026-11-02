@@ -6,7 +6,13 @@ import { MobileNav, SidebarNav } from "@/components/layout/nav-links";
 import { logoutAction } from "@/features/auth/actions";
 import { APP_NAME, ROLE_LABELS, ROLE_SHORT_LABELS, UNIT_TAGLINE } from "@/lib/constants";
 import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
-import { adminNav, memberNav } from "@/lib/navigation";
+import {
+  adminNav,
+  memberNav,
+  mobileMoreGroups,
+  mobilePrimaryNav,
+  visibleNavItems,
+} from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/server/auth/session";
 
@@ -19,38 +25,19 @@ interface AppShellProps {
 
 export function AppShell({ user, variant, unreadCount, children }: AppShellProps) {
   const baseItems = variant === "admin" ? adminNav : memberNav;
-  const items = baseItems.filter((item) => {
-    if (item.href === "/mi-comunidad") {
-      return user.role === "COORDINADOR" && Boolean(user.communityId);
-    }
-    if (item.href === "/mi-comunidad/bitacora") {
-      return (
-        (user.role === "PP" || user.role === "COORDINADOR") &&
-        Boolean(user.communityId)
-      );
-    }
-    if (item.href === "/brujula") {
-      return user.role !== "AA";
-    }
-    if (item.href === "/acompanamiento") {
-      return user.role === "AA";
-    }
-    if (variant === "admin" && user.role !== "AA") {
-      // La coordinación solo entra a la Red de Apoyo en modo consulta.
-      return [
-        "/proyectos",
-        "/ciclo",
-        "/admin/red-de-apoyo",
-        "/inicio",
-      ].includes(item.href);
-    }
-    return true;
-  });
+  const navOptions = {
+    role: user.role,
+    variant,
+    hasCommunity: Boolean(user.communityId),
+  } as const;
+  const items = visibleNavItems(baseItems, navOptions);
+  const mobilePrimary = mobilePrimaryNav(user.role);
+  const mobileMore = mobileMoreGroups(navOptions);
   const fullName = getDisplayName(user);
   const roleLabel = ROLE_LABELS[user.role];
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-slate-50">
       {/* Sidebar de escritorio */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col overflow-hidden bg-anil-950 lg:flex">
         <div className="topo-bg pointer-events-none absolute inset-0 opacity-30" />
@@ -127,7 +114,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
       {/* Contenido */}
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-line/80 bg-canvas/90 backdrop-blur">
+        <header className="sticky top-0 z-30 border-b border-indigo-100 bg-white/90 backdrop-blur">
           <div className="flex h-16 items-center justify-between gap-3 px-4 lg:h-[72px] lg:px-10">
             <div className="flex min-w-0 items-center gap-3">
               <Link href={variant === "admin" ? "/admin" : "/inicio"} className="lg:hidden">
@@ -197,14 +184,18 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
         <main
           className={cn(
-            "mx-auto w-full max-w-6xl px-4 pb-28 pt-6 lg:px-10 lg:pb-14 lg:pt-10",
+            "mx-auto w-full max-w-6xl px-4 pb-24 pt-4 sm:pt-6 lg:px-10 lg:pb-14 lg:pt-10",
           )}
         >
           {children}
         </main>
       </div>
 
-      <MobileNav items={items} unreadCount={unreadCount} />
+      <MobileNav
+        primaryItems={mobilePrimary}
+        moreGroups={mobileMore}
+        unreadCount={unreadCount}
+      />
     </div>
   );
 }

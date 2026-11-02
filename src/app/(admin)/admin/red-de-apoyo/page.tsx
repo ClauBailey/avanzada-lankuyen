@@ -100,7 +100,10 @@ export default async function AdminRedDeApoyoPage({
         </p>
       </Card>
 
-      <nav aria-label="Filtrar por área de competencia" className="flex flex-wrap gap-2">
+      <nav
+        aria-label="Filtrar por área de competencia"
+        className="no-scrollbar flex flex-nowrap gap-2 overflow-x-auto pb-1"
+      >
         <Link
           href="/admin/red-de-apoyo"
           className={cn(

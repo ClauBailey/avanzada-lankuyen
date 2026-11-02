@@ -93,6 +93,19 @@
     scrollbar-color: var(--color-anil-300) transparent;
   }
 
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   .logbook-page-enter {
     animation: logbook-page-enter 320ms ease-out both;
   }

@@ -16,9 +16,11 @@ import { EMPTY_ACTION_STATE } from "@/lib/action-state";
 export function DataSovereigntyCard({
   requestedAt,
   displayName,
+  canRequestClan = true,
 }: {
   requestedAt: string | null;
   displayName: string;
+  canRequestClan?: boolean;
 }) {
   const [state, formAction] = useActionState(
     requestAccountDeletionOrClanStepAction,
@@ -54,7 +56,13 @@ export function DataSovereigntyCard({
         tus logros y tus páginas de bitácora.
       </p>
 
-      {requestedAt ? (
+      {!canRequestClan ? (
+        <p className="rounded-xl border border-line bg-canvas/30 px-3.5 py-3 text-xs leading-relaxed text-ink-soft">
+          El Paso al Clan acompaña a las personas jóvenes de la Rama. Como
+          integrante del Equipo Adulto, puedes exportar e imprimir tu propia
+          información y gestionar tu cuenta con el resto del equipo.
+        </p>
+      ) : requestedAt ? (
         <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
           <Badge variant="warning">Solicitud registrada</Badge>
           <p className="text-sm text-amber-900">
