@@ -15,6 +15,7 @@ import {
   sanitizeAchievementForViewer,
   type AchievementViewerRole,
 } from "@/features/achievements/visibility";
+import { getDisplayName } from "@/lib/user-display";
 
 export interface AchievementView {
   id: string;
@@ -35,10 +36,14 @@ export interface AchievementView {
 }
 
 function formatAwardedBy(
-  awardedBy: { firstName: string; lastName: string } | null,
+  awardedBy: {
+    firstName: string;
+    lastName: string;
+    preferredName?: string | null;
+  } | null,
 ): string | null {
   if (!awardedBy) return null;
-  return `${awardedBy.firstName} ${awardedBy.lastName}`;
+  return getDisplayName(awardedBy);
 }
 
 /**
@@ -62,7 +67,7 @@ export async function getAchievementsForViewer(
         select: {
           unlockedAt: true,
           note: true,
-          awardedBy: { select: { firstName: true, lastName: true } },
+          awardedBy: { select: { firstName: true, lastName: true, preferredName: true } },
         },
       },
       _count: { select: { unlockedBy: true } },
@@ -127,7 +132,7 @@ export async function getUnlockedAchievementsForMember(
     orderBy: [{ unlockedAt: "desc" }, { id: "desc" }],
     include: {
       achievement: true,
-      awardedBy: { select: { firstName: true, lastName: true } },
+      awardedBy: { select: { firstName: true, lastName: true, preferredName: true } },
     },
   });
 

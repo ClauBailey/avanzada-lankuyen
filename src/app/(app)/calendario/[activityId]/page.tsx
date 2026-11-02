@@ -16,8 +16,10 @@ import {
 } from "lucide-react";
 
 import { RsvpPanel } from "@/components/attendance/rsvp-panel";
+import { ActivityCompassReflection } from "@/components/evaluations/activity-compass-reflection";
 import { EvaluationForm } from "@/components/evaluations/evaluation-form";
 import { CommunityTag } from "@/components/brand/community-tag";
+import { RouteSheetStructuredView } from "@/components/route-sheets/route-sheet-structured-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -42,14 +44,16 @@ import {
   formatTimestamp,
 } from "@/lib/dates";
 import {
-  average,
-  formatEvaluationScore,
-  type EvaluationScores,
+  areaFrequency,
+  levelDistribution,
+  type DevelopmentAreaKey,
+  type ObjectiveAchievementLevel,
 } from "@/lib/evaluations";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 import { can } from "@/server/rbac/can";
 import { cn } from "@/lib/utils";
+import { getDisplayName } from "@/lib/user-display";
 
 export const metadata = {
   title: "Actividad",
@@ -78,7 +82,7 @@ export default async function ActivityDetailPage({
       endsAt: true,
       location: true,
       isPublished: true,
-      semester: { select: { name: true } },
+      cycle: { select: { name: true } },
       leaders: {
         orderBy: { assignedAt: "asc" },
         select: {
@@ -87,6 +91,7 @@ export default async function ActivityDetailPage({
             select: {
               firstName: true,
               lastName: true,
+              preferredName: true,
               community: { select: { name: true, color: true } },
             },
           },
@@ -98,13 +103,17 @@ export default async function ActivityDetailPage({
         select: {
           id: true,
           fileId: true,
+          structuredData: true,
           title: true,
           version: true,
           status: true,
           rejectionReason: true,
           createdAt: true,
           reviewedAt: true,
-          reviewedBy: { select: { firstName: true, lastName: true } },
+          project: { select: { id: true, title: true } },
+          reviewedBy: {
+            select: { firstName: true, lastName: true, preferredName: true },
+          },
         },
       },
       responses: {
@@ -128,21 +137,31 @@ export default async function ActivityDetailPage({
           status: true,
           notes: true,
           ratifiedAt: true,
-          ratifiedBy: { select: { firstName: true, lastName: true } },
+          ratifiedBy: {
+            select: { firstName: true, lastName: true, preferredName: true },
+          },
         },
       },
       evaluations: {
         where: { userId: user.id },
         take: 1,
         select: {
-          affectivityScore: true,
-          corporalityScore: true,
-          spiritualityScore: true,
-          characterScore: true,
-          creativityScore: true,
-          sociabilityScore: true,
-          comment: true,
+          objectiveAchievementLevel: true,
+          experiencedAreas: true,
+          organizationFeedback: true,
+          emotionalResonance: true,
+          learningsForNextTime: true,
           updatedAt: true,
+        },
+      },
+      compassReflections: {
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          objective: { select: { currentText: true } },
         },
       },
       _count: { select: { records: true, responses: true, evaluations: true } },
@@ -159,14 +178,15 @@ export default async function ActivityDetailPage({
   const response = activity.responses[0] ?? null;
   const record = activity.records[0] ?? null;
   const ownEvaluation = activity.evaluations[0] ?? null;
-  const ownScores: EvaluationScores | null = ownEvaluation
+  const ownEvaluationView = ownEvaluation
     ? {
-        affectivityScore: ownEvaluation.affectivityScore,
-        corporalityScore: ownEvaluation.corporalityScore,
-        spiritualityScore: ownEvaluation.spiritualityScore,
-        characterScore: ownEvaluation.characterScore,
-        creativityScore: ownEvaluation.creativityScore,
-        sociabilityScore: ownEvaluation.sociabilityScore,
+        objectiveAchievementLevel:
+          ownEvaluation.objectiveAchievementLevel as ObjectiveAchievementLevel,
+        experiencedAreas:
+          ownEvaluation.experiencedAreas as DevelopmentAreaKey[],
+        organizationFeedback: ownEvaluation.organizationFeedback,
+        emotionalResonance: ownEvaluation.emotionalResonance,
+        learningsForNextTime: ownEvaluation.learningsForNextTime,
       }
     : null;
   const isLeader = activity.leaders.some((leader) => leader.userId === user.id);
@@ -180,34 +200,31 @@ export default async function ActivityDetailPage({
   const canRespond = !isAA && isFuture && !isRatified;
   const initialFile = response?.justificationFiles[0]?.file ?? null;
 
-  const evaluationSummary =
+  const compassObjectives = !isAA
+    ? await prisma.userCompassObjective.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, currentText: true },
+      })
+    : [];
+
+  const qualitativeSummary =
     canViewEvaluations && hasEnded
-      ? await prisma.activityEvaluation.aggregate({
+      ? await prisma.activityEvaluation.findMany({
           where: { activityId },
-          _avg: {
-            affectivityScore: true,
-            corporalityScore: true,
-            spiritualityScore: true,
-            characterScore: true,
-            creativityScore: true,
-            sociabilityScore: true,
+          select: {
+            objectiveAchievementLevel: true,
+            experiencedAreas: true,
           },
-          _count: true,
         })
       : null;
 
-  const evaluationAverage = evaluationSummary
-    ? average(
-        [
-          evaluationSummary._avg.affectivityScore,
-          evaluationSummary._avg.corporalityScore,
-          evaluationSummary._avg.spiritualityScore,
-          evaluationSummary._avg.characterScore,
-          evaluationSummary._avg.creativityScore,
-          evaluationSummary._avg.sociabilityScore,
-        ].filter((value): value is number => value !== null),
-      )
-    : null;
+  const evaluationDistribution = qualitativeSummary
+    ? levelDistribution(qualitativeSummary)
+    : [];
+  const evaluationAreas = qualitativeSummary
+    ? areaFrequency(qualitativeSummary).filter((area) => area.count > 0)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -220,7 +237,9 @@ export default async function ActivityDetailPage({
       </Link>
 
       <PageHeader
-        eyebrow={`Semestre ${activity.semester.name}`}
+        eyebrow={
+          activity.cycle ? `Ciclo ${activity.cycle.name}` : "Actividad sin ciclo"
+        }
         title={activity.title}
         description={activity.description ?? undefined}
         actions={
@@ -301,7 +320,7 @@ export default async function ActivityDetailPage({
                         )}
                       >
                         <span className="font-medium text-ink">
-                          {leader.user.firstName} {leader.user.lastName}
+                          {getDisplayName(leader.user)}
                         </span>
                         <CommunityTag
                           name={leader.user.community?.name}
@@ -323,25 +342,54 @@ export default async function ActivityDetailPage({
                 </p>
                 <div className="mt-2">
                   {approvedSheet ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <a
-                        href={`/api/files/${approvedSheet.fileId}`}
-                        className={buttonVariants({
-                          variant: "secondary",
-                          size: "sm",
-                        })}
-                      >
-                        <Download className="size-4" aria-hidden="true" />
-                        Hoja de ruta disponible
-                        {approvedSheet.version
-                          ? ` · v${approvedSheet.version}`
-                          : ""}
-                      </a>
-                      {approvedSheet.reviewedBy ? (
-                        <span className="text-[11px] text-ink-soft">
-                          Aprobada por {approvedSheet.reviewedBy.firstName}{" "}
-                          {approvedSheet.reviewedBy.lastName}
-                        </span>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {approvedSheet.fileId ? (
+                          <a
+                            href={`/api/files/${approvedSheet.fileId}`}
+                            className={buttonVariants({
+                              variant: "secondary",
+                              size: "sm",
+                            })}
+                          >
+                            <Download className="size-4" aria-hidden="true" />
+                            Hoja de ruta disponible
+                            {approvedSheet.version
+                              ? ` · v${approvedSheet.version}`
+                              : ""}
+                          </a>
+                        ) : (
+                          <Badge variant="success">
+                            Hoja de ruta aprobada
+                            {approvedSheet.version
+                              ? ` · v${approvedSheet.version}`
+                              : ""}
+                          </Badge>
+                        )}
+                        {approvedSheet.reviewedBy ? (
+                          <span className="text-[11px] text-ink-soft">
+                            Aprobada por{" "}
+                            {getDisplayName(approvedSheet.reviewedBy)}
+                          </span>
+                        ) : null}
+                      </div>
+                      {approvedSheet.project ? (
+                        <p className="text-[11px] text-ink-soft">
+                          Proyecto:{" "}
+                          <Link
+                            href={`/proyectos/${approvedSheet.project.id}`}
+                            className="font-semibold text-anil-700 hover:underline"
+                          >
+                            {approvedSheet.project.title}
+                          </Link>
+                        </p>
+                      ) : null}
+                      {approvedSheet.structuredData ? (
+                        <RouteSheetStructuredView
+                          data={approvedSheet.structuredData}
+                          compact
+                          className="rounded-xl border border-anil-200 bg-anil-50/30 p-3"
+                        />
                       ) : null}
                     </div>
                   ) : canSeeRouteSheetStatus &&
@@ -352,13 +400,26 @@ export default async function ActivityDetailPage({
                           <Clock3 className="size-3" aria-hidden="true" />
                           Hoja de ruta: En revisión · v{latestSheet.version}
                         </Badge>
-                        <a
-                          href={`/api/files/${latestSheet.fileId}`}
-                          className="text-[11px] font-semibold text-anil-700 hover:text-anil-900"
-                        >
-                          Ver documento enviado
-                        </a>
+                        {latestSheet.fileId ? (
+                          <a
+                            href={`/api/files/${latestSheet.fileId}`}
+                            className="text-[11px] font-semibold text-anil-700 hover:text-anil-900"
+                          >
+                            Ver documento enviado
+                          </a>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-anil-700">
+                            Formulario oficial enviado
+                          </span>
+                        )}
                       </div>
+                      {latestSheet.structuredData ? (
+                        <RouteSheetStructuredView
+                          data={latestSheet.structuredData}
+                          compact
+                          className="rounded-xl border border-anil-200 bg-anil-50/30 p-3"
+                        />
+                      ) : null}
                       <p className="text-xs text-ink-soft">
                         Los AA están revisando esta versión. No se puede subir
                         otra hasta que respondan.
@@ -449,9 +510,9 @@ export default async function ActivityDetailPage({
                     Cómo se vivió la actividad
                   </h2>
                   <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink-soft">
-                    Evaluación de las seis áreas de desarrollo scout. Es
-                    obligatoria la nota de cada área; el comentario escrito es
-                    opcional.
+                    Observación cualitativa sobre los objetivos, las áreas de
+                    desarrollo y lo que quieras dejarle al grupo. No hay notas
+                    ni promedios.
                   </p>
                 </div>
                 {ownEvaluation ? (
@@ -464,10 +525,28 @@ export default async function ActivityDetailPage({
               <div className="mt-5">
                 <EvaluationForm
                   activityId={activity.id}
-                  initialScores={ownScores}
-                  initialComment={ownEvaluation?.comment ?? null}
+                  initialEvaluation={ownEvaluationView}
+                  showCompassPrompt={!isAA}
                 />
               </div>
+
+              {!isAA ? (
+                <div className="mt-5">
+                  <ActivityCompassReflection
+                    activityId={activity.id}
+                    objectives={compassObjectives}
+                    reflections={activity.compassReflections.map(
+                      (reflection) => ({
+                        id: reflection.id,
+                        content: reflection.content,
+                        createdAt: reflection.createdAt.toISOString(),
+                        objectiveText:
+                          reflection.objective?.currentText ?? null,
+                      }),
+                    )}
+                  />
+                </div>
+              ) : null}
 
               {ownEvaluation ? (
                 <p className="mt-3 text-[11px] text-ink-soft">
@@ -536,7 +615,7 @@ export default async function ActivityDetailPage({
                     <p>
                       Ratificada por{" "}
                       {record.ratifiedBy
-                        ? `${record.ratifiedBy.firstName} ${record.ratifiedBy.lastName}`
+                        ? getDisplayName(record.ratifiedBy)
                         : "un Adulto Acompañante"}{" "}
                       el {formatTimestamp(record.ratifiedAt)}.
                     </p>
@@ -563,44 +642,52 @@ export default async function ActivityDetailPage({
             )}
           </Card>
 
-          {canViewEvaluations && hasEnded && evaluationSummary ? (
+          {canViewEvaluations && hasEnded && qualitativeSummary ? (
             <Card className="border-anil-200 bg-anil-50/40 p-5">
               <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
                 <Star className="size-3.5" aria-hidden="true" />
                 Evaluaciones
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-line bg-surface px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
-                    Respuestas
-                  </p>
-                  <p className="mt-1 font-display text-xl font-semibold text-ink">
-                    {evaluationSummary._count}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-line bg-surface px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
-                    Promedio
-                  </p>
-                  <p className="mt-1 font-display text-xl font-semibold text-ink">
-                    {formatEvaluationScore(evaluationAverage)}
-                    <span className="ml-0.5 text-[10px] font-medium text-ink-soft">
-                      /7
-                    </span>
-                  </p>
-                </div>
+              <div className="mt-3 rounded-xl border border-line bg-surface px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
+                  Observaciones recibidas
+                </p>
+                <p className="mt-1 font-display text-xl font-semibold text-ink">
+                  {qualitativeSummary.length}
+                </p>
               </div>
+              <ul className="mt-3 space-y-1.5">
+                {evaluationDistribution.map((level) => (
+                  <li
+                    key={level.key}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px]"
+                  >
+                    <span className="font-semibold text-ink">{level.label}</span>
+                    <span className="font-display text-base font-semibold text-ink">
+                      {level.count}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {evaluationAreas.length > 0 ? (
+                <p className="mt-2 text-[11px] leading-relaxed text-ink-soft">
+                  Áreas presentes:{" "}
+                  {evaluationAreas
+                    .map((area) => `${area.label} (${area.count})`)
+                    .join(" · ")}
+                </p>
+              ) : null}
               <p className="mt-3 text-xs leading-relaxed text-ink-soft">
-                {evaluationSummary._count === 0
-                  ? "Los PP y coordinadores aún no han respondido esta evaluación."
-                  : "Revisa las seis áreas y los comentarios de cada evaluador."}
+                {qualitativeSummary.length === 0
+                  ? "Los participantes aún no han dejado su observación."
+                  : "Revisa la distribución y el muro de reflexiones."}
               </p>
               <Link
                 href={`/admin/evaluaciones/${activity.id}`}
                 className={buttonVariants({ size: "sm", className: "mt-3" })}
               >
                 <Star className="size-4" aria-hidden="true" />
-                Ver todas las respuestas
+                Ver todas las reflexiones
               </Link>
             </Card>
           ) : null}

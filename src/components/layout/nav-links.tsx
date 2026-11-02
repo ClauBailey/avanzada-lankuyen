@@ -10,8 +10,11 @@ import {
   CalendarDays,
   CalendarPlus,
   ClipboardCheck,
+  Compass,
   FileCheck2,
   FileText,
+  FolderKanban,
+  Handshake,
   Home,
   LayoutDashboard,
   Settings2,
@@ -20,6 +23,7 @@ import {
   UserRound,
   Users,
   UsersRound,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,6 +51,10 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   award: Award,
   trophy: Trophy,
   "users-round": UsersRound,
+  compass: Compass,
+  vote: Vote,
+  "folder-kanban": FolderKanban,
+  handshake: Handshake,
   settings: Settings2,
   "arrow-left": ArrowLeft,
 };

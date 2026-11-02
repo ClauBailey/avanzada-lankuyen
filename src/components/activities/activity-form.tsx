@@ -16,9 +16,21 @@ import {
 } from "@/features/activities/actions";
 import { EMPTY_ACTION_STATE } from "@/lib/action-state";
 import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from "@/lib/activity-types";
-import type { ActivityType } from "@/generated/prisma/enums";
+import {
+  ACTIVITY_SCHEDULE_TYPES,
+  ACTIVITY_SCHEDULE_TYPE_DESCRIPTIONS,
+  ACTIVITY_SCHEDULE_TYPE_LABELS,
+  ACTIVITY_SCOPES,
+  ACTIVITY_SCOPE_DESCRIPTIONS,
+  ACTIVITY_SCOPE_LABELS,
+} from "@/lib/activity-scopes";
+import type {
+  ActivityScheduleType,
+  ActivityScope,
+  ActivityType,
+} from "@/generated/prisma/enums";
 
-interface SemesterOption {
+interface ProgramCycleOption {
   id: string;
   name: string;
   isActive: boolean;
@@ -26,9 +38,11 @@ interface SemesterOption {
 
 interface ActivityFormActivity {
   id: string;
-  semesterId: string;
+  cycleId: string | null;
   title: string;
   type: ActivityType;
+  scope: ActivityScope;
+  scheduleType: ActivityScheduleType;
   startsAt: string;
   endsAt: string;
   location: string | null;
@@ -39,17 +53,20 @@ interface ActivityFormActivity {
 
 interface ActivityFormProps {
   mode: "create" | "edit";
-  semesters: SemesterOption[];
+  cycles: ProgramCycleOption[];
   leaders: LeaderOption[];
-  defaultSemesterId: string;
+  defaultCycleId: string;
+  /** El COORDINADOR solo programa actividades de su propia Comunidad. */
+  scopeLocked?: boolean;
   activity?: ActivityFormActivity;
 }
 
 export function ActivityForm({
   mode,
-  semesters,
+  cycles,
   leaders,
-  defaultSemesterId,
+  defaultCycleId,
+  scopeLocked = false,
   activity,
 }: ActivityFormProps) {
   const [state, formAction] = useActionState(
@@ -58,6 +75,9 @@ export function ActivityForm({
   );
 
   const fieldPrefix = activity ? `activity-${activity.id}` : "activity-new";
+  const defaultScope = scopeLocked
+    ? "COMUNIDAD"
+    : (activity?.scope ?? "AVANZADA");
 
   return (
     <form action={formAction} className="space-y-5">
@@ -79,17 +99,17 @@ export function ActivityForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`${fieldPrefix}-semester`}>Semestre</Label>
+          <Label htmlFor={`${fieldPrefix}-cycle`}>Ciclo de Programa</Label>
           <Select
-            id={`${fieldPrefix}-semester`}
-            name="semesterId"
-            defaultValue={activity?.semesterId ?? defaultSemesterId}
+            id={`${fieldPrefix}-cycle`}
+            name="cycleId"
+            defaultValue={activity?.cycleId ?? defaultCycleId}
             required
           >
-            {semesters.map((semester) => (
-              <option key={semester.id} value={semester.id}>
-                {semester.name}
-                {semester.isActive ? " · activo" : ""}
+            {cycles.map((cycle) => (
+              <option key={cycle.id} value={cycle.id}>
+                {cycle.name}
+                {cycle.isActive ? " · activo" : ""}
               </option>
             ))}
           </Select>
@@ -106,6 +126,48 @@ export function ActivityForm({
             {ACTIVITY_TYPES.map((type) => (
               <option key={type} value={type}>
                 {ACTIVITY_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={`${fieldPrefix}-scope`}>Alcance</Label>
+          {scopeLocked ? (
+            <>
+              <input type="hidden" name="scope" value="COMUNIDAD" />
+              <p className="rounded-xl border border-line bg-canvas px-3 py-2 text-xs text-ink-soft">
+                {ACTIVITY_SCOPE_LABELS.COMUNIDAD} ·{" "}
+                {ACTIVITY_SCOPE_DESCRIPTIONS.COMUNIDAD}
+              </p>
+            </>
+          ) : (
+            <Select
+              id={`${fieldPrefix}-scope`}
+              name="scope"
+              defaultValue={defaultScope}
+            >
+              {ACTIVITY_SCOPES.map((scope) => (
+                <option key={scope} value={scope}>
+                  {ACTIVITY_SCOPE_LABELS[scope]} —{" "}
+                  {ACTIVITY_SCOPE_DESCRIPTIONS[scope]}
+                </option>
+              ))}
+            </Select>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={`${fieldPrefix}-schedule`}>Carácter</Label>
+          <Select
+            id={`${fieldPrefix}-schedule`}
+            name="scheduleType"
+            defaultValue={activity?.scheduleType ?? "VARIABLE"}
+          >
+            {ACTIVITY_SCHEDULE_TYPES.map((scheduleType) => (
+              <option key={scheduleType} value={scheduleType}>
+                {ACTIVITY_SCHEDULE_TYPE_LABELS[scheduleType]} —{" "}
+                {ACTIVITY_SCHEDULE_TYPE_DESCRIPTIONS[scheduleType]}
               </option>
             ))}
           </Select>

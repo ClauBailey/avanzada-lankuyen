@@ -10,8 +10,8 @@ import {
 import { ActivityCancelButton, ActivityPublishToggle } from "@/components/activities/activity-admin-actions";
 import { ActivityCard } from "@/components/activities/activity-card";
 import { ActivityForm } from "@/components/activities/activity-form";
-import { SemesterActivateButton } from "@/components/activities/semester-activate-button";
-import { SemesterForm } from "@/components/activities/semester-form";
+import { ProgramCycleActivateButton } from "@/components/activities/program-cycle-activate-button";
+import { ProgramCycleForm } from "@/components/activities/program-cycle-form";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -28,20 +28,21 @@ export const metadata = {
 export default async function AdminActividadesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ semester?: string }>;
+  searchParams: Promise<{ cycle?: string }>;
 }) {
   const actor = await requirePermission("activity:manage");
-  const { semester: semesterParam } = await searchParams;
+  const { cycle: cycleParam } = await searchParams;
 
-  const [semesters, activeSemester, leaderOptions] = await Promise.all([
-    prisma.semester.findMany({
-      orderBy: { startsOn: "desc" },
+  const [cycles, activeCycle, leaderOptions] = await Promise.all([
+    prisma.programCycle.findMany({
+      orderBy: { startDate: "desc" },
       select: {
         id: true,
         name: true,
-        startsOn: true,
-        endsOn: true,
+        startDate: true,
+        endDate: true,
         isActive: true,
+        phase: true,
         _count: {
           select: {
             activities: { where: { deletedAt: null } },
@@ -49,7 +50,7 @@ export default async function AdminActividadesPage({
         },
       },
     }),
-    prisma.semester.findFirst({
+    prisma.programCycle.findFirst({
       where: { isActive: true },
       select: { id: true, name: true },
     }),
@@ -64,26 +65,29 @@ export default async function AdminActividadesPage({
         id: true,
         firstName: true,
         lastName: true,
+        preferredName: true,
         role: true,
         community: { select: { name: true, color: true } },
       },
     }),
   ]);
 
-  const selectedSemester =
-    semesters.find((item) => item.id === semesterParam) ??
-    semesters.find((item) => item.isActive) ??
-    semesters[0] ??
+  const selectedCycle =
+    cycles.find((item) => item.id === cycleParam) ??
+    cycles.find((item) => item.isActive) ??
+    cycles[0] ??
     null;
 
-  const activities = selectedSemester
+  const activities = selectedCycle
     ? await prisma.activity.findMany({
-        where: { semesterId: selectedSemester.id, deletedAt: null },
+        where: { cycleId: selectedCycle.id, deletedAt: null },
         orderBy: { startsAt: "asc" },
         select: {
           id: true,
           title: true,
           type: true,
+          scope: true,
+          scheduleType: true,
           startsAt: true,
           endsAt: true,
           location: true,
@@ -97,6 +101,7 @@ export default async function AdminActividadesPage({
                 select: {
                   firstName: true,
                   lastName: true,
+                  preferredName: true,
                   community: { select: { name: true, color: true } },
                 },
               },
@@ -117,6 +122,7 @@ export default async function AdminActividadesPage({
     id: leader.id,
     firstName: leader.firstName,
     lastName: leader.lastName,
+    preferredName: leader.preferredName,
     role: leader.role === "COORDINADOR" ? ("COORDINADOR" as const) : ("PP" as const),
     community: leader.community,
   }));
@@ -125,8 +131,8 @@ export default async function AdminActividadesPage({
     <div className="space-y-8">
       <PageHeader
         eyebrow="Administración"
-        title="Calendario semestral"
-        description="Crea semestres, publica actividades y asigna encargados. Las fechas se ingresan y muestran siempre en hora de Chile."
+        title="Calendario del ciclo"
+        description="Crea los ciclos de programa, publica actividades y asigna encargados. Las fechas se ingresan y muestran siempre en hora de Chile."
         actions={
           <Link
             href="/admin/asistencia"
@@ -142,29 +148,29 @@ export default async function AdminActividadesPage({
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-anil-600">
-              Semestres
+              Ciclos de Programa
             </p>
             <h2 className="font-display text-2xl font-semibold text-ink">
               Períodos de la unidad
             </h2>
           </div>
           <p className="text-xs text-ink-soft">
-            {semesters.length} semestre{semesters.length === 1 ? "" : "s"}{" "}
-            registrado{semesters.length === 1 ? "" : "s"}
+            {cycles.length} ciclo{cycles.length === 1 ? "" : "s"}{" "}
+            registrado{cycles.length === 1 ? "" : "s"}
           </p>
         </div>
 
-        <SemesterForm hasActiveSemester={Boolean(activeSemester)} />
+        <ProgramCycleForm hasActiveCycle={Boolean(activeCycle)} />
 
-        {semesters.length === 0 ? (
+        {cycles.length === 0 ? (
           <EmptyState
             icon={CalendarPlus}
-            title="Aún no hay semestres"
-            description="Crea el primer semestre para empezar a cargar actividades en el calendario."
+            title="Aún no hay ciclos de programa"
+            description="Crea el primer ciclo para empezar a cargar actividades en el calendario."
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {semesters.map((item) => (
+            {cycles.map((item) => (
               <Card
                 key={item.id}
                 className={
@@ -179,8 +185,8 @@ export default async function AdminActividadesPage({
                       {item.name}
                     </p>
                     <p className="mt-1 text-xs text-ink-soft">
-                      {formatDateOnly(item.startsOn)} —{" "}
-                      {formatDateOnly(item.endsOn)}
+                      {formatDateOnly(item.startDate)} —{" "}
+                      {formatDateOnly(item.endDate)}
                     </p>
                   </div>
                   {item.isActive ? (
@@ -200,12 +206,12 @@ export default async function AdminActividadesPage({
                 </p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <SemesterActivateButton
-                    semesterId={item.id}
+                  <ProgramCycleActivateButton
+                    cycleId={item.id}
                     isActive={item.isActive}
                   />
                   <Link
-                    href={`/admin/actividades?semester=${item.id}`}
+                    href={`/admin/actividades?cycle=${item.id}`}
                     className={buttonVariants({ variant: "ghost", size: "sm" })}
                   >
                     Ver actividades
@@ -224,27 +230,27 @@ export default async function AdminActividadesPage({
               Actividades
             </p>
             <h2 className="font-display text-2xl font-semibold text-ink">
-              {selectedSemester
-                ? `Semestre ${selectedSemester.name}`
-                : "Sin semestre seleccionado"}
+              {selectedCycle
+                ? `Ciclo ${selectedCycle.name}`
+                : "Sin ciclo seleccionado"}
             </h2>
           </div>
 
-          {semesters.length > 1 ? (
+          {cycles.length > 1 ? (
             <form method="get" className="flex items-center gap-2">
               <label
-                htmlFor="semester-select"
+                htmlFor="cycle-select"
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft"
               >
-                Semestre
+                Ciclo
               </label>
               <select
-                id="semester-select"
-                name="semester"
-                defaultValue={selectedSemester?.id ?? ""}
+                id="cycle-select"
+                name="cycle"
+                defaultValue={selectedCycle?.id ?? ""}
                 className="h-9 rounded-xl border border-line bg-surface px-3 text-xs text-ink shadow-sm"
               >
-                {semesters.map((item) => (
+                {cycles.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                   </option>
@@ -260,7 +266,7 @@ export default async function AdminActividadesPage({
           ) : null}
         </div>
 
-        {selectedSemester ? (
+        {selectedCycle ? (
           <>
             <details className="group rounded-2xl border border-line bg-surface shadow-card">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
@@ -269,7 +275,7 @@ export default async function AdminActividadesPage({
                     Nueva actividad
                   </p>
                   <p className="mt-0.5 text-xs text-ink-soft">
-                    Título, tipo, fechas, lugar y encargados.
+                    Título, tipo, alcance, carácter, fechas, lugar y encargados.
                   </p>
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-anil-700">
@@ -281,13 +287,13 @@ export default async function AdminActividadesPage({
               <div className="border-t border-line/70 bg-canvas/30 p-4">
                 <ActivityForm
                   mode="create"
-                  semesters={semesters.map((item) => ({
+                  cycles={cycles.map((item) => ({
                     id: item.id,
                     name: item.name,
                     isActive: item.isActive,
                   }))}
                   leaders={leaderOptionsForForm}
-                  defaultSemesterId={selectedSemester.id}
+                  defaultCycleId={selectedCycle.id}
                 />
               </div>
             </details>
@@ -295,7 +301,7 @@ export default async function AdminActividadesPage({
             {activities.length === 0 ? (
               <EmptyState
                 icon={CalendarPlus}
-                title="No hay actividades en este semestre"
+                title="No hay actividades en este ciclo"
                 description="Crea la primera actividad del período y asigna a sus encargados."
               />
             ) : (
@@ -320,6 +326,7 @@ export default async function AdminActividadesPage({
                             id: leader.userId,
                             firstName: leader.user.firstName,
                             lastName: leader.user.lastName,
+                            preferredName: leader.user.preferredName,
                             community: leader.user.community,
                           })),
                           approvedRouteSheet: approved
@@ -379,18 +386,20 @@ export default async function AdminActividadesPage({
                         <div className="border-t border-line/70 bg-canvas/30 p-4">
                           <ActivityForm
                             mode="edit"
-                            semesters={semesters.map((item) => ({
+                            cycles={cycles.map((item) => ({
                               id: item.id,
                               name: item.name,
                               isActive: item.isActive,
                             }))}
                             leaders={leaderOptionsForForm}
-                            defaultSemesterId={selectedSemester.id}
+                            defaultCycleId={selectedCycle.id}
                             activity={{
                               id: activity.id,
-                              semesterId: selectedSemester.id,
+                              cycleId: selectedCycle.id,
                               title: activity.title,
                               type: activity.type,
+                              scope: activity.scope,
+                              scheduleType: activity.scheduleType,
                               startsAt: toDateTimeInputValue(activity.startsAt),
                               endsAt: toDateTimeInputValue(activity.endsAt),
                               location: activity.location,
@@ -413,7 +422,7 @@ export default async function AdminActividadesPage({
           <Card className="border-dashed p-6 text-sm text-ink-soft">
             <span className="inline-flex items-center gap-2">
               <Power className="size-4 text-anil-600" aria-hidden="true" />
-              Crea y activa un semestre para comenzar a cargar actividades.
+              Crea y activa un ciclo para comenzar a cargar actividades.
             </span>
           </Card>
         )}

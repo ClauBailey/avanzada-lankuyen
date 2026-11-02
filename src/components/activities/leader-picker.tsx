@@ -6,12 +6,14 @@ import { Search, Users } from "lucide-react";
 import { CommunityTag } from "@/components/brand/community-tag";
 import { Input } from "@/components/ui/input";
 import { ROLE_SHORT_LABELS } from "@/lib/constants";
+import { getDisplayName } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 
 export interface LeaderOption {
   id: string;
   firstName: string;
   lastName: string;
+  preferredName?: string | null;
   role: "PP" | "COORDINADOR";
   community: { name: string; color: string | null } | null;
 }
@@ -36,8 +38,8 @@ export function LeaderPicker({ leaders, initialSelected }: LeaderPickerProps) {
 
     return leaders.filter((leader) => {
       const haystack = `${leader.firstName} ${leader.lastName} ${
-        leader.community?.name ?? ""
-      }`
+        leader.preferredName ?? ""
+      } ${leader.community?.name ?? ""}`
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
@@ -133,7 +135,7 @@ export function LeaderPicker({ leaders, initialSelected }: LeaderPickerProps) {
 
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-ink">
-                          {leader.firstName} {leader.lastName}
+                          {getDisplayName(leader)}
                         </span>
                         <span className="block text-[11px] text-ink-soft">
                           {ROLE_SHORT_LABELS[leader.role]}

@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ROLE_LABELS, ROLE_SHORT_LABELS } from "@/lib/constants";
-import { getInitials } from "@/lib/utils";
+import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
 import {
   getDirectoryCommunities,
   getMembersDirectory,
@@ -135,7 +135,7 @@ export default async function MiembrosPage({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {members.map((member) => {
-            const fullName = `${member.firstName} ${member.lastName}`;
+            const fullName = getDisplayName(member);
             const StageIcon =
               member.stage?.code === "CUMBRE" ? Mountain : Compass;
 
@@ -148,7 +148,7 @@ export default async function MiembrosPage({
                 <Card className="flex h-full flex-col p-5 transition-colors group-hover:border-anil-300 group-hover:bg-anil-50/30">
                   <div className="flex items-start gap-3">
                     <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-anil-950 font-display text-lg font-semibold text-white ring-2 ring-white/20">
-                      {getInitials(member.firstName, member.lastName)}
+                      {getDisplayInitials(member)}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-display text-base font-semibold text-ink">

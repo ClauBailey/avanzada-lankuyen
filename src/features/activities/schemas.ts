@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { ACTIVITY_TYPES } from "@/lib/activity-types";
+import {
+  ACTIVITY_SCHEDULE_TYPES,
+  ACTIVITY_SCOPES,
+} from "@/lib/activity-scopes";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -10,46 +14,54 @@ const DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const uuid = (message: string) =>
   z.string().trim().regex(UUID_PATTERN, message);
 
-export const semesterSchema = z
+/**
+ * Ciclo de Programa (RF-CIC-01).
+ *
+ * El nombre es libre porque los ciclos se nombran por estación
+ * («Ciclo Otoño–Invierno 2026») y no por un código interno.
+ */
+export const programCycleSchema = z
   .object({
     name: z
       .string()
       .trim()
-      .toUpperCase()
-      .regex(
-        /^\d{4}-S[12]$/,
-        "Usa el formato del semestre: 2026-S1 o 2026-S2.",
-      ),
-    startsOn: z
+      .min(3, "Escribe un nombre para el ciclo.")
+      .max(120, "El nombre no puede superar los 120 caracteres."),
+    startDate: z
       .string()
       .trim()
       .regex(DATE_PATTERN, "Ingresa la fecha de inicio."),
-    endsOn: z.string().trim().regex(DATE_PATTERN, "Ingresa la fecha de término."),
+    endDate: z
+      .string()
+      .trim()
+      .regex(DATE_PATTERN, "Ingresa la fecha de término."),
     isActive: z.enum(["true", "false"]).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.endsOn <= data.startsOn) {
+    if (data.endDate <= data.startDate) {
       ctx.addIssue({
         code: "custom",
-        path: ["endsOn"],
+        path: ["endDate"],
         message: "La fecha de término debe ser posterior a la de inicio.",
       });
     }
   });
 
-export const semesterIdSchema = z.object({
-  semesterId: uuid("Semestre inválido."),
+export const programCycleIdSchema = z.object({
+  cycleId: uuid("Ciclo inválido."),
 });
 
 export const activitySchema = z
   .object({
-    semesterId: uuid("Selecciona un semestre válido."),
+    cycleId: uuid("Selecciona un ciclo válido."),
     title: z
       .string()
       .trim()
       .min(3, "El título debe tener al menos 3 caracteres.")
       .max(160, "El título no puede superar los 160 caracteres."),
     type: z.enum(ACTIVITY_TYPES),
+    scope: z.enum(ACTIVITY_SCOPES),
+    scheduleType: z.enum(ACTIVITY_SCHEDULE_TYPES),
     startsAt: z
       .string()
       .trim()

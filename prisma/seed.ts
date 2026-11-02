@@ -8,8 +8,11 @@
  */
 import "dotenv/config";
 
+import { readFile } from "node:fs/promises";
+
 import { hash } from "@node-rs/argon2";
 import { PrismaPg } from "@prisma/adapter-pg";
+import type { DevelopmentArea } from "../src/generated/prisma/enums";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 const connectionString = process.env.DATABASE_URL;
@@ -20,16 +23,17 @@ if (!connectionString) {
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
-// Nombres provisionales de las 7 competencias: los AA podrán editarlos
-// desde el panel de insignias (Módulo 2) sin tocar código.
+// Las siete competencias oficiales (Manual pp. 278–279). Se conservan los
+// códigos históricos COMP_* para no perder las concesiones ya realizadas.
 const BADGES = [
   {
     code: "ETAPA_SENDERO",
     category: "ETAPA",
     stageCode: "SENDERO",
+    competencyArea: null,
     name: "Sendero",
     description:
-      "El Sendero es la oportunidad de las y los jóvenes para explorar y elegir sus caminos de manera individual, pero apoyados siempre por su grupo de amigas y amigos.",
+      "El Sendero comienza cuando la persona decide explorar sus propios caminos: sus intereses, sus preguntas y las formas de servir que la llaman. La insignia no corona un final; enciende una etapa.",
     imagePath: "/badges/etapa-sendero.svg",
     sortOrder: 10,
   },
@@ -37,9 +41,10 @@ const BADGES = [
     code: "ETAPA_CUMBRE",
     category: "ETAPA",
     stageCode: "CUMBRE",
+    competencyArea: null,
     name: "Cumbre",
     description:
-      "La Cumbre es el lugardesde donde las y los jóvenes pueden mirar haciaatrás para ver los diferentes caminos que han tomado para llegar hasta ahí y proyectarse hacia elfuturo con una visión más amplia.",
+      "La Cumbre comienza cuando la persona se siente lista para proyectar lo aprendido hacia el futuro. Mirar desde lo alto no es terminar el camino: es descubrir hacia dónde seguir.",
     imagePath: "/badges/etapa-cumbre.svg",
     sortOrder: 20,
   },
@@ -47,9 +52,10 @@ const BADGES = [
     code: "COMP_APRENDER",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Aprender a aprender",
+    competencyArea: "CULTURA",
+    name: "Cultura",
     description:
-      "Competencia provisional. La persona que aprende con curiosidad, se plantea preguntas y busca sus propias respuestas.",
+      "Se reconoce cuando la persona se acerca al arte, la memoria y las preguntas que abren mundos, y comparte lo que descubre con su comunidad.",
     imagePath: "/badges/comp-aprender.svg",
     sortOrder: 30,
   },
@@ -57,9 +63,10 @@ const BADGES = [
     code: "COMP_NATURALEZA",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Vida en la naturaleza",
+    competencyArea: "MEDIOAMBIENTE",
+    name: "Medioambiente",
     description:
-      "Competencia provisional. Cuidar el entorno, desenvolverse al aire libre y descubrir la vida al aire libre.",
+      "Se reconoce cuando la persona cuida el entorno, comprende su impacto y sostiene acciones concretas para dejar el lugar mejor de como lo encontró.",
     imagePath: "/badges/comp-naturaleza.svg",
     sortOrder: 40,
   },
@@ -67,9 +74,10 @@ const BADGES = [
     code: "COMP_CREATIVIDAD",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Creatividad y expresión",
+    competencyArea: "INNOVACION",
+    name: "Innovación",
     description:
-      "Competencia provisional. Expresarse con libertad, imaginar soluciones y crear con las manos y la voz.",
+      "Se reconoce cuando la persona imagina soluciones, prueba caminos nuevos y transforma una dificultad en una oportunidad para el grupo.",
     imagePath: "/badges/comp-creatividad.svg",
     sortOrder: 50,
   },
@@ -77,9 +85,10 @@ const BADGES = [
     code: "COMP_EQUIPO",
     category: "COMPETENCIA",
     stageCode: null,
+    competencyArea: "TRABAJO_EN_EQUIPO",
     name: "Trabajo en equipo",
     description:
-      "Competencia provisional. Construir con otras personas, repartir tareas y sostener los acuerdos del grupo.",
+      "Se reconoce cuando la persona construye con otras, reparte tareas, escucha y sostiene los acuerdos del grupo.",
     imagePath: "/badges/comp-equipo.svg",
     sortOrder: 60,
   },
@@ -87,9 +96,10 @@ const BADGES = [
     code: "COMP_LIDERAZGO",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Liderazgo y servicio",
+    competencyArea: "CIUDADANIA",
+    name: "Ciudadanía",
     description:
-      "Competencia provisional. Tomar la iniciativa, acompañar a otras personas y servir a la comunidad.",
+      "Se reconoce cuando la persona participa, toma la iniciativa y sirve a su comunidad con sentido de responsabilidad y cuidado.",
     imagePath: "/badges/comp-liderazgo.svg",
     sortOrder: 70,
   },
@@ -97,9 +107,10 @@ const BADGES = [
     code: "COMP_RELACIONES",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Relaciones interpersonales",
+    competencyArea: "COMUNICACION",
+    name: "Comunicación",
     description:
-      "Competencia provisional. Escuchar, dialogar y construir vínculos sanos con las demás personas.",
+      "Se reconoce cuando la persona escucha, dialoga y expresa lo que piensa y siente de forma clara y respetuosa.",
     imagePath: "/badges/comp-relaciones.svg",
     sortOrder: 80,
   },
@@ -107,9 +118,10 @@ const BADGES = [
     code: "COMP_ESPIRITUALIDAD",
     category: "COMPETENCIA",
     stageCode: null,
-    name: "Fe y espiritualidad",
+    competencyArea: "VIDA_AIRE_LIBRE_Y_DEPORTES",
+    name: "Vida al aire libre y deportes",
     description:
-      "Competencia provisional. Descubrir el sentido profundo de la vida y celebrar la fe en comunidad.",
+      "Se reconoce cuando la persona disfruta la vida al aire libre, cuida su cuerpo y encuentra en el movimiento una forma de encuentro y bienestar.",
     imagePath: "/badges/comp-espiritualidad.svg",
     sortOrder: 90,
   },
@@ -117,9 +129,10 @@ const BADGES = [
     code: "PROMESA",
     category: "PROMESA",
     stageCode: null,
+    competencyArea: null,
     name: "Promesa",
     description:
-      "La Promesa de la Avanzada: el compromiso personal que marca un antes y un después en el camino.",
+      "La Promesa nace de la decisión libre de la persona. No depende de la etapa ni de la antigüedad: se prepara y se celebra cuando tiene sentido para ella.",
     imagePath: "/badges/promesa.svg",
     sortOrder: 100,
   },
@@ -490,10 +503,12 @@ const SETTINGS = [
 ] as const;
 
 /**
- * Semestre en curso según la fecha de ejecución (hora de Chile).
- * S1: marzo–julio · S2: agosto–diciembre. Enero y febrero cierran el S2 anterior.
+ * Ciclo de Programa en curso según la fecha de ejecución (hora de Chile).
+ *
+ * Otoño–Invierno: marzo–julio · Primavera–Verano: agosto–diciembre. Enero y
+ * febrero cierran el ciclo Primavera–Verano del año anterior.
  */
-function getCurrentSemester() {
+function getCurrentProgramCycle() {
   const now = new Date();
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Santiago",
@@ -518,26 +533,26 @@ function getCurrentSemester() {
 
   return half === 1
     ? {
-        name: `${year}-S1`,
-        startsOn: new Date(`${year}-03-01T00:00:00.000Z`),
-        endsOn: new Date(`${year}-07-31T00:00:00.000Z`),
+        name: `Ciclo Otoño–Invierno ${year}`,
+        startDate: new Date(`${year}-03-01T00:00:00.000Z`),
+        endDate: new Date(`${year}-07-31T00:00:00.000Z`),
       }
     : {
-        name: `${year}-S2`,
-        startsOn: new Date(`${year}-08-01T00:00:00.000Z`),
-        endsOn: new Date(`${year}-12-31T00:00:00.000Z`),
+        name: `Ciclo Primavera–Verano ${year}`,
+        startDate: new Date(`${year}-08-01T00:00:00.000Z`),
+        endDate: new Date(`${year}-12-31T00:00:00.000Z`),
       };
 }
 
 async function main() {
-  console.log("→ Sembrando insignias…");
-  for (const badge of BADGES) {
+  console.log("→ Sembrando insignias…");  for (const badge of BADGES) {
     await prisma.badge.upsert({
       where: { code: badge.code },
       create: {
         code: badge.code,
         category: badge.category,
         stageCode: badge.stageCode,
+        competencyArea: badge.competencyArea,
         name: badge.name,
         description: badge.description,
         imagePath: badge.imagePath,
@@ -550,12 +565,47 @@ async function main() {
         sortOrder: badge.sortOrder,
         category: badge.category,
         stageCode: badge.stageCode,
+        competencyArea: badge.competencyArea,
       },
     });
   }
 
-  console.log("Sembrando logros RPG...");
-  for (const achievement of ACHIEVEMENTS) {
+  console.log("→ Sembrando objetivos de La Brújula…");
+  const objectivesUrl = new URL(
+    "../src/data/instrumento-objetivos.json",
+    import.meta.url,
+  );
+  const objectives = JSON.parse(
+    await readFile(objectivesUrl, "utf8"),
+  ) as Array<{
+    code: string;
+    area: DevelopmentArea;
+    terminalObjective: string;
+    intermediateObjective: string;
+    sortOrder?: number;
+  }>;
+
+  for (const objective of objectives) {
+    await prisma.compassObjectiveTemplate.upsert({
+      where: { code: objective.code },
+      create: {
+        code: objective.code,
+        area: objective.area,
+        terminalObjective: objective.terminalObjective,
+        intermediateObjective: objective.intermediateObjective,
+        sortOrder: objective.sortOrder ?? 0,
+      },
+      update: {
+        area: objective.area,
+        terminalObjective: objective.terminalObjective,
+        intermediateObjective: objective.intermediateObjective,
+        sortOrder: objective.sortOrder ?? 0,
+      },
+    });
+  }
+  console.log(`   ${objectives.length} objetivos disponibles desde el ingreso.`);
+
+  console.log("Sembrando logros RPG...");  for (const achievement of ACHIEVEMENTS) {
     await prisma.achievement.upsert({
       where: { code: achievement.code },
       create: {
@@ -608,38 +658,41 @@ async function main() {
     });
   }
 
-  console.log("→ Sembrando semestre en curso…");
-  const currentSemester = getCurrentSemester();
-  const existingSemester = await prisma.semester.findUnique({
-    where: { name: currentSemester.name },
+  console.log("→ Sembrando ciclo de programa en curso…");
+  const currentCycle = getCurrentProgramCycle();
+  const existingCycle = await prisma.programCycle.findUnique({
+    where: { name: currentCycle.name },
     select: { id: true },
   });
 
-  if (existingSemester) {
-    console.log(`   El semestre "${currentSemester.name}" ya existe.`);
+  if (existingCycle) {
+    console.log(`   El ciclo "${currentCycle.name}" ya existe.`);
   } else {
-    const anyActive = await prisma.semester.count({ where: { isActive: true } });
-    await prisma.semester.create({
-      data: { ...currentSemester, isActive: anyActive === 0 },
+    const anyActive = await prisma.programCycle.count({
+      where: { isActive: true },
     });
-    console.log(`   Semestre "${currentSemester.name}" creado.`);
+    await prisma.programCycle.create({
+      data: { ...currentCycle, isActive: anyActive === 0 },
+    });
+    console.log(`   Ciclo "${currentCycle.name}" creado.`);
   }
 
   console.log("→ Asegurando comunidad base…");
-  const baseCommunity =
-    (await prisma.community.findFirst({
-      where: { deletedAt: null },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    })) ??
-    (await prisma.community.create({
+  const existingCommunity = await prisma.community.findFirst({
+    where: { deletedAt: null },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  if (!existingCommunity) {
+    await prisma.community.create({
       data: {
         name: "Comunidad Lankuyen",
         slug: "comunidad-lankuyen",
         color: "#4b50a8",
       },
       select: { id: true },
-    }));
+    });
+  }
 
   console.log("→ Creando Adulto Acompañante inicial…");
   const username = (process.env.SEED_AA_USERNAME ?? "aa.lankuyen")
@@ -650,15 +703,21 @@ async function main() {
 
   const existing = await prisma.user.findUnique({
     where: { username },
-    select: { id: true, communityId: true },
+    select: { id: true, communityId: true, adultTeamRole: true },
   });
   if (existing) {
-    if (!existing.communityId) {
+    if (existing.communityId || !existing.adultTeamRole) {
       await prisma.user.update({
         where: { id: existing.id },
-        data: { communityId: baseCommunity.id },
+        data: {
+          communityId: null,
+          communityRole: null,
+          adultTeamRole: existing.adultTeamRole ?? "RESPONSABLE_AVANZADA",
+        },
       });
-      console.log("   Se asignó la comunidad base al AA existente.");
+      console.log(
+        "   Se retiró la comunidad juvenil del AA y se aseguró su cargo adulto.",
+      );
     }
     console.log(`   El usuario "${username}" ya existe; no se modificó.`);
   } else {
@@ -676,7 +735,9 @@ async function main() {
         firstName: process.env.SEED_AA_FIRST_NAME?.trim() || "Adulto",
         lastName: process.env.SEED_AA_LAST_NAME?.trim() || "Acompañante",
         role: "AA",
-        communityId: baseCommunity.id,
+        communityId: null,
+        communityRole: null,
+        adultTeamRole: "RESPONSABLE_AVANZADA",
         mustChangePassword: true,
         isActive: true,
       },

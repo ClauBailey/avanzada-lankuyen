@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   CalendarClock,
   Download,
+  FileText,
   FileWarning,
   MapPin,
   Star,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/activity-types";
 import { APP_TIMEZONE } from "@/lib/constants";
 import { formatShortDate, formatTime } from "@/lib/dates";
+import { getDisplayName } from "@/lib/user-display";
 import type { ActivityType } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +35,7 @@ export interface ActivityCardLeader {
   id: string;
   firstName: string;
   lastName: string;
+  preferredName?: string | null;
   community: { name: string; color: string | null } | null;
 }
 
@@ -46,7 +49,7 @@ export interface ActivityCardData {
   description?: string | null;
   isPublished: boolean;
   leaders: ActivityCardLeader[];
-  approvedRouteSheet: { fileId: string; title: string | null } | null;
+  approvedRouteSheet: { fileId: string | null; title: string | null } | null;
 }
 
 export interface ActivityCardViewer {
@@ -158,7 +161,7 @@ export function ActivityCard({
                   className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-ink"
                 >
                   <span className="font-medium">
-                    {leader.firstName} {leader.lastName}
+                    {getDisplayName(leader)}
                   </span>
                   {leader.community ? (
                     <CommunityTag
@@ -173,7 +176,7 @@ export function ActivityCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          {activity.approvedRouteSheet ? (
+          {activity.approvedRouteSheet?.fileId ? (
             <a
               href={`/api/files/${activity.approvedRouteSheet.fileId}`}
               className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800 hover:border-emerald-300"
@@ -181,6 +184,11 @@ export function ActivityCard({
               <Download className="size-3" aria-hidden="true" />
               Hoja de ruta disponible
             </a>
+          ) : activity.approvedRouteSheet ? (
+            <Badge variant="success">
+              <FileText className="size-3" aria-hidden="true" />
+              Hoja de ruta oficial
+            </Badge>
           ) : (
             <Badge variant="warning">
               <FileWarning className="size-3" aria-hidden="true" />

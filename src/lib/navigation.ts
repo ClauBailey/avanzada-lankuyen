@@ -16,6 +16,10 @@ export type NavIconName =
   | "trophy"
   | "users-round"
   | "settings"
+  | "compass"
+  | "vote"
+  | "folder-kanban"
+  | "handshake"
   | "arrow-left";
 
 export interface NavItem {
@@ -28,9 +32,15 @@ export interface NavItem {
 export const memberNav: NavItem[] = [
   { href: "/inicio", label: "Inicio", icon: "home", exact: true },
   { href: "/perfil", label: "Mi perfil", icon: "user" },
+  { href: "/brujula", label: "Mi Brújula", icon: "compass" },
+  { href: "/camino", label: "Mi camino", icon: "compass" },
+  { href: "/mi-comunidad", label: "Mi comunidad", icon: "community" },
+  { href: "/mi-comunidad/bitacora", label: "Bitácora de comunidad", icon: "book" },
   { href: "/miembros", label: "Miembros", icon: "users-round" },
   { href: "/logros", label: "Logros", icon: "trophy" },
   { href: "/calendario", label: "Calendario", icon: "calendar" },
+  { href: "/ciclo", label: "Ciclo y Asamblea", icon: "vote" },
+  { href: "/proyectos", label: "Proyectos", icon: "folder-kanban" },
   { href: "/bitacora", label: "Bitácora", icon: "book" },
   { href: "/hojas-de-ruta", label: "Hojas de ruta", icon: "file" },
   { href: "/material", label: "Material", icon: "book" },
@@ -40,9 +50,13 @@ export const memberNav: NavItem[] = [
 export const adminNav: NavItem[] = [
   { href: "/admin", label: "Tablero", icon: "dashboard", exact: true },
   { href: "/admin/usuarios", label: "Usuarios", icon: "users" },
+  { href: "/acompanamiento", label: "Acompañamiento", icon: "users-round" },
   { href: "/miembros", label: "Miembros", icon: "users-round" },
   { href: "/admin/comunidades", label: "Comunidades", icon: "community" },
   { href: "/admin/actividades", label: "Actividades", icon: "calendar-plus" },
+  { href: "/ciclo", label: "Ciclo y Asamblea", icon: "vote" },
+  { href: "/proyectos", label: "Proyectos", icon: "folder-kanban" },
+  { href: "/admin/red-de-apoyo", label: "Red de apoyo", icon: "handshake" },
   { href: "/admin/asistencia", label: "Asistencia", icon: "clipboard" },
   { href: "/admin/evaluaciones", label: "Evaluaciones", icon: "star" },
   { href: "/admin/bitacora", label: "Bitácora", icon: "book" },

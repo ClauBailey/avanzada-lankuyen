@@ -7,10 +7,12 @@ import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/lib/action-state";
 import type { Prisma } from "@/generated/prisma/client";
 import { firstIssue, readField } from "@/lib/form-data";
+import { getDisplayName } from "@/lib/user-display";
 import {
   isAllowedRouteSheetMime,
   MAX_ROUTE_SHEET_BYTES,
   ROUTE_SHEET_FILE_HINT,
+  ROUTE_SHEET_STRUCTURED_SECTIONS,
 } from "@/lib/route-sheets";
 import {
   rejectRouteSheetSchema,
@@ -85,34 +87,45 @@ export async function uploadRouteSheetAction(
 ): Promise<ActionState> {
   const user = await requirePermission("route_sheet:upload");
 
+  const structured = Object.fromEntries(
+    ROUTE_SHEET_STRUCTURED_SECTIONS.map((section) => [
+      section.key,
+      readField(formData, section.key) || undefined,
+    ]),
+  );
+
   const parsed = uploadRouteSheetSchema.safeParse({
     activityId: readField(formData, "activityId"),
+    projectId: readField(formData, "projectId") || undefined,
+    mode: readField(formData, "mode") || "FILE",
     title: readField(formData, "title") || undefined,
     description: readField(formData, "description") || undefined,
+    structured,
   });
 
   if (!parsed.success) {
     return { error: firstIssue(parsed.error) };
   }
 
+  const mode = parsed.data.mode;
   const upload = formData.get("file");
   const uploadFile = upload instanceof File && upload.size > 0 ? upload : null;
 
-  if (!uploadFile) {
+  if (mode === "FILE" && !uploadFile) {
     return { error: "Selecciona el archivo de la hoja de ruta." };
   }
 
-  if (!isAllowedRouteSheetMime(uploadFile.type)) {
+  if (uploadFile && !isAllowedRouteSheetMime(uploadFile.type)) {
     return {
       error: `El archivo debe ser ${ROUTE_SHEET_FILE_HINT.replace(" · máximo 10 MB", "")}.`,
     };
   }
 
-  if (uploadFile.size > MAX_ROUTE_SHEET_BYTES) {
+  if (uploadFile && uploadFile.size > MAX_ROUTE_SHEET_BYTES) {
     return { error: "La hoja de ruta no puede superar los 10 MB." };
   }
 
-  const { activityId, title, description } = parsed.data;
+  const { activityId, title, description, projectId } = parsed.data;
   const settings = await getAppSettings();
 
   const activity = await prisma.activity.findFirst({
@@ -121,7 +134,12 @@ export async function uploadRouteSheetAction(
       id: true,
       title: true,
       startsAt: true,
-      leaders: { select: { userId: true } },
+      leaders: {
+        select: {
+          userId: true,
+          user: { select: { communityId: true } },
+        },
+      },
     },
   });
 
@@ -131,19 +149,59 @@ export async function uploadRouteSheetAction(
     };
   }
 
+  if (projectId) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true },
+    });
+    if (!project) {
+      return { error: "El proyecto indicado ya no existe." };
+    }
+  }
+
   const isLeader = activity.leaders.some(
     (leader) => leader.userId === user.id,
   );
+
+  // El COORDINADOR de la comunidad organizadora también puede presentar la
+  // hoja: la comunidad organizadora es la de los encargados de la actividad.
+  const leaderCommunityIds = new Set(
+    activity.leaders
+      .map((leader) => leader.user.communityId)
+      .filter((value): value is string => Boolean(value)),
+  );
+  const isOrganizingCoordinator =
+    user.role === "COORDINADOR" &&
+    Boolean(user.communityId) &&
+    leaderCommunityIds.has(user.communityId as string);
+
+  // El joven Responsable de un proyecto vinculado a esta actividad también
+  // puede presentarla.
+  const isProjectResponsible = Boolean(
+    await prisma.projectActivityItem.findFirst({
+      where: {
+        activityId,
+        project: {
+          responsibleUserId: user.id,
+          workGroupStatus: "ACTIVO",
+        },
+      },
+      select: { id: true },
+    }),
+  );
+
   const canUpload =
     user.role === "AA" ||
     isLeader ||
+    isOrganizingCoordinator ||
+    isProjectResponsible ||
     (settings.allowAnyPpRouteSheetUpload &&
       (user.role === "PP" || user.role === "COORDINADOR"));
 
   if (!canUpload) {
     return {
       error:
-        "Solo los encargados de la actividad y los AA pueden subir su hoja de ruta.",
+        "Solo el Equipo Adulto, los encargados de la actividad, la coordinación de la comunidad organizadora y el Responsable de un proyecto vinculado pueden presentar su hoja de ruta.",
     };
   }
 
@@ -176,46 +234,62 @@ export async function uploadRouteSheetAction(
     existing.reduce((max, sheet) => Math.max(max, sheet.version), 0) + 1;
 
   const originalName =
-    uploadFile.name.trim().slice(0, 255) ||
+    uploadFile?.name.trim().slice(0, 255) ||
     `hoja-de-ruta-v${nextVersion}.pdf`;
-  const mimeType = uploadFile.type;
-  const objectKey = `route-sheets/${activityId}/${randomUUID()}${fileExtension(
-    originalName,
-    mimeType,
-  )}`;
+  const mimeType = uploadFile?.type ?? "application/json";
+  const objectKey = uploadFile
+    ? `route-sheets/${activityId}/${randomUUID()}${fileExtension(
+        originalName,
+        mimeType,
+      )}`
+    : null;
 
   const storage = getStorage();
   let uploaded = false;
 
   try {
-    await storage.put({
-      key: objectKey,
-      body: new Uint8Array(await uploadFile.arrayBuffer()),
-      contentType: mimeType,
-    });
-    uploaded = true;
+    if (uploadFile && objectKey) {
+      await storage.put({
+        key: objectKey,
+        body: new Uint8Array(await uploadFile.arrayBuffer()),
+        contentType: mimeType,
+      });
+      uploaded = true;
+    }
+
+    const structuredData =
+      mode === "STRUCTURED" && parsed.data.structured
+        ? (parsed.data.structured as Prisma.InputJsonValue)
+        : undefined;
 
     const created = await prisma.$transaction(async (tx) => {
-      const file = await tx.file.create({
-        data: {
-          provider: storage.driver === "local" ? "LOCAL" : "R2",
-          objectKey,
-          originalName,
-          mimeType,
-          sizeBytes: uploadFile.size,
-          isPublic: false,
-          uploadedById: user.id,
-        },
-        select: { id: true },
-      });
+      let fileId: string | null = null;
+
+      if (uploadFile && objectKey) {
+        const file = await tx.file.create({
+          data: {
+            provider: storage.driver === "local" ? "LOCAL" : "R2",
+            objectKey,
+            originalName,
+            mimeType,
+            sizeBytes: uploadFile.size,
+            isPublic: false,
+            uploadedById: user.id,
+          },
+          select: { id: true },
+        });
+        fileId = file.id;
+      }
 
       const sheet = await tx.routeSheet.create({
         data: {
           activityId,
+          projectId: projectId ?? null,
           uploadedById: user.id,
-          fileId: file.id,
+          fileId,
           title: title || `Hoja de ruta · ${activity.title}`.slice(0, 160),
           description: description || null,
+          structuredData,
           version: nextVersion,
           status: "PENDIENTE_AUTORIZACION",
         },
@@ -223,7 +297,7 @@ export async function uploadRouteSheetAction(
       });
 
       const audience = await getActiveAAIds(tx);
-      const fullName = `${user.firstName} ${user.lastName}`;
+      const fullName = getDisplayName(user);
 
       for (const recipient of audience) {
         await notifyUser(
@@ -250,11 +324,16 @@ export async function uploadRouteSheetAction(
           entityId: sheet.id,
           after: {
             activityId,
+            projectId: projectId ?? null,
+            mode,
             version: sheet.version,
-            fileId: file.id,
-            originalName,
-            mimeType,
-            sizeBytes: uploadFile.size,
+            fileId,
+            originalName: uploadFile ? originalName : null,
+            mimeType: uploadFile ? mimeType : null,
+            sizeBytes: uploadFile?.size ?? null,
+            structuredSections: structuredData
+              ? Object.keys(parsed.data.structured ?? {}).length
+              : 0,
           },
         },
         tx,
@@ -269,7 +348,7 @@ export async function uploadRouteSheetAction(
       success: `Hoja de ruta v${created.version} enviada. Un AA la revisará y te avisará por notificaciones.`,
     };
   } catch (error) {
-    if (uploaded) {
+    if (uploaded && objectKey) {
       await storage.delete(objectKey).catch(() => undefined);
     }
     console.error("Error al subir hoja de ruta", error);

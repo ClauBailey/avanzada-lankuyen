@@ -16,6 +16,7 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { RouteSheetStatusBadge } from "@/components/route-sheets/route-sheet-status-badge";
+import { RouteSheetStructuredView } from "@/components/route-sheets/route-sheet-structured-view";
 import { RouteSheetUploadForm } from "@/components/route-sheets/route-sheet-upload-form";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ import {
 import type { RouteSheetStatus } from "@/generated/prisma/enums";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_STYLES } from "@/lib/activity-types";
 import { formatDateTime, formatShortDate, formatTimestamp } from "@/lib/dates";
+import { getDisplayName } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 import {
   routeSheetVersionLabel,
@@ -53,9 +55,21 @@ export default async function HojasDeRutaPage() {
   const user = await requirePermission("calendar:view");
   const now = new Date();
 
-  const activeSemester = await prisma.semester.findFirst({
+  const activeCycle = await prisma.programCycle.findFirst({
     where: { isActive: true },
     select: { id: true, name: true },
+  });
+
+  const projectOptions = await prisma.project.findMany({
+    where: {
+      workGroupStatus: "ACTIVO",
+      OR: [
+        { responsibleUserId: user.id },
+        { members: { some: { userId: user.id } } },
+      ],
+    },
+    orderBy: { title: "asc" },
+    select: { id: true, title: true },
   });
 
   const [assignments, repository] = await Promise.all([
@@ -101,6 +115,8 @@ export default async function HojasDeRutaPage() {
             createdAt: true,
             reviewedAt: true,
             fileId: true,
+            structuredData: true,
+            project: { select: { id: true, title: true } },
             file: {
               select: {
                 id: true,
@@ -110,7 +126,7 @@ export default async function HojasDeRutaPage() {
               },
             },
             reviewedBy: {
-              select: { firstName: true, lastName: true },
+              select: { firstName: true, lastName: true, preferredName: true },
             },
           },
         },
@@ -123,7 +139,7 @@ export default async function HojasDeRutaPage() {
         activity: {
           deletedAt: null,
           isPublished: true,
-          ...(activeSemester ? { semesterId: activeSemester.id } : {}),
+          ...(activeCycle ? { cycleId: activeCycle.id } : {}),
         },
       },
       orderBy: { activity: { startsAt: "desc" } },
@@ -135,6 +151,8 @@ export default async function HojasDeRutaPage() {
         reviewedAt: true,
         createdAt: true,
         fileId: true,
+        structuredData: true,
+        project: { select: { id: true, title: true } },
         file: {
           select: {
             id: true,
@@ -150,7 +168,7 @@ export default async function HojasDeRutaPage() {
             type: true,
             startsAt: true,
             location: true,
-            semester: { select: { name: true } },
+            cycle: { select: { name: true } },
           },
         },
       },
@@ -168,7 +186,7 @@ export default async function HojasDeRutaPage() {
       <PageHeader
         eyebrow="Documentos de la unidad"
         title="Hojas de ruta"
-        description="Sube la hoja de ruta de las actividades que encabezas, revisa el feedback de los AA y descarga los documentos aprobados del semestre."
+        description="Sube la hoja de ruta de las actividades que encabezas, revisa el feedback de los AA y descarga los documentos aprobados del ciclo."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {user.role === "AA" ? (
@@ -328,7 +346,7 @@ export default async function HojasDeRutaPage() {
                           </p>
                           <p className="text-xs text-emerald-800/80">
                             {approved.reviewedBy
-                              ? `Revisada por ${approved.reviewedBy.firstName} ${approved.reviewedBy.lastName}`
+                              ? `Revisada por ${getDisplayName(approved.reviewedBy)}`
                               : "Aprobada por un AA"}
                             {approved.reviewedAt
                               ? ` el ${formatTimestamp(approved.reviewedAt)}`
@@ -336,16 +354,22 @@ export default async function HojasDeRutaPage() {
                             .
                           </p>
                         </div>
-                        <a
-                          href={`/api/files/${approved.fileId}`}
-                          className={buttonVariants({
-                            variant: "secondary",
-                            size: "sm",
-                          })}
-                        >
-                          <Download className="size-4" aria-hidden="true" />
-                          Descargar
-                        </a>
+                        {approved.fileId ? (
+                          <a
+                            href={`/api/files/${approved.fileId}`}
+                            className={buttonVariants({
+                              variant: "secondary",
+                              size: "sm",
+                            })}
+                          >
+                            <Download className="size-4" aria-hidden="true" />
+                            Descargar
+                          </a>
+                        ) : (
+                          <Badge variant="outline">
+                            Formulario oficial
+                          </Badge>
+                        )}
                       </div>
                     ) : pending ? (
                       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3">
@@ -394,6 +418,13 @@ export default async function HojasDeRutaPage() {
                       </div>
                     )}
 
+                    {latest?.structuredData ? (
+                      <RouteSheetStructuredView
+                        data={latest.structuredData}
+                        compact
+                      />
+                    ) : null}
+
                     {needsUpload ? (
                       <div className="rounded-xl border border-line bg-canvas/40 p-4">
                         <p className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
@@ -407,6 +438,7 @@ export default async function HojasDeRutaPage() {
                           activityTitle={activity.title}
                           nextVersion={nextVersion}
                           isResubmission={Boolean(rejected)}
+                          projects={projectOptions}
                         />
                       </div>
                     ) : null}
@@ -438,17 +470,43 @@ export default async function HojasDeRutaPage() {
                                 <span className="text-[11px] text-ink-soft">
                                   {formatTimestamp(sheet.createdAt)}
                                 </span>
-                                <a
-                                  href={`/api/files/${sheet.fileId}`}
-                                  className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-anil-700 hover:text-anil-900"
-                                >
-                                  <FileText
-                                    className="size-3"
-                                    aria-hidden="true"
-                                  />
-                                  Ver archivo
-                                </a>
+                                {sheet.fileId ? (
+                                  <a
+                                    href={`/api/files/${sheet.fileId}`}
+                                    className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-anil-700 hover:text-anil-900"
+                                  >
+                                    <FileText
+                                      className="size-3"
+                                      aria-hidden="true"
+                                    />
+                                    Ver archivo
+                                  </a>
+                                ) : (
+                                  <span className="ml-auto text-[11px] font-semibold text-anil-700">
+                                    Formulario oficial
+                                  </span>
+                                )}
                               </div>
+
+                              {sheet.project ? (
+                                <p className="mt-1 text-[11px] text-ink-soft">
+                                  Proyecto:{" "}
+                                  <Link
+                                    href={`/proyectos/${sheet.project.id}`}
+                                    className="font-semibold text-anil-700 hover:underline"
+                                  >
+                                    {sheet.project.title}
+                                  </Link>
+                                </p>
+                              ) : null}
+
+                              {sheet.structuredData ? (
+                                <RouteSheetStructuredView
+                                  data={sheet.structuredData}
+                                  compact
+                                  className="mt-2 rounded-lg border border-anil-200 bg-anil-50/30 p-2.5"
+                                />
+                              ) : null}
 
                               {sheet.status === "RECHAZADA" &&
                               sheet.rejectionReason ? (
@@ -463,7 +521,7 @@ export default async function HojasDeRutaPage() {
                                   Aprobada el{" "}
                                   {formatTimestamp(sheet.reviewedAt)}
                                   {sheet.reviewedBy
-                                    ? ` por ${sheet.reviewedBy.firstName} ${sheet.reviewedBy.lastName}`
+                                    ? ` por ${getDisplayName(sheet.reviewedBy)}`
                                     : ""}
                                   .
                                 </p>
@@ -490,7 +548,7 @@ export default async function HojasDeRutaPage() {
             </p>
             <h2 className="mt-1 font-display text-2xl font-semibold text-ink">
               Hojas de ruta aprobadas
-              {activeSemester ? ` · ${activeSemester.name}` : ""}
+              {activeCycle ? ` · ${activeCycle.name}` : ""}
             </h2>
             <p className="mt-1 text-sm text-ink-soft">
               Documentos autorizados por los AA, disponibles para lectura y
@@ -506,7 +564,7 @@ export default async function HojasDeRutaPage() {
           <EmptyState
             icon={FileText}
             title="Aún no hay hojas de ruta aprobadas"
-            description="Cuando un AA autorice el primer documento del semestre, aparecerá en este repositorio y junto a su actividad en el calendario."
+            description="Cuando un AA autorice el primer documento del ciclo, aparecerá en este repositorio y junto a su actividad en el calendario."
           />
         ) : (
           <ul className="space-y-3">
@@ -544,7 +602,7 @@ export default async function HojasDeRutaPage() {
                           Aprobada
                         </Badge>
                         <span className="text-[11px] text-ink-soft">
-                          Semestre {sheet.activity.semester.name}
+                          Ciclo {sheet.activity.cycle?.name ?? "sin asignar"}
                         </span>
                       </div>
 
@@ -566,20 +624,35 @@ export default async function HojasDeRutaPage() {
                         {sheet.reviewedAt
                           ? ` · aprobada el ${formatTimestamp(sheet.reviewedAt)}`
                           : ""}
+                        {sheet.project
+                          ? ` · Proyecto: ${sheet.project.title}`
+                          : ""}
                       </p>
+
+                      {sheet.structuredData ? (
+                        <RouteSheetStructuredView
+                          data={sheet.structuredData}
+                          compact
+                          className="mt-2 rounded-lg border border-anil-200 bg-anil-50/30 p-2.5"
+                        />
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-                      <a
-                        href={`/api/files/${sheet.fileId}`}
-                        className={buttonVariants({
-                          variant: "secondary",
-                          size: "sm",
-                        })}
-                      >
-                        <Download className="size-4" aria-hidden="true" />
-                        Descargar
-                      </a>
+                      {sheet.fileId ? (
+                        <a
+                          href={`/api/files/${sheet.fileId}`}
+                          className={buttonVariants({
+                            variant: "secondary",
+                            size: "sm",
+                          })}
+                        >
+                          <Download className="size-4" aria-hidden="true" />
+                          Descargar
+                        </a>
+                      ) : (
+                        <Badge variant="outline">Formulario oficial</Badge>
+                      )}
                       <Link
                         href={`/calendario/${sheet.activity.id}`}
                         className={buttonVariants({ variant: "ghost", size: "sm" })}

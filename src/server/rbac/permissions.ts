@@ -13,13 +13,24 @@ export const PERMISSIONS = [
   "calendar:view",
   "calendar:manage",
   "activity:manage",
+  "activity:manage_community",
   "activity:evaluate",
   "activity:evaluation_view",
-  "semester:manage",
+  "cycle:view",
+  "cycle:manage",
+  "cycle:diagnose",
+  "cycle:propose",
+  "assembly:vote",
   "attendance:rsvp",
   "attendance:ratify",
+  "journey:register",
+  "promise:manage",
   "route_sheet:upload",
   "route_sheet:review",
+  "project:view",
+  "project:manage",
+  "support_network:view",
+  "support_network:manage",
   "badge:view",
   "badge:grant",
   "badge:catalog_manage",
@@ -28,8 +39,11 @@ export const PERMISSIONS = [
   "member:view",
   "user:manage",
   "community:manage",
+  "community:identity_edit",
+  "community:roles_manage",
   "material:view",
   "material:manage",
+  "material:propose",
   "logbook:view",
   "logbook:create",
   "logbook:review",
@@ -37,6 +51,11 @@ export const PERMISSIONS = [
   "notification:view",
   "audit:view",
   "admin:access",
+  "compass:view",
+  "compass:write",
+  "mentoring:note",
+  "community_log:view",
+  "community_log:manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -51,6 +70,8 @@ const PP_PERMISSIONS = [
   "calendar:view",
   "activity:evaluate",
   "attendance:rsvp",
+  "journey:register",
+  "promise:manage",
   "route_sheet:upload",
   "badge:view",
   "achievement:view",
@@ -59,6 +80,16 @@ const PP_PERMISSIONS = [
   "logbook:view",
   "logbook:create",
   "notification:view",
+  "compass:view",
+  "compass:write",
+  "community_log:view",
+  "community_log:manage",
+  "cycle:view",
+  "cycle:diagnose",
+  "cycle:propose",
+  "assembly:vote",
+  "project:view",
+  "project:manage",
 ] as const satisfies readonly Permission[];
 
 /**
@@ -74,23 +105,56 @@ const COORDINADOR_PERMISSIONS = [
   "calendar:view",
   "activity:evaluate",
   "attendance:rsvp",
+  "attendance:ratify",
+  "journey:register",
+  "promise:manage",
   "route_sheet:upload",
   "badge:view",
   "achievement:view",
   "member:view",
   "material:view",
+  "material:propose",
   "logbook:view",
   "logbook:create",
+  "community:identity_edit",
+  "community:roles_manage",
   "notification:view",
+  "compass:view",
+  "compass:write",
+  "community_log:view",
+  "community_log:manage",
+  "cycle:view",
+  "cycle:manage",
+  "cycle:diagnose",
+  "cycle:propose",
+  "assembly:vote",
+  "activity:manage_community",
+  "project:view",
+  "project:manage",
+  "support_network:view",
 ] as const satisfies readonly Permission[];
 
 /**
- * Los AA administran toda la unidad, pero no responden evaluaciones: solo las
- * leen. La acción de envío también vuelve a exigir `activity:evaluate`.
+ * Los AA administran toda la unidad y también registran su propia observación
+ * cualitativa después de cada actividad: su voz acompaña, no califica.
+ *
+ * La escritura de La Brújula pertenece exclusivamente al joven (Art. I) y la
+ * Bitácora de Comunidad pertenece a la comunidad (Art. V): el AA no recibe
+ * esos permisos aunque administre el resto de la unidad.
  */
+const AA_EXCLUDED_PERMISSIONS = new Set<Permission>([
+  "compass:write",
+  "community_log:view",
+  "community_log:manage",
+  "cycle:diagnose",
+  "cycle:propose",
+  "assembly:vote",
+  "activity:manage_community",
+]);
+
 const AA_PERMISSIONS = PERMISSIONS.filter(
-  (permission) => permission !== "activity:evaluate",
-) as readonly Permission[];
+  (permission) => !AA_EXCLUDED_PERMISSIONS.has(permission),
+);
 
 export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   PP: new Set<Permission>(PP_PERMISSIONS),

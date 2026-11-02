@@ -8,17 +8,20 @@ import { parseDateOnlyInput, parseDateTimeInput } from "@/lib/dates";
 import {
   activityIdSchema,
   activitySchema,
-  semesterIdSchema,
-  semesterSchema,
+  programCycleIdSchema,
+  programCycleSchema,
 } from "@/features/activities/schemas";
+import { canCreateActivityForScope } from "@/features/cycle/rules";
 import { recordAudit } from "@/server/audit";
-import { requirePermission } from "@/server/auth/session";
+import { requirePermission, requireReadyUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
+import { can } from "@/server/rbac/can";
 
 function revalidateCalendar(activityId?: string) {
   revalidatePath("/admin/actividades");
   revalidatePath("/admin/asistencia");
   revalidatePath("/calendario");
+  revalidatePath("/ciclo");
   revalidatePath("/inicio");
   if (activityId) {
     revalidatePath(`/calendario/${activityId}`);
@@ -35,16 +38,16 @@ function isUniqueViolation(error: unknown) {
   );
 }
 
-export async function createSemesterAction(
+export async function createProgramCycleAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const actor = await requirePermission("semester:manage");
+  const actor = await requirePermission("cycle:manage");
 
-  const parsed = semesterSchema.safeParse({
+  const parsed = programCycleSchema.safeParse({
     name: readField(formData, "name"),
-    startsOn: readField(formData, "startsOn"),
-    endsOn: readField(formData, "endsOn"),
+    startDate: readField(formData, "startDate"),
+    endDate: readField(formData, "endDate"),
     isActive: readField(formData, "isActive") || "false",
   });
 
@@ -52,28 +55,30 @@ export async function createSemesterAction(
     return { error: firstIssue(parsed.error) };
   }
 
-  const { name, startsOn, endsOn } = parsed.data;
-  const startsOnDate = parseDateOnlyInput(startsOn);
-  const endsOnDate = parseDateOnlyInput(endsOn);
+  const { name, startDate, endDate } = parsed.data;
+  const start = parseDateOnlyInput(startDate);
+  const end = parseDateOnlyInput(endDate);
 
-  if (!startsOnDate || !endsOnDate) {
-    return { error: "Revisa las fechas del semestre." };
+  if (!start || !end) {
+    return { error: "Revisa las fechas del ciclo." };
   }
 
-  const activeCount = await prisma.semester.count({ where: { isActive: true } });
+  const activeCount = await prisma.programCycle.count({
+    where: { isActive: true },
+  });
   const shouldActivate = parsed.data.isActive === "true" || activeCount === 0;
 
   try {
     await prisma.$transaction(async (tx) => {
       if (shouldActivate) {
-        await tx.semester.updateMany({ data: { isActive: false } });
+        await tx.programCycle.updateMany({ data: { isActive: false } });
       }
 
-      const created = await tx.semester.create({
+      const created = await tx.programCycle.create({
         data: {
           name,
-          startsOn: startsOnDate,
-          endsOn: endsOnDate,
+          startDate: start,
+          endDate: end,
           isActive: shouldActivate,
         },
         select: { id: true },
@@ -82,17 +87,17 @@ export async function createSemesterAction(
       await recordAudit(
         {
           actor,
-          action: "semester.create",
-          entityType: "Semester",
+          action: "cycle.create",
+          entityType: "ProgramCycle",
           entityId: created.id,
-          after: { name, startsOn, endsOn, isActive: shouldActivate },
+          after: { name, startDate, endDate, isActive: shouldActivate },
         },
         tx,
       );
     });
   } catch (error) {
     if (isUniqueViolation(error)) {
-      return { error: `Ya existe el semestre «${name}».` };
+      return { error: `Ya existe el ciclo «${name}».` };
     }
     throw error;
   }
@@ -100,60 +105,60 @@ export async function createSemesterAction(
   revalidateCalendar();
   return {
     success: shouldActivate
-      ? `Semestre «${name}» creado y marcado como activo.`
-      : `Semestre «${name}» creado.`,
+      ? `Ciclo «${name}» creado y marcado como activo.`
+      : `Ciclo «${name}» creado.`,
   };
 }
 
-export async function activateSemesterAction(
+export async function activateProgramCycleAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const actor = await requirePermission("semester:manage");
+  const actor = await requirePermission("cycle:manage");
 
-  const parsed = semesterIdSchema.safeParse({
-    semesterId: readField(formData, "semesterId"),
+  const parsed = programCycleIdSchema.safeParse({
+    cycleId: readField(formData, "cycleId"),
   });
 
   if (!parsed.success) {
     return { error: firstIssue(parsed.error) };
   }
 
-  const semester = await prisma.semester.findUnique({
-    where: { id: parsed.data.semesterId },
+  const cycle = await prisma.programCycle.findUnique({
+    where: { id: parsed.data.cycleId },
     select: { id: true, name: true, isActive: true },
   });
 
-  if (!semester) {
-    return { error: "El semestre ya no existe." };
+  if (!cycle) {
+    return { error: "El ciclo ya no existe." };
   }
 
-  if (semester.isActive) {
-    return { success: "Este semestre ya está activo." };
+  if (cycle.isActive) {
+    return { success: "Este ciclo ya está activo." };
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.semester.updateMany({ data: { isActive: false } });
-    await tx.semester.update({
-      where: { id: semester.id },
+    await tx.programCycle.updateMany({ data: { isActive: false } });
+    await tx.programCycle.update({
+      where: { id: cycle.id },
       data: { isActive: true },
     });
 
     await recordAudit(
       {
         actor,
-        action: "semester.activate",
-        entityType: "Semester",
-        entityId: semester.id,
+        action: "cycle.activate",
+        entityType: "ProgramCycle",
+        entityId: cycle.id,
         before: { isActive: false },
-        after: { isActive: true, name: semester.name },
+        after: { isActive: true, name: cycle.name },
       },
       tx,
     );
   });
 
   revalidateCalendar();
-  return { success: `Semestre «${semester.name}» activado.` };
+  return { success: `Ciclo «${cycle.name}» activado.` };
 }
 
 async function resolveLeaders(leaderIds: string[]) {
@@ -184,9 +189,11 @@ async function resolveLeaders(leaderIds: string[]) {
 
 function readActivityForm(formData: FormData) {
   return activitySchema.safeParse({
-    semesterId: readField(formData, "semesterId"),
+    cycleId: readField(formData, "cycleId"),
     title: readField(formData, "title"),
     type: readField(formData, "type"),
+    scope: readField(formData, "scope") || "AVANZADA",
+    scheduleType: readField(formData, "scheduleType") || "VARIABLE",
     startsAt: readField(formData, "startsAt"),
     endsAt: readField(formData, "endsAt"),
     location: readField(formData, "location") || undefined,
@@ -198,11 +205,42 @@ function readActivityForm(formData: FormData) {
   });
 }
 
+type ActivityScopeValue = "COMUNIDAD" | "AVANZADA" | "GRUPO_DE_TRABAJO";
+
+/**
+ * RF-CAL-02: el AA programa todo el calendario; el COORDINADOR solo
+ * actividades de alcance COMUNIDAD de su propia Comunidad.
+ */
+function canProgramScope(
+  actor: {
+    id: string;
+    role: string;
+    communityId: string | null;
+    isActive?: boolean;
+  },
+  scope: ActivityScopeValue,
+): boolean {
+  if (scope === "COMUNIDAD") {
+    return canCreateActivityForScope(actor, {
+      scope,
+      communityId: actor.communityId,
+    });
+  }
+  return actor.role === "AA";
+}
+
 export async function createActivityAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const actor = await requirePermission("activity:manage");
+  const actor = await requireReadyUser();
+
+  if (
+    !can(actor, "activity:manage") &&
+    !can(actor, "activity:manage_community")
+  ) {
+    return { error: "No tienes permiso para programar actividades." };
+  }
 
   const parsed = readActivityForm(formData);
 
@@ -212,13 +250,20 @@ export async function createActivityAction(
 
   const data = parsed.data;
 
-  const semester = await prisma.semester.findUnique({
-    where: { id: data.semesterId },
+  if (!canProgramScope(actor, data.scope)) {
+    return {
+      error:
+        "Solo puedes programar actividades de alcance Comunidad para tu propia Comunidad.",
+    };
+  }
+
+  const cycle = await prisma.programCycle.findUnique({
+    where: { id: data.cycleId },
     select: { id: true, name: true },
   });
 
-  if (!semester) {
-    return { error: "El semestre seleccionado no existe." };
+  if (!cycle) {
+    return { error: "El ciclo seleccionado no existe." };
   }
 
   const startsAt = parseDateTimeInput(data.startsAt);
@@ -240,9 +285,11 @@ export async function createActivityAction(
     activityId = await prisma.$transaction(async (tx) => {
       const activity = await tx.activity.create({
         data: {
-          semesterId: data.semesterId,
+          cycleId: data.cycleId,
           title: data.title,
           type: data.type,
+          scope: data.scope,
+          scheduleType: data.scheduleType,
           startsAt,
           endsAt,
           location: data.location || null,
@@ -269,9 +316,11 @@ export async function createActivityAction(
           entityType: "Activity",
           entityId: activity.id,
           after: {
-            semester: semester.name,
+            cycle: cycle.name,
             title: data.title,
             type: data.type,
+            scope: data.scope,
+            scheduleType: data.scheduleType,
             startsAt: startsAt.toISOString(),
             endsAt: endsAt.toISOString(),
             location: data.location || null,
@@ -299,7 +348,14 @@ export async function updateActivityAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const actor = await requirePermission("activity:manage");
+  const actor = await requireReadyUser();
+
+  if (
+    !can(actor, "activity:manage") &&
+    !can(actor, "activity:manage_community")
+  ) {
+    return { error: "No tienes permiso para editar actividades." };
+  }
 
   const idParsed = activityIdSchema.safeParse({
     activityId: readField(formData, "activityId"),
@@ -318,12 +374,21 @@ export async function updateActivityAction(
   const data = parsed.data;
   const { activityId } = idParsed.data;
 
+  if (!canProgramScope(actor, data.scope)) {
+    return {
+      error:
+        "Solo puedes programar actividades de alcance Comunidad para tu propia Comunidad.",
+    };
+  }
+
   const current = await prisma.activity.findFirst({
     where: { id: activityId, deletedAt: null },
     select: {
       id: true,
       title: true,
       type: true,
+      scope: true,
+      scheduleType: true,
       startsAt: true,
       endsAt: true,
       location: true,
@@ -335,6 +400,15 @@ export async function updateActivityAction(
 
   if (!current) {
     return { error: "La actividad ya no existe." };
+  }
+
+  if (
+    !can(actor, "activity:manage") &&
+    current.scope !== "COMUNIDAD"
+  ) {
+    return {
+      error: "Solo puedes editar actividades de alcance Comunidad.",
+    };
   }
 
   const startsAt = parseDateTimeInput(data.startsAt);
@@ -354,9 +428,11 @@ export async function updateActivityAction(
     await tx.activity.update({
       where: { id: activityId },
       data: {
-        semesterId: data.semesterId,
+        cycleId: data.cycleId,
         title: data.title,
         type: data.type,
+        scope: data.scope,
+        scheduleType: data.scheduleType,
         startsAt,
         endsAt,
         location: data.location || null,
@@ -386,6 +462,8 @@ export async function updateActivityAction(
         before: {
           title: current.title,
           type: current.type,
+          scope: current.scope,
+          scheduleType: current.scheduleType,
           startsAt: current.startsAt.toISOString(),
           endsAt: current.endsAt.toISOString(),
           location: current.location,
@@ -396,6 +474,8 @@ export async function updateActivityAction(
         after: {
           title: data.title,
           type: data.type,
+          scope: data.scope,
+          scheduleType: data.scheduleType,
           startsAt: startsAt.toISOString(),
           endsAt: endsAt.toISOString(),
           location: data.location || null,

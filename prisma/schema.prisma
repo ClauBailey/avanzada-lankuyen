@@ -22,6 +22,18 @@ enum Role {
   COORDINADOR
 }
 
+enum CommunityInternalRole {
+  COORDINADOR
+  SECRETARIO
+  TESORERO
+  ADMINISTRADOR
+}
+
+enum AdultTeamRole {
+  RESPONSABLE_AVANZADA
+  ASISTENTE_AVANZADA
+}
+
 enum BadgeCategory {
   ETAPA
   COMPETENCIA
@@ -46,6 +58,73 @@ enum StageCode {
   CUMBRE
 }
 
+/**
+ * Los cinco momentos simbólicos del camino, sin orden obligatorio ni bloqueos.
+ * La Promesa puede vivir con independencia de la etapa en que esté la persona.
+ */
+enum SymbolicMoment {
+  BIENVENIDA_INVESTIDURA
+  SENDERO
+  CUMBRE
+  PROMESA
+  PASO_AL_CLAN
+}
+
+/**
+ * Fórmulas de la Promesa que la persona puede elegir libremente (Manual p. 49).
+ */
+enum PromiseFormula {
+  LEY_GUIA
+  LEY_SCOUT
+  LEY
+}
+
+enum PromiseStatus {
+  PREPARACION
+  SOLICITADA
+  CELEBRADA
+}
+
+/**
+ * Las siete áreas oficiales de competencias (Manual p. 278–279).
+ */
+enum CompetencyArea {
+  CULTURA
+  TRABAJO_EN_EQUIPO
+  INNOVACION
+  COMUNICACION
+  CIUDADANIA
+  MEDIOAMBIENTE
+  VIDA_AIRE_LIBRE_Y_DEPORTES
+}
+
+/**
+ * Evaluación cualitativa posterior a una actividad: observación, no nota.
+ */
+enum ObjectiveAchievementLevel {
+  LOGRADO_PLENAMENTE
+  LOGRADO_PARCIALMENTE
+  NO_LOGRADO_REPLANTEAR
+}
+
+enum DevelopmentArea {
+  CORPORALIDAD
+  CREATIVIDAD
+  CARACTER
+  AFECTIVIDAD
+  SOCIABILIDAD
+  ESPIRITUALIDAD
+}
+
+/**
+ * Autoevaluación del joven en su Brújula. No hay aprobación adulta:
+ * solo el paso de «en exploración / en camino» a «logrado en mi vida cotidiana».
+ */
+enum CompassObjectiveStatus {
+  EXPLORANDO
+  LOGRADO_EN_VIDA_COTIDIANA
+}
+
 enum ActivityType {
   REUNION
   SALIDA
@@ -53,6 +132,45 @@ enum ActivityType {
   SERVICIO
   CELEBRACION
   OTRO
+}
+
+/**
+ * Fases del Ciclo de Programa (RF-CIC-01, Manual p. 208–209).
+ *
+ * El ciclo se recorre en orden: diagnóstico y énfasis, propuestas y selección
+ * en Asamblea, organización del calendario y, por último, desarrollo y
+ * evaluación. `FINALIZADO` cierra el ciclo.
+ */
+enum ProgramCyclePhase {
+  DIAGNOSTICO_Y_ENFASIS
+  PROPUESTA_Y_SELECCION
+  ORGANIZACION_Y_PREPARACION
+  DESARROLLO_Y_EVALUACION
+  FINALIZADO
+}
+
+/** Alcance de una actividad dentro del calendario (RF-CAL-01, M p. 246–248). */
+enum ActivityScope {
+  COMUNIDAD
+  AVANZADA
+  GRUPO_DE_TRABAJO
+}
+
+/**
+ * Carácter de la actividad respecto al ciclo de programa (RF-CAL-01).
+ * `FIJA` reúne lo permanente (reuniones, peñas, campamentos, ceremonias);
+ * `VARIABLE` lo que nace de las propuestas del ciclo.
+ */
+enum ActivityScheduleType {
+  FIJA
+  VARIABLE
+}
+
+/** Dinámica de votación de la Asamblea (RF-CIC-04, M p. 219–220). */
+enum DemocraticVoteDynamic {
+  ELECCION_DIRECTA
+  RANKING_ESTRELLAS
+  ASIGNACION_PUNTOS
 }
 
 enum RsvpStatus {
@@ -86,6 +204,12 @@ enum NotificationType {
   BITACORA_APROBADA
   BITACORA_RECHAZADA
   LOGRO_DESBLOQUEADO
+  PROMESA_SOLICITADA
+  COMPETENCIA_RECONOCIDA
+  CONSENSO_SOLICITADO
+  CICLO_VOTACION_ABIERTA
+  PROYECTO_CONVOCATORIA
+  SOLICITUD_BAJA
 }
 
 enum LogbookEntryStatus {
@@ -119,6 +243,7 @@ model Community {
   id          String    @id @default(uuid()) @db.Uuid
   name        String    @unique @db.VarChar(80)
   slug        String    @unique @db.VarChar(80)
+  motto       String?   @db.VarChar(300)
   description String?   @db.Text
   color       String?   @db.VarChar(20)
   isActive    Boolean   @default(true) @map("is_active")
@@ -126,7 +251,11 @@ model Community {
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(3)
 
-  users User[]
+  users       User[]
+  roleHistory CommunityRoleHistory[]
+  logEntries  CommunityLogEntry[]
+  diagnoses   CommunityDiagnosis[]
+  proposals   ActivityProposal[]
 
   @@map("communities")
 }
@@ -138,16 +267,23 @@ model User {
   passwordHash       String    @map("password_hash") @db.VarChar(255)
   firstName          String    @map("first_name") @db.VarChar(80)
   lastName           String    @map("last_name") @db.VarChar(80)
+  preferredName      String?   @map("preferred_name") @db.VarChar(80)
   role               Role      @default(PP)
   communityId        String?   @map("community_id") @db.Uuid
+  communityRole      CommunityInternalRole? @map("community_role")
+  adultTeamRole      AdultTeamRole? @map("adult_team_role")
   phone              String?   @db.VarChar(30)
   birthDate          DateTime? @map("birth_date") @db.Date
+  assignedAaId       String?   @map("assigned_aa_id") @db.Uuid
+  assignedSince      DateTime? @map("assigned_since") @db.Timestamptz(3)
   avatarFileId       String?   @unique @map("avatar_file_id") @db.Uuid
   isActive           Boolean   @default(true) @map("is_active")
   isLogbookKeeper    Boolean   @default(false) @map("is_logbook_keeper")
   mustChangePassword Boolean   @default(true) @map("must_change_password")
   lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(3)
   createdById        String?   @map("created_by_id") @db.Uuid
+  accountDeletionRequestedAt DateTime? @map("account_deletion_requested_at") @db.Timestamptz(3)
+  accountDeletionReason String? @map("account_deletion_reason") @db.Text
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
@@ -156,11 +292,20 @@ model User {
   avatarFile      File?      @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
   createdBy       User?      @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdUsers    User[]     @relation("UserCreatedBy")
+  assignedAa      User?      @relation("UserAssignedAa", fields: [assignedAaId], references: [id], onDelete: SetNull)
+  assignedYouth   User[]     @relation("UserAssignedAa")
+  communityRoles  CommunityRoleHistory[]
 
   badges              UserBadge[]         @relation("UserBadgeUser")
   grantedBadges       UserBadge[]         @relation("UserBadgeGrantedBy")
   revokedBadges       UserBadge[]         @relation("UserBadgeRevokedBy")
   reflections         StageReflection[]
+  journeyMilestones   JourneyMilestone[]  @relation("JourneyMilestoneUser")
+  accompaniedMilestones JourneyMilestone[] @relation("JourneyMilestoneAccompaniedBy")
+  registeredMilestones  JourneyMilestone[] @relation("JourneyMilestoneRegisteredBy")
+  promise             UserPromise?        @relation("UserPromiseUser")
+  accompaniedPromises UserPromise[]       @relation("UserPromiseAccompaniedBy")
+  registeredPromises  UserPromise[]       @relation("UserPromiseRegisteredBy")
   createdActivities   Activity[]          @relation("ActivityCreatedBy")
   ledActivities       ActivityLeader[]    @relation("ActivityLeaderUser")
   assignedLeaderShips ActivityLeader[]    @relation("ActivityLeaderAssignedBy")
@@ -179,11 +324,46 @@ model User {
   auditLogs           AuditLog[]
   achievements        UserAchievement[]   @relation("UserAchievements")
   awardedAchievements UserAchievement[]   @relation("AwardedAchievements")
+  compassObjectives   UserCompassObjective[] @relation("UserCompassObjectiveUser")
+  compassReflections  UserCompassReflection[] @relation("UserCompassReflectionUser")
+  mentoringNotesReceived MentoringNote[]   @relation("MentoringNoteStudent")
+  mentoringNotesWritten  MentoringNote[]   @relation("MentoringNoteAuthor")
+  communityLogEntries CommunityLogEntry[]  @relation("CommunityLogEntryAuthor")
+  diagnosesWritten    CommunityDiagnosis[]  @relation("CommunityDiagnosisAuthor")
+  proposalsProposed   ActivityProposal[]   @relation("ActivityProposalProposer")
+  assemblyVotes       AssemblyVote[]       @relation("AssemblyVoteVoter")
+  responsibleProjects Project[]            @relation("ProjectResponsible")
+  accompaniedProjects Project[]            @relation("ProjectAccompanyingAa")
+  workGroupMemberships WorkGroupMember[]   @relation("WorkGroupMemberUser")
+  proposedResources   UnitResource[]       @relation("UnitResourceProposedBy")
 
   @@index([communityId])
   @@index([role])
   @@index([isActive])
+  @@index([assignedAaId])
   @@map("users")
+}
+
+/**
+ * Historial de cargos internos de una comunidad juvenil.
+ *
+ * Cada rotación cierra el registro vigente (`endedAt`) y abre uno nuevo, de
+ * modo que se conserva la trazabilidad de quién coordinó, secretarió, etc.
+ */
+model CommunityRoleHistory {
+  id          String                @id @default(uuid()) @db.Uuid
+  communityId String                @map("community_id") @db.Uuid
+  userId      String                @map("user_id") @db.Uuid
+  role        CommunityInternalRole
+  assignedAt  DateTime              @default(now()) @map("assigned_at") @db.Timestamptz(3)
+  endedAt     DateTime?             @map("ended_at") @db.Timestamptz(3)
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, endedAt])
+  @@index([userId])
+  @@map("community_role_history")
 }
 
 // ------------------------------------------------------------
@@ -195,6 +375,7 @@ model Badge {
   code        String        @unique @db.VarChar(50)
   category    BadgeCategory
   stageCode   StageCode?    @map("stage_code")
+  competencyArea CompetencyArea? @map("competency_area")
   name        String        @db.VarChar(100)
   description String        @db.Text
   imagePath   String        @map("image_path") @db.VarChar(255)
@@ -245,6 +426,65 @@ model StageReflection {
   @@map("stage_reflections")
 }
 
+/**
+ * Momentos del camino simbólico registrados por la persona o su AA.
+ *
+ * No hay orden obligatorio: el paso al Clan, la investidura, el inicio de una
+ * etapa o un nuevo paso por SENDERO se guardan como memoria, nunca como
+ * condición para acceder a otra cosa.
+ */
+model JourneyMilestone {
+  id              String          @id @default(uuid()) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  moment          SymbolicMoment
+  occurredAt      DateTime        @map("occurred_at") @db.Date
+  place           String?         @db.VarChar(180)
+  story           String?         @db.Text
+  accompaniedBy   String?         @map("accompanied_by") @db.VarChar(180)
+  accompaniedById String?         @map("accompanied_by_id") @db.Uuid
+  registeredById  String?         @map("registered_by_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user              User  @relation("JourneyMilestoneUser", fields: [userId], references: [id], onDelete: Cascade)
+  accompaniedByUser User? @relation("JourneyMilestoneAccompaniedBy", fields: [accompaniedById], references: [id], onDelete: SetNull)
+  registeredBy      User? @relation("JourneyMilestoneRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, moment])
+  @@index([userId])
+  @@map("journey_milestones")
+}
+
+/**
+ * Preparación y celebración de la Promesa.
+ *
+ * Se solicita y se registra con independencia de la etapa, la antigüedad o los
+ * objetivos. La fórmula pertenece a la persona que la pronuncia.
+ */
+model UserPromise {
+  id               String         @id @default(uuid()) @db.Uuid
+  userId           String         @unique @map("user_id") @db.Uuid
+  formula          PromiseFormula?
+  status           PromiseStatus  @default(PREPARACION)
+  desiredPlace     String?        @map("desired_place") @db.VarChar(180)
+  motivation       String?        @db.Text
+  requestedAt      DateTime?      @map("requested_at") @db.Timestamptz(3)
+  celebratedAt     DateTime?      @map("celebrated_at") @db.Date
+  celebrationPlace String?        @map("celebration_place") @db.VarChar(180)
+  story            String?        @db.Text
+  accompaniedBy    String?        @map("accompanied_by") @db.VarChar(180)
+  accompaniedById  String?        @map("accompanied_by_id") @db.Uuid
+  registeredById   String?        @map("registered_by_id") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user              User  @relation("UserPromiseUser", fields: [userId], references: [id], onDelete: Cascade)
+  accompaniedByUser User? @relation("UserPromiseAccompaniedBy", fields: [accompaniedById], references: [id], onDelete: SetNull)
+  registeredBy      User? @relation("UserPromiseRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
+
+  @@map("user_promises")
+}
+
 // ------------------------------------------------------------
 // Logros estilo RPG
 // ------------------------------------------------------------
@@ -290,46 +530,67 @@ model UserAchievement {
 // Calendario semestral
 // ------------------------------------------------------------
 
-model Semester {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique @db.VarChar(60)
-  startsOn  DateTime @map("starts_on") @db.Date
-  endsOn    DateTime @map("ends_on") @db.Date
-  isActive  Boolean  @default(false) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+/**
+ * Ciclo de Programa (RF-CIC-01).
+ *
+ * Reemplaza al antiguo «semestre». Además de las fechas, guarda la fase
+ * democrática vigente, el diagnóstico general acordado en la Reunión de
+ * Coordinadores, el énfasis educativo del período y la aprobación del
+ * calendario por parte de la Asamblea.
+ */
+model ProgramCycle {
+  id                           String             @id @default(uuid()) @db.Uuid
+  name                         String             @unique @db.VarChar(120)
+  startDate                    DateTime           @map("start_date") @db.Date
+  endDate                      DateTime           @map("end_date") @db.Date
+  isActive                     Boolean            @default(false) @map("is_active")
+  phase                        ProgramCyclePhase  @default(DIAGNOSTICO_Y_ENFASIS)
+  diagnosisSummary             String?            @map("diagnosis_summary") @db.Text
+  educationalEmphasis          String?            @map("educational_emphasis") @db.Text
+  isCalendarApprovedByAssembly Boolean            @default(false) @map("is_calendar_approved_by_assembly")
+  createdAt                    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  activities Activity[]
+  activities    Activity[]
+  proposals     ActivityProposal[]
+  voteSessions  AssemblyVoteSession[]
+  diagnoses     CommunityDiagnosis[]
+  projects      Project[]
 
-  @@map("semesters")
+  @@map("program_cycles")
 }
 
 model Activity {
-  id          String       @id @default(uuid()) @db.Uuid
-  semesterId  String       @map("semester_id") @db.Uuid
-  title       String       @db.VarChar(160)
-  description String?      @db.Text
-  type        ActivityType @default(REUNION)
-  startsAt    DateTime     @map("starts_at") @db.Timestamptz(3)
-  endsAt      DateTime     @map("ends_at") @db.Timestamptz(3)
-  location    String?      @db.VarChar(160)
-  isPublished Boolean      @default(true) @map("is_published")
-  createdById String?      @map("created_by_id") @db.Uuid
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt   DateTime?    @map("deleted_at") @db.Timestamptz(3)
+  id           String               @id @default(uuid()) @db.Uuid
+  cycleId      String?              @map("cycle_id") @db.Uuid
+  title        String               @db.VarChar(160)
+  description  String?              @db.Text
+  type         ActivityType         @default(REUNION)
+  scope        ActivityScope        @default(AVANZADA)
+  scheduleType ActivityScheduleType @default(VARIABLE) @map("schedule_type")
+  startsAt     DateTime             @map("starts_at") @db.Timestamptz(3)
+  endsAt       DateTime             @map("ends_at") @db.Timestamptz(3)
+  location     String?              @db.VarChar(160)
+  isPublished  Boolean              @default(true) @map("is_published")
+  createdById  String?              @map("created_by_id") @db.Uuid
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt    DateTime?            @map("deleted_at") @db.Timestamptz(3)
 
-  semester   Semester             @relation(fields: [semesterId], references: [id], onDelete: Restrict)
-  createdBy  User?                @relation("ActivityCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  leaders     ActivityLeader[]
-  responses   AttendanceResponse[]
-  records     AttendanceRecord[]
+  cycle      ProgramCycle?            @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+  createdBy  User?                    @relation("ActivityCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  leaders    ActivityLeader[]
+  responses  AttendanceResponse[]
+  records    AttendanceRecord[]
   routeSheets RouteSheet[]
   evaluations ActivityEvaluation[]
   logbookEntries LogbookEntry[]
+  compassReflections UserCompassReflection[]
+  projectActivityItems ProjectActivityItem[]
 
-  @@index([semesterId, startsAt])
+  @@index([cycleId, startsAt])
   @@index([startsAt])
+  @@index([scope, scheduleType])
   @@map("activities")
 }
 
@@ -346,6 +607,254 @@ model ActivityLeader {
   @@id([activityId, userId])
   @@index([userId])
   @@map("activity_leaders")
+}
+
+// ------------------------------------------------------------
+// Ciclo de Programa democrático y Asamblea (Fase 4)
+// ------------------------------------------------------------
+
+/**
+ * Diagnóstico de Comunidad (RF-CIC-02).
+ *
+ * Cada comunidad escribe, para el ciclo activo, sus intereses, anhelos y su
+ * evaluación interna. Es la materia prima del diagnóstico general de la
+ * Avanzada que redacta la Reunión de Coordinadores.
+ */
+model CommunityDiagnosis {
+  id                    String   @id @default(uuid()) @db.Uuid
+  cycleId               String   @map("cycle_id") @db.Uuid
+  communityId           String   @map("community_id") @db.Uuid
+  authorId              String?  @map("author_id") @db.Uuid
+  strengthsAndInterests String   @map("strengths_and_interests") @db.Text
+  suggestedActivities   String?  @map("suggested_activities") @db.Text
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cycle     ProgramCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  community Community    @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User?        @relation("CommunityDiagnosisAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([cycleId, communityId])
+  @@index([communityId])
+  @@map("community_diagnoses")
+}
+
+/**
+ * Propuesta de actividad (RF-CIC-03).
+ *
+ * Nace de los jóvenes o de una comunidad durante la fase de propuestas. La
+ * Asamblea las vota y la Reunión de Coordinadores decide cuáles pasan al
+ * calendario oficial.
+ */
+model ActivityProposal {
+  id                         String   @id @default(uuid()) @db.Uuid
+  cycleId                    String   @map("cycle_id") @db.Uuid
+  proposerId                 String?  @map("proposer_id") @db.Uuid
+  communityId                String?  @map("community_id") @db.Uuid
+  title                      String   @db.VarChar(160)
+  description                String   @db.Text
+  isSocialInterventionProject Boolean @default(false) @map("is_social_intervention_project")
+  selectedForCalendar        Boolean  @default(false) @map("selected_for_calendar")
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  cycle     ProgramCycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  proposer  User?             @relation("ActivityProposalProposer", fields: [proposerId], references: [id], onDelete: SetNull)
+  community Community?        @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  votes     AssemblyVote[]
+
+  @@index([cycleId, selectedForCalendar])
+  @@index([communityId])
+  @@map("activity_proposals")
+}
+
+/**
+ * Sesión de votación de la Asamblea (RF-CIC-04).
+ *
+ * Solo los jóvenes votan. La sesión pertenece a un ciclo y a una dinámica
+ * democrática concreta: elección directa, ranking de estrellas o asignación
+ * de puntos con un pozo limitado.
+ */
+model AssemblyVoteSession {
+  id              String                @id @default(uuid()) @db.Uuid
+  cycleId         String                @map("cycle_id") @db.Uuid
+  title           String                @db.VarChar(160)
+  dynamic         DemocraticVoteDynamic @default(ELECCION_DIRECTA)
+  isOpen          Boolean               @default(false) @map("is_open")
+  maxPointsBudget Int?                  @default(10) @map("max_points_budget")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  cycle  ProgramCycle   @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  votes  AssemblyVote[]
+
+  @@index([cycleId, isOpen])
+  @@map("assembly_vote_sessions")
+}
+
+/**
+ * Voto de la Asamblea (Art. VI).
+ *
+ * `value` vale 1 en elección directa, 1..5 en el ranking de estrellas y los
+ * puntos asignados en el pozo. El Equipo Adulto nunca emite votos.
+ */
+model AssemblyVote {
+  id         String   @id @default(uuid()) @db.Uuid
+  sessionId  String   @map("session_id") @db.Uuid
+  proposalId String   @map("proposal_id") @db.Uuid
+  voterId    String   @map("voter_id") @db.Uuid
+  value      Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  session  AssemblyVoteSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  proposal ActivityProposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  voter    User                @relation("AssemblyVoteVoter", fields: [voterId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, proposalId, voterId])
+  @@index([sessionId, voterId])
+  @@map("assembly_votes")
+}
+
+// ------------------------------------------------------------
+// Proyectos, Grupos de Trabajo y Red de Apoyo (Fase 5)
+// ------------------------------------------------------------
+
+/**
+ * Los seis pasos del Ciclo de Proyecto (Manual p. 261–265).
+ */
+enum ProjectStep {
+  SONAR
+  ELEGIR
+  ORGANIZAR
+  REALIZAR
+  EVALUAR
+  CELEBRAR
+}
+
+enum ProjectLocality {
+  LOCAL
+  COMUNAL
+  REGIONAL
+}
+
+/**
+ * `CENTRAL` es la actividad insustituible del proyecto; `CONEXA` amplía su
+ * alcance sin reemplazarla (Manual p. 259).
+ */
+enum ProjectActivityKind {
+  CENTRAL
+  CONEXA
+}
+
+/**
+ * El Grupo de Trabajo se disuelve al concluir e informar el proyecto
+ * (Manual p. 104): pasa a `HISTORICO_DISUELTO`.
+ */
+enum WorkGroupStatus {
+  ACTIVO
+  HISTORICO_DISUELTO
+}
+
+/**
+ * Directorio de colaboradores confiables de la Red de Apoyo (RF-PRY-06).
+ * El contacto directo queda visible solo para AA y la Reunión de Coordinadores.
+ */
+model SupportNetworkContact {
+  id                   String          @id @default(uuid()) @db.Uuid
+  fullName             String          @map("full_name") @db.VarChar(160)
+  relationshipOrRole   String          @map("relationship_or_role") @db.VarChar(160)
+  organization         String?         @db.VarChar(160)
+  contactInfo          String?         @map("contact_info") @db.VarChar(200)
+  supportedAreas       CompetencyArea[] @map("supported_areas")
+  collaborationNotes   String?         @map("collaboration_notes") @db.Text
+  isActive             Boolean         @default(true) @map("is_active")
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  members WorkGroupMember[]
+
+  @@index([isActive])
+  @@map("support_network_contacts")
+}
+
+/**
+ * Proyecto del Ciclo de Programa con su Pauta de Identificación
+ * (Manual p. 268) y su avance por los seis pasos.
+ */
+model Project {
+  id                            String            @id @default(uuid()) @db.Uuid
+  cycleId                       String?           @map("cycle_id") @db.Uuid
+  title                         String            @db.VarChar(160)
+  step                          ProjectStep       @default(SONAR)
+  workGroupStatus               WorkGroupStatus   @default(ACTIVO) @map("work_group_status")
+  responsibleUserId             String?           @map("responsible_user_id") @db.Uuid
+  accompanyingAaId              String?           @map("accompanying_aa_id") @db.Uuid
+  beneficiaries                 String            @db.Text
+  locality                      ProjectLocality   @default(LOCAL)
+  durationText                  String            @map("duration_text") @db.VarChar(120)
+  isSocialEnvironmentalIntervention Boolean       @default(false) @map("is_social_environmental_intervention")
+  problemDiagnosis              String            @map("problem_diagnosis") @db.Text
+  generalObjective              String            @map("general_objective") @db.Text
+  specificObjectives            String            @map("specific_objectives") @db.Text
+  observableIndicators          String?           @map("observable_indicators") @db.Text
+  budgetSummary                 String?           @map("budget_summary") @db.Text
+  requiredCompetencies          CompetencyArea[]  @map("required_competencies")
+  finalReportPreparation        String?           @map("final_report_preparation") @db.Text
+  finalReportConclusions        String?           @map("final_report_conclusions") @db.Text
+  celebrationNotes              String?           @map("celebration_notes") @db.Text
+  createdAt                     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cycle             ProgramCycle?       @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+  responsibleUser   User?               @relation("ProjectResponsible", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+  accompanyingAa    User?               @relation("ProjectAccompanyingAa", fields: [accompanyingAaId], references: [id], onDelete: SetNull)
+  activities        ProjectActivityItem[]
+  members           WorkGroupMember[]
+  routeSheets       RouteSheet[]
+
+  @@index([cycleId, step])
+  @@index([responsibleUserId])
+  @@index([workGroupStatus])
+  @@map("projects")
+}
+
+model ProjectActivityItem {
+  id          String              @id @default(uuid()) @db.Uuid
+  projectId   String              @map("project_id") @db.Uuid
+  activityId  String?             @map("activity_id") @db.Uuid
+  title       String              @db.VarChar(160)
+  kind        ProjectActivityKind @default(CENTRAL)
+  isCompleted Boolean             @default(false) @map("is_completed")
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activity Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, kind])
+  @@index([activityId])
+  @@map("project_activity_items")
+}
+
+/**
+ * Integrante del Grupo de Trabajo (Art. V). Puede ser un joven con cuenta de
+ * cualquier Comunidad, un monitor de la Red de Apoyo o un invitado externo sin
+ * cuenta (`externalName` presente y `userId` nulo).
+ */
+model WorkGroupMember {
+  id                   String   @id @default(uuid()) @db.Uuid
+  projectId            String   @map("project_id") @db.Uuid
+  userId               String?  @map("user_id") @db.Uuid
+  supportContactId     String?  @map("support_contact_id") @db.Uuid
+  externalName         String?  @map("external_name") @db.VarChar(160)
+  externalOrganization String?  @map("external_organization") @db.VarChar(160)
+  taskRole             String   @map("task_role") @db.VarChar(160)
+  joinedAt             DateTime @default(now()) @map("joined_at") @db.Timestamptz(3)
+
+  project        Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           User?                 @relation("WorkGroupMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  supportContact SupportNetworkContact? @relation(fields: [supportContactId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([supportContactId])
+  @@map("work_group_members")
 }
 
 // ------------------------------------------------------------
@@ -409,18 +918,16 @@ model AttendanceRecord {
 // ------------------------------------------------------------
 
 model ActivityEvaluation {
-  id                 String   @id @default(uuid()) @db.Uuid
-  activityId         String   @map("activity_id") @db.Uuid
-  userId             String   @map("user_id") @db.Uuid
-  affectivityScore   Int      @map("affectivity_score")
-  corporalityScore   Int      @map("corporality_score")
-  spiritualityScore  Int      @map("spirituality_score")
-  characterScore     Int      @map("character_score")
-  creativityScore    Int      @map("creativity_score")
-  sociabilityScore   Int      @map("sociability_score")
-  comment            String?  @db.Text
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                        String                    @id @default(uuid()) @db.Uuid
+  activityId                String                    @map("activity_id") @db.Uuid
+  userId                    String                    @map("user_id") @db.Uuid
+  objectiveAchievementLevel ObjectiveAchievementLevel @map("objective_achievement_level")
+  experiencedAreas          DevelopmentArea[]         @map("experienced_areas")
+  organizationFeedback      String?                   @map("organization_feedback") @db.Text
+  emotionalResonance        String?                   @map("emotional_resonance") @db.Text
+  learningsForNextTime      String?                   @map("learnings_for_next_time") @db.Text
+  createdAt                 DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
   user     User     @relation("ActivityEvaluationUser", fields: [userId], references: [id], onDelete: Cascade)
@@ -461,10 +968,12 @@ model File {
 model RouteSheet {
   id              String           @id @default(uuid()) @db.Uuid
   activityId      String           @map("activity_id") @db.Uuid
+  projectId       String?          @map("project_id") @db.Uuid
   uploadedById    String           @map("uploaded_by_id") @db.Uuid
-  fileId          String           @map("file_id") @db.Uuid
+  fileId          String?          @map("file_id") @db.Uuid
   title           String?          @db.VarChar(160)
   description     String?          @db.Text
+  structuredData  Json?            @map("structured_data")
   status          RouteSheetStatus @default(PENDIENTE_AUTORIZACION)
   version         Int              @default(1)
   reviewedById    String?          @map("reviewed_by_id") @db.Uuid
@@ -475,12 +984,14 @@ model RouteSheet {
   deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz(3)
 
   activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   uploadedBy User     @relation("RouteSheetUploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
-  file       File     @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  file       File?    @relation(fields: [fileId], references: [id], onDelete: Restrict)
   reviewedBy User?    @relation("RouteSheetReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@unique([activityId, version])
   @@index([activityId, status])
+  @@index([projectId])
   @@map("route_sheets")
 }
 
@@ -563,13 +1074,17 @@ model UnitResource {
   imageFileId String?  @map("image_file_id") @db.Uuid
   sortOrder   Int      @default(0) @map("sort_order")
   isPublished Boolean  @default(true) @map("is_published")
+  proposedById String? @map("proposed_by_id") @db.Uuid
   updatedById String?  @map("updated_by_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   imageFile File? @relation("UnitResourceImage", fields: [imageFileId], references: [id], onDelete: SetNull)
+  proposedBy User? @relation("UnitResourceProposedBy", fields: [proposedById], references: [id], onDelete: SetNull)
   updatedBy User? @relation("UnitResourceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
+  @@index([isPublished, sortOrder])
+  @@index([proposedById])
   @@map("unit_resources")
 }
 
@@ -605,6 +1120,145 @@ model LogbookEntry {
   @@index([authorId])
   @@index([activityId])
   @@map("logbook_entries")
+}
+
+// ------------------------------------------------------------
+// La Brújula: objetivos personales y acompañamiento 1 a 1
+// ------------------------------------------------------------
+
+/**
+ * Catálogo referencial de objetivos intermedios (15–17 años) y terminales.
+ * Se siembra desde `src/data/instrumento-objetivos.json` y está disponible
+ * completo desde el ingreso: no se bloquea por edad, antigüedad ni etapa.
+ */
+model CompassObjectiveTemplate {
+  id                    String          @id @default(uuid()) @db.Uuid
+  code                  String          @unique @db.VarChar(40)
+  area                  DevelopmentArea
+  terminalObjective     String          @db.Text
+  intermediateObjective String          @db.Text
+  sortOrder             Int             @default(0) @map("sort_order")
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  adoptions UserCompassObjective[]
+
+  @@index([area, sortOrder])
+  @@map("compass_objective_templates")
+}
+
+/**
+ * Objetivo que el joven adopta o crea en su propia Brújula.
+ * Solo el titular escribe; el AA encargado únicamente lee.
+ */
+model UserCompassObjective {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  userId               String                 @map("user_id") @db.Uuid
+  area                 DevelopmentArea
+  templateId           String?                @map("template_id") @db.Uuid
+  terminalObjectiveRef String?                @map("terminal_objective_ref") @db.Text
+  currentText          String                 @map("current_text") @db.Text
+  status               CompassObjectiveStatus @default(EXPLORANDO)
+  sharedWithCommunity  Boolean                @default(false) @map("shared_with_community")
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User                          @relation("UserCompassObjectiveUser", fields: [userId], references: [id], onDelete: Cascade)
+  template  CompassObjectiveTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  versions  UserCompassObjectiveVersion[]
+  reflections UserCompassReflection[]
+
+  @@index([userId, area])
+  @@index([templateId])
+  @@map("user_compass_objectives")
+}
+
+/**
+ * Historial inmutable de redacciones. Cada adopción, reformulación o creación
+ * inserta una fila nueva; nunca se actualiza ni se borra una versión previa.
+ */
+model UserCompassObjectiveVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  objectiveId String   @map("objective_id") @db.Uuid
+  text        String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  objective UserCompassObjective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+
+  @@index([objectiveId, createdAt])
+  @@map("user_compass_objective_versions")
+}
+
+/**
+ * Reflexión personal o autoevaluación de ciclo. Puede nacer desde una
+ * actividad y siempre pertenece al joven que la escribe.
+ */
+model UserCompassReflection {
+  id                    String   @id @default(uuid()) @db.Uuid
+  userId                String   @map("user_id") @db.Uuid
+  objectiveId           String?  @map("objective_id") @db.Uuid
+  activityId            String?  @map("activity_id") @db.Uuid
+  isCycleSelfEvaluation  Boolean  @default(false) @map("is_cycle_self_evaluation")
+  cycleLabel            String?  @map("cycle_label") @db.VarChar(120)
+  content               String   @db.Text
+  sharedWithAa          Boolean  @default(true) @map("shared_with_aa")
+  sharedWithCommunity   Boolean  @default(false) @map("shared_with_community")
+  consensusNote         String?  @map("consensus_note") @db.Text
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user      User                   @relation("UserCompassReflectionUser", fields: [userId], references: [id], onDelete: Cascade)
+  objective UserCompassObjective?  @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  activity  Activity?              @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([objectiveId])
+  @@index([activityId])
+  @@map("user_compass_reflections")
+}
+
+/**
+ * Nota privada del AA encargado sobre el joven. Se comparte solo si el propio
+ * AA activa `sharedWithStudent`. El historial sigue al `assignedAaId` vigente.
+ */
+model MentoringNote {
+  id               String   @id @default(uuid()) @db.Uuid
+  studentId        String   @map("student_id") @db.Uuid
+  authorAaId       String?  @map("author_aa_id") @db.Uuid
+  content          String   @db.Text
+  sharedWithStudent Boolean @default(false) @map("shared_with_student")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  student User  @relation("MentoringNoteStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  author  User? @relation("MentoringNoteAuthor", fields: [authorAaId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, createdAt])
+  @@index([authorAaId])
+  @@map("mentoring_notes")
+}
+
+// ------------------------------------------------------------
+// Bitácora privada de comunidad
+// ------------------------------------------------------------
+
+model CommunityLogEntry {
+  id                    String   @id @default(uuid()) @db.Uuid
+  communityId           String   @map("community_id") @db.Uuid
+  authorId              String?  @map("author_id") @db.Uuid
+  authorNameSnapshot    String   @map("author_name_snapshot") @db.VarChar(160)
+  title                 String   @db.VarChar(160)
+  content               String   @db.Text
+  sharedWithAa          Boolean  @default(false) @map("shared_with_aa")
+  sharedWithCoordinators Boolean @default(false) @map("shared_with_coordinators")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User?     @relation("CommunityLogEntryAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([communityId, createdAt])
+  @@index([authorId])
+  @@map("community_log_entries")
 }
 
 // ------------------------------------------------------------

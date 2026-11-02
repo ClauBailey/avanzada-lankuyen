@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatTimestamp } from "@/lib/dates";
+import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 import { getAppSettings } from "@/server/settings";
@@ -50,8 +51,8 @@ const ACTION_LABELS: Record<string, string> = {
   "route_sheet.approve": "Hoja de ruta aprobada",
   "route_sheet.reject": "Hoja de ruta rechazada",
   "route_sheet.upload": "Hoja de ruta subida",
-  "semester.activate": "Semestre activado",
-  "semester.create": "Semestre creado",
+  "cycle.activate": "Ciclo activado",
+  "cycle.create": "Ciclo creado",
   "settings.update": "Ajustes de la aplicación actualizados",
   "user.activate": "Cuenta reactivada",
   "user.community_change": "Comunidad de cuenta cambiada",
@@ -126,7 +127,12 @@ export default async function AdminConfiguracionPage() {
         createdAt: true,
         actorRole: true,
         actor: {
-          select: { firstName: true, lastName: true, username: true },
+          select: {
+            firstName: true,
+            lastName: true,
+            preferredName: true,
+            username: true,
+          },
         },
       },
     }),
@@ -274,7 +280,7 @@ export default async function AdminConfiguracionPage() {
                   {logs.map((log) => {
                     const label = ACTION_LABELS[log.action] ?? log.action;
                     const actor = log.actor
-                      ? `${log.actor.firstName} ${log.actor.lastName}`
+                      ? getDisplayName(log.actor)
                       : "Sistema";
 
                     return (

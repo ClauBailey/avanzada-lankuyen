@@ -5,8 +5,9 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { MobileNav, SidebarNav } from "@/components/layout/nav-links";
 import { logoutAction } from "@/features/auth/actions";
 import { APP_NAME, ROLE_LABELS, ROLE_SHORT_LABELS, UNIT_TAGLINE } from "@/lib/constants";
+import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
 import { adminNav, memberNav } from "@/lib/navigation";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/server/auth/session";
 
 interface AppShellProps {
@@ -17,8 +18,35 @@ interface AppShellProps {
 }
 
 export function AppShell({ user, variant, unreadCount, children }: AppShellProps) {
-  const items = variant === "admin" ? adminNav : memberNav;
-  const fullName = `${user.firstName} ${user.lastName}`;
+  const baseItems = variant === "admin" ? adminNav : memberNav;
+  const items = baseItems.filter((item) => {
+    if (item.href === "/mi-comunidad") {
+      return user.role === "COORDINADOR" && Boolean(user.communityId);
+    }
+    if (item.href === "/mi-comunidad/bitacora") {
+      return (
+        (user.role === "PP" || user.role === "COORDINADOR") &&
+        Boolean(user.communityId)
+      );
+    }
+    if (item.href === "/brujula") {
+      return user.role !== "AA";
+    }
+    if (item.href === "/acompanamiento") {
+      return user.role === "AA";
+    }
+    if (variant === "admin" && user.role !== "AA") {
+      // La coordinación solo entra a la Red de Apoyo en modo consulta.
+      return [
+        "/proyectos",
+        "/ciclo",
+        "/admin/red-de-apoyo",
+        "/inicio",
+      ].includes(item.href);
+    }
+    return true;
+  });
+  const fullName = getDisplayName(user);
   const roleLabel = ROLE_LABELS[user.role];
 
   return (
@@ -30,7 +58,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
         <div className="relative z-10 flex h-full flex-col">
           <Link
-            href={variant === "admin" ? "/admin" : "/inicio"}
+            href={variant === "admin" && user.role === "AA" ? "/admin" : "/inicio"}
             className="flex items-center gap-3 px-5 pb-6 pt-6"
           >
             <BrandMark size={46} className="ring-2 ring-white/15" />
@@ -47,7 +75,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
           <div className="scrollbar-thin flex-1 overflow-y-auto px-3 pb-4">
             {variant === "admin" ? (
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-anil-200/45">
-                Administración
+                {user.role === "AA" ? "Administración" : "Coordinación"}
               </p>
             ) : (
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-anil-200/45">
@@ -70,7 +98,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
             <div className="flex items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white ring-1 ring-white/15">
-                {getInitials(user.firstName, user.lastName)}
+                {getDisplayInitials(user)}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-white">{fullName}</p>
@@ -139,7 +167,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
               <div className="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3">
                 <span className="flex size-8 items-center justify-center rounded-lg bg-anil-100 text-xs font-bold text-anil-800">
-                  {getInitials(user.firstName, user.lastName)}
+                  {getDisplayInitials(user)}
                 </span>
                 <div className="hidden sm:block">
                   <p className="max-w-[150px] truncate text-xs font-semibold text-ink">

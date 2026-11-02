@@ -147,15 +147,21 @@ export async function grantBadgeAction(
       select: { id: true, grantedAt: true },
     });
 
+    const isCompetency = badge.category === "COMPETENCIA";
+
     await notifyUser(
       {
         recipientId: userId,
-        type: "INSIGNIA_OTORGADA",
-        title: `Recibiste la insignia «${badge.name}»`,
+        type: isCompetency ? "COMPETENCIA_RECONOCIDA" : "INSIGNIA_OTORGADA",
+        title: isCompetency
+          ? `Reconocieron tu competencia «${badge.name}»`
+          : `Recibiste la insignia «${badge.name}»`,
         body: note
           ? `Tu Adulto Acompañante dejó una dedicatoria: «${note}»`
-          : "Ya está disponible a todo color en tu perfil de progresión.",
-        actionUrl: "/perfil",
+          : isCompetency
+            ? "Una experiencia tuya hizo presente esta competencia. Tu AA la reconoció y ya forma parte de tu camino."
+            : "Tu camino simbólico suma una nueva insignia. Puedes verla y compartirla desde tu perfil.",
+        actionUrl: isCompetency ? "/camino" : "/perfil",
         entityType: "Badge",
         entityId: badge.id,
         dedupeKey: `badge-grant:${grant.id}`,

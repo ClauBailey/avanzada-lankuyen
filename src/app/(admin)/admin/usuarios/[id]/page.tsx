@@ -14,7 +14,11 @@ import {
 } from "lucide-react";
 
 import { BadgeAdminCard } from "@/components/admin/badge-admin-card";
-import { AttendanceSummaryCard } from "@/components/attendance/attendance-summary-card";
+import { AaAssignmentSelect } from "@/components/admin/aa-assignment-select";
+import { UserIdentityForm } from "@/components/admin/user-identity-form";
+import { JourneyView } from "@/components/journey/journey-view";
+import type { MilestoneView } from "@/components/journey/milestone-form";
+import type { PromiseView } from "@/components/journey/promise-form";
 import {
   UserActiveToggle,
   UserCommunitySelect,
@@ -29,10 +33,19 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAttendanceSummary } from "@/features/attendance/queries";
+import {
+  aaLoadAdvisory,
+  ADULT_TEAM_ROLE_LABELS,
+  daysWithAssignedAa,
+  earlyReassignmentMessage,
+  isEarlyAaReassignment,
+  type AdultTeamRole,
+} from "@/lib/community-rules";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatFullDate, formatTimestamp } from "@/lib/dates";
-import { cn, getInitials } from "@/lib/utils";
+import type { SymbolicMomentKey } from "@/lib/symbolic-path";
+import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
+import { cn } from "@/lib/utils";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 
@@ -68,9 +81,17 @@ export default async function AdminUsuarioDetallePage({
       id: true,
       firstName: true,
       lastName: true,
+      preferredName: true,
       username: true,
       email: true,
       role: true,
+      birthDate: true,
+      adultTeamRole: true,
+      assignedAaId: true,
+      assignedSince: true,
+      assignedAa: {
+        select: { firstName: true, lastName: true, preferredName: true },
+      },
       isActive: true,
       mustChangePassword: true,
       isLogbookKeeper: true,
@@ -82,9 +103,18 @@ export default async function AdminUsuarioDetallePage({
   if (!member) notFound();
 
   const isAA = member.role === "AA";
-  const fullName = `${member.firstName} ${member.lastName}`;
+  const fullName = getDisplayName(member);
 
-  const [badges, grants, reflections, communities, attendanceSummary] =
+  const [
+    badges,
+    grants,
+    reflections,
+    communities,
+    aaCandidates,
+    aaLoadCount,
+    milestones,
+    promise,
+  ] =
     await Promise.all([
     prisma.badge.findMany({
       where: { isActive: true },
@@ -116,8 +146,93 @@ export default async function AdminUsuarioDetallePage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, isActive: true },
     }),
-    getAttendanceSummary(member.id),
+    prisma.user.findMany({
+      where: { role: "AA", isActive: true, deletedAt: null },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        preferredName: true,
+        _count: {
+          select: {
+            assignedYouth: {
+              where: {
+                isActive: true,
+                deletedAt: null,
+                role: { in: ["PP", "COORDINADOR"] },
+              },
+            },
+          },
+        },
+      },
+    }),
+    isAA
+      ? prisma.user.count({
+          where: {
+            assignedAaId: member.id,
+            isActive: true,
+            deletedAt: null,
+            role: { in: ["PP", "COORDINADOR"] },
+          },
+        })
+      : Promise.resolve(0),
+    isAA
+      ? Promise.resolve([])
+      : prisma.journeyMilestone.findMany({
+          where: { userId: member.id },
+          select: {
+            moment: true,
+            occurredAt: true,
+            place: true,
+            story: true,
+            accompaniedBy: true,
+          },
+        }),
+    isAA
+      ? Promise.resolve(null)
+      : prisma.userPromise.findUnique({
+          where: { userId: member.id },
+          select: {
+            formula: true,
+            status: true,
+            desiredPlace: true,
+            motivation: true,
+            celebratedAt: true,
+            celebrationPlace: true,
+            story: true,
+            accompaniedBy: true,
+          },
+        }),
   ]);
+
+  const milestoneByMoment: Partial<
+    Record<SymbolicMomentKey, MilestoneView>
+  > = {};
+
+  for (const milestone of milestones) {
+    milestoneByMoment[milestone.moment] = {
+      occurredAt: milestone.occurredAt.toISOString(),
+      place: milestone.place,
+      story: milestone.story,
+      accompaniedBy: milestone.accompaniedBy,
+    };
+  }
+
+  const promiseView: PromiseView | null = promise
+    ? {
+        formula: promise.formula,
+        status: promise.status,
+        desiredPlace: promise.desiredPlace,
+        motivation: promise.motivation,
+        celebratedAt: promise.celebratedAt
+          ? promise.celebratedAt.toISOString()
+          : null,
+        celebrationPlace: promise.celebrationPlace,
+        story: promise.story,
+        accompaniedBy: promise.accompaniedBy,
+      }
+    : null;
 
   const grantByBadge = new Map(
     grants.map((grant) => [
@@ -133,6 +248,24 @@ export default async function AdminUsuarioDetallePage({
   const reflectionByStage = new Map(
     reflections.map((reflection) => [reflection.stageCode, reflection]),
   );
+
+  const aaOptions = aaCandidates.map((candidate) => ({
+    id: candidate.id,
+    name: getDisplayName(candidate),
+    assignedCount: candidate._count.assignedYouth,
+  }));
+
+  const aaLoadWarning = isAA ? aaLoadAdvisory(aaLoadCount) : null;
+  const assignedAaName = member.assignedAa
+    ? getDisplayName(member.assignedAa)
+    : null;
+  const requiresEarlyConfirmation =
+    !isAA &&
+    Boolean(member.assignedAaId) &&
+    isEarlyAaReassignment(member.assignedSince);
+  const birthDateValue = member.birthDate
+    ? member.birthDate.toISOString().slice(0, 10)
+    : null;
 
   const groups = [
     {
@@ -184,7 +317,7 @@ export default async function AdminUsuarioDetallePage({
             <div className="topo-bg pointer-events-none absolute inset-0 opacity-30" />
             <div className="relative flex items-center gap-4">
               <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 font-display text-xl font-semibold ring-1 ring-white/20">
-                {getInitials(member.firstName, member.lastName)}
+                {getDisplayInitials(member)}
               </span>
               <div className="min-w-0">
                 <p className="font-display text-2xl font-semibold leading-tight">
@@ -210,7 +343,11 @@ export default async function AdminUsuarioDetallePage({
                     </span>
                   ) : isAA ? (
                     <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[11px] text-anil-100/80">
-                      Sin comunidad
+                      {member.adultTeamRole
+                        ? ADULT_TEAM_ROLE_LABELS[
+                            member.adultTeamRole as AdultTeamRole
+                          ]
+                        : "Equipo Adulto"}
                     </span>
                   ) : null}
                   {member.isLogbookKeeper ? (
@@ -273,24 +410,86 @@ export default async function AdminUsuarioDetallePage({
             <CardTitle className="text-base">Acciones rápidas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            <div className="space-y-1.5">
+            <div className="space-y-2 rounded-xl border border-line bg-canvas/40 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
-                Comunidad
+                Identidad
               </p>
-              <UserCommunitySelect
+              <UserIdentityForm
                 userId={member.id}
-                communityId={member.community?.id ?? null}
-                communities={communities}
+                role={member.role}
+                preferredName={member.preferredName}
+                birthDate={birthDateValue}
+                adultTeamRole={member.adultTeamRole}
               />
-              <p className="max-w-56 text-[11px] leading-relaxed text-ink-soft">
-                {isAA
-                  ? "El AA acompaña la progresión de los Pioneros/as de su comunidad. Varios AA pueden compartir la misma comunidad."
-                  : "La comunidad define la etiqueta y el grupo de seguimiento."}
-              </p>
             </div>
 
-            {!isAA ? (
+            {isAA ? (
               <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                  Equipo Adulto
+                </p>
+                <p className="text-sm font-semibold text-ink">
+                  {member.adultTeamRole
+                    ? ADULT_TEAM_ROLE_LABELS[
+                        member.adultTeamRole as AdultTeamRole
+                      ]
+                    : "Sin cargo asignado"}
+                </p>
+                <p className="max-w-60 text-[11px] leading-relaxed text-ink-soft">
+                  El Equipo Adulto no pertenece a una comunidad juvenil. Acompaña
+                  personalmente a un grupo pequeño de Pioneros/as.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                  Comunidad
+                </p>
+                <UserCommunitySelect
+                  userId={member.id}
+                  communityId={member.community?.id ?? null}
+                  communities={communities}
+                />
+                <p className="max-w-60 text-[11px] leading-relaxed text-ink-soft">
+                  La comunidad define la etiqueta y el grupo de seguimiento.
+                </p>
+              </div>
+            )}
+
+            {!isAA ? (
+              <div className="space-y-1.5 border-t border-line/70 pt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                  Acompañamiento personal 1 a 1
+                </p>
+                <p className="text-[11px] text-ink-soft">
+                  {assignedAaName
+                    ? `Hoy acompaña ${assignedAaName}.`
+                    : "Sin AA asignado."}
+                </p>
+                <AaAssignmentSelect
+                  userId={member.id}
+                  assignedAaId={member.assignedAaId}
+                  requiresEarlyConfirmation={requiresEarlyConfirmation}
+                  aaOptions={aaOptions}
+                />
+                {requiresEarlyConfirmation ? (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] leading-relaxed text-amber-900">
+                    {earlyReassignmentMessage(
+                      daysWithAssignedAa(member.assignedSince),
+                    )}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {isAA && aaLoadWarning ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-900">
+                {aaLoadWarning}
+              </p>
+            ) : null}
+
+            {!isAA ? (
+              <div className="space-y-1.5 border-t border-line/70 pt-3">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
                   Rol
                 </p>
@@ -302,8 +501,8 @@ export default async function AdminUsuarioDetallePage({
             ) : (
               <p className="rounded-xl border border-dashed border-line bg-canvas/40 p-3 text-[11px] leading-relaxed text-ink-soft">
                 Las cuentas AA no cambian de rol ni reciben insignias. Puedes
-                moverla de comunidad, activar/desactivar la cuenta o restablecer
-                su contraseña.
+                actualizar su cargo, activar/desactivar la cuenta o restablecer su
+                contraseña.
               </p>
             )}
 
@@ -344,7 +543,31 @@ export default async function AdminUsuarioDetallePage({
         </Card>
       </div>
 
-      {!isAA ? <AttendanceSummaryCard summary={attendanceSummary} /> : null}
+      {!isAA ? (
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="font-display text-xl font-semibold text-ink">
+                Camino simbólico de {getDisplayName(member).split(" ")[0]}
+              </h2>
+              <p className="text-xs text-ink-soft">
+                Registra la investidura, el inicio de una etapa, la Promesa o el
+                paso al Clan. Ningún hito exige otro: cada uno se abre cuando
+                tiene sentido para la persona.
+              </p>
+            </div>
+            <Badge variant="outline">Acompañamiento AA</Badge>
+          </div>
+
+          <JourneyView
+            milestones={milestoneByMoment}
+            promise={promiseView}
+            targetUserId={member.id}
+            canEdit
+            displayName={fullName}
+          />
+        </section>
+      ) : null}
 
       {!isAA ? (
         <section className="space-y-3">
@@ -404,7 +627,7 @@ export default async function AdminUsuarioDetallePage({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="font-display text-xl font-semibold text-ink">
-                Insignias de {member.firstName}
+                Insignias de {getDisplayName(member).split(" ")[0]}
               </h2>
               <p className="text-xs text-ink-soft">
                 Otorga con una nota o revoca si se marcó por error. Cada acción

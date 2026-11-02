@@ -16,6 +16,7 @@ import { slugify } from "@/lib/slug";
 import {
   materialResourceIdSchema,
   materialResourceSchema,
+  proposeMaterialResourceSchema,
 } from "@/features/material/schemas";
 import { recordAudit } from "@/server/audit";
 import { requirePermission } from "@/server/auth/session";
@@ -362,6 +363,91 @@ export async function saveMaterialResourceAction(
 
     return {
       error: "No pudimos guardar el recurso. Inténtalo nuevamente.",
+    };
+  }
+}
+
+/**
+ * Propuesta de material por la coordinación (RF-MAT-02).
+ *
+ * La ficha nace en borrador (`isPublished: false`) y queda vinculada a quien la
+ * propone. El Equipo Adulto la revisa, ajusta y decide publicarla.
+ */
+export async function proposeUnitResourceAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("material:propose");
+
+  const parsed = proposeMaterialResourceSchema.safeParse({
+    title: readField(formData, "title"),
+    summary: readField(formData, "summary") || undefined,
+    bodyMd: readField(formData, "bodyMd"),
+  });
+
+  if (!parsed.success) {
+    return { error: firstIssue(parsed.error) };
+  }
+
+  const normalizedBody = parsed.data.bodyMd.replace(/\r\n?/g, "\n");
+
+  try {
+    const created = await prisma.$transaction(async (tx) => {
+      const slug = await buildUniqueSlug(parsed.data.title, tx);
+      const highest = await tx.unitResource.aggregate({
+        _max: { sortOrder: true },
+      });
+
+      const resource = await tx.unitResource.create({
+        data: {
+          slug,
+          title: parsed.data.title,
+          summary: parsed.data.summary ?? null,
+          bodyMd: normalizedBody,
+          sortOrder: (highest._max.sortOrder ?? 0) + 10,
+          isPublished: false,
+          proposedById: actor.id,
+          updatedById: actor.id,
+        },
+        select: { id: true, title: true, slug: true },
+      });
+
+      await recordAudit(
+        {
+          actor,
+          action: "material.propose",
+          entityType: "UnitResource",
+          entityId: resource.id,
+          after: {
+            slug,
+            title: resource.title,
+            isPublished: false,
+            proposedById: actor.id,
+          },
+        },
+        tx,
+      );
+
+      return resource;
+    });
+
+    revalidateMaterial();
+
+    return {
+      success: `Propuesta «${created.title}» enviada. El Equipo Adulto la revisará antes de publicarla.`,
+    };
+  } catch (error) {
+    console.error("Error al proponer material digital", error);
+
+    if (isUniqueViolation(error)) {
+      return {
+        error:
+          "Ya existe un recurso con un identificador similar. Cambia el título e inténtalo otra vez.",
+      };
+    }
+
+    return {
+      error: "No pudimos guardar la propuesta. Inténtalo nuevamente.",
     };
   }
 }

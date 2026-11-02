@@ -5,6 +5,7 @@ import {
   CircleDashed,
   Eye,
   Library,
+  Lightbulb,
   PenLine,
   Plus,
   ShieldCheck,
@@ -19,6 +20,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatTimestamp } from "@/lib/dates";
 import { findMaterialCore } from "@/lib/material";
+import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 import { cn } from "@/lib/utils";
@@ -42,6 +44,10 @@ export default async function AdminMaterialPage() {
       sortOrder: true,
       isPublished: true,
       updatedAt: true,
+      proposedById: true,
+      proposedBy: {
+        select: { firstName: true, lastName: true, preferredName: true },
+      },
     },
   });
 
@@ -209,6 +215,15 @@ export default async function AdminMaterialPage() {
                         <p className="mt-1 text-[11px] text-ink-soft">
                           Actualizado el {formatTimestamp(resource.updatedAt)}
                         </p>
+                        {resource.proposedBy ? (
+                          <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800">
+                            <Lightbulb
+                              className="size-3"
+                              aria-hidden="true"
+                            />
+                            Propuesto por {getDisplayName(resource.proposedBy)}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
 

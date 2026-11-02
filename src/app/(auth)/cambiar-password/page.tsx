@@ -4,6 +4,7 @@ import { KeyRound } from "lucide-react";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { ChangePasswordForm } from "@/features/auth/components/change-password-form";
+import { getDisplayFirstName } from "@/lib/user-display";
 import { requireUser } from "@/server/auth/session";
 
 export default async function ChangePasswordPage() {
@@ -42,7 +43,7 @@ export default async function ChangePasswordPage() {
             Actualiza tu contraseña
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            Hola, {user.firstName}. Antes de comenzar, reemplaza la contraseña
+            Hola, {getDisplayFirstName(user)}. Antes de comenzar, reemplaza la contraseña
             inicial que te entregaron por una personal. Solo tú debes conocerla.
           </p>
 

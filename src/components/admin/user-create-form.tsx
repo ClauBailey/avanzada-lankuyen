@@ -16,6 +16,11 @@ import {
   type UserActionState,
 } from "@/features/users/types";
 import {
+  ADULT_TEAM_ROLES,
+  ADULT_TEAM_ROLE_LABELS,
+  type AdultTeamRole,
+} from "@/lib/community-rules";
+import {
   PASSWORD_RULES_HINT,
   generateTemporaryPassword,
 } from "@/lib/temporary-password";
@@ -95,6 +100,8 @@ function UserCreateFields({
   const [usernameInput, setUsernameInput] = useState("");
   const [usernameDirty, setUsernameDirty] = useState(false);
   const [role, setRole] = useState<"PP" | "COORDINADOR" | "AA">("PP");
+  const [adultTeamRole, setAdultTeamRole] =
+    useState<AdultTeamRole>("RESPONSABLE_AVANZADA");
   const [passwordMode, setPasswordMode] = useState<"auto" | "manual">("auto");
   const [password, setPassword] = useState("");
 
@@ -176,6 +183,31 @@ function UserCreateFields({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
+          <Label htmlFor="preferredName">
+            Nombre social{" "}
+            <span className="normal-case tracking-normal">(opcional)</span>
+          </Label>
+          <Input
+            id="preferredName"
+            name="preferredName"
+            placeholder="Cómo quiere ser llamado/a"
+            maxLength={80}
+          />
+          <p className="text-xs text-ink-soft">
+            Reemplaza el nombre registral en toda la aplicación.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="birthDate">
+            Fecha de nacimiento{" "}
+            <span className="normal-case tracking-normal">(opcional)</span>
+          </Label>
+          <Input id="birthDate" name="birthDate" type="date" />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
           <Label htmlFor="role">Rol</Label>
           <Select
             id="role"
@@ -191,33 +223,57 @@ function UserCreateFields({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="communityId">Comunidad</Label>
-          <Select id="communityId" name="communityId" defaultValue="" required>
-            <option value="" disabled>
-              Selecciona una comunidad
-            </option>
-            {communities.map((community) => (
-              <option key={community.id} value={community.id}>
-                {community.name}
-              </option>
-            ))}
-          </Select>
-          <p className="text-xs text-ink-soft">
-            {role === "AA"
-              ? "El AA acompaña la progresión de los Pioneros/as de esta comunidad."
-              : "Todo Pionero/a y Coordinador/a pertenece a una comunidad."}
-          </p>
-          {communities.length === 0 ? (
-            <p className="text-xs text-red-700">
-              No hay comunidades activas.{" "}
-              <Link href="/admin/comunidades" className="underline">
-                Crea una primero
-              </Link>
-              .
+        {role === "AA" ? (
+          <div className="space-y-2">
+            <Label htmlFor="adultTeamRole">Cargo en el Equipo Adulto</Label>
+            <Select
+              id="adultTeamRole"
+              name="adultTeamRole"
+              value={adultTeamRole}
+              onChange={(event) =>
+                setAdultTeamRole(event.target.value as AdultTeamRole)
+              }
+            >
+              {ADULT_TEAM_ROLES.map((item) => (
+                <option key={item} value={item}>
+                  {ADULT_TEAM_ROLE_LABELS[item]}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-ink-soft">
+              El Equipo Adulto no pertenece a una comunidad juvenil. Acompaña
+              personalmente a un grupo pequeño de Pioneros/as.
             </p>
-          ) : null}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="communityId">Comunidad</Label>
+            <Select id="communityId" name="communityId" defaultValue="" required>
+              <option value="" disabled>
+                Selecciona una comunidad
+              </option>
+              {communities.map((community) => (
+                <option key={community.id} value={community.id}>
+                  {community.name}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-ink-soft">
+              {role === "COORDINADOR"
+                ? "El Coordinador/a pertenece a una comunidad y puede rotar sus cargos internos."
+                : "Todo Pionero/a pertenece a una comunidad de 3 a 6 jóvenes."}
+            </p>
+            {communities.length === 0 ? (
+              <p className="text-xs text-red-700">
+                No hay comunidades activas.{" "}
+                <Link href="/admin/comunidades" className="underline">
+                  Crea una primero
+                </Link>
+                .
+              </p>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -274,7 +330,7 @@ function UserCreateFields({
       <div className="flex flex-wrap items-center gap-3 border-t border-line/70 pt-5">
         <SubmitButton
           pendingLabel="Creando cuenta…"
-          disabled={communities.length === 0}
+          disabled={role !== "AA" && communities.length === 0}
         >
           <UserPlus aria-hidden="true" />
           Crear cuenta

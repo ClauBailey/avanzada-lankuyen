@@ -17,6 +17,7 @@ import {
 import { RouteSheetFilters } from "@/components/route-sheets/route-sheet-filters";
 import { RouteSheetReviewActions } from "@/components/route-sheets/route-sheet-review-actions";
 import { RouteSheetStatusBadge } from "@/components/route-sheets/route-sheet-status-badge";
+import { RouteSheetStructuredView } from "@/components/route-sheets/route-sheet-structured-view";
 import { RunReminderButton } from "@/components/route-sheets/run-reminder-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -29,6 +30,7 @@ import type { RouteSheetStatus } from "@/generated/prisma/enums";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_STYLES } from "@/lib/activity-types";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatDateTime, formatTimestamp } from "@/lib/dates";
+import { getDisplayName } from "@/lib/user-display";
 import {
   formatFileSize,
   routeSheetVersionLabel,
@@ -65,27 +67,27 @@ export default async function AdminHojasDeRutaPage({
 }: {
   searchParams: Promise<{
     status?: string;
-    semester?: string;
+    cycle?: string;
     activity?: string;
   }>;
 }) {
   await requirePermission("route_sheet:review");
   const params = await searchParams;
 
-  const [semesters, activities] = await Promise.all([
-    prisma.semester.findMany({
-      orderBy: { startsOn: "desc" },
+  const [cycles, activities] = await Promise.all([
+    prisma.programCycle.findMany({
+      orderBy: { startDate: "desc" },
       select: { id: true, name: true, isActive: true },
     }),
     prisma.activity.findMany({
       where: { deletedAt: null },
       orderBy: { startsAt: "desc" },
-      select: { id: true, title: true, semesterId: true },
+      select: { id: true, title: true, cycleId: true },
     }),
   ]);
 
-  const semesterId = semesters.some((item) => item.id === params.semester)
-    ? (params.semester ?? "")
+  const cycleId = cycles.some((item) => item.id === params.cycle)
+    ? (params.cycle ?? "")
     : "";
   const activityId = activities.some((item) => item.id === params.activity)
     ? (params.activity ?? "")
@@ -108,7 +110,7 @@ export default async function AdminHojasDeRutaPage({
     deletedAt: null,
     activity: {
       deletedAt: null,
-      ...(semesterId ? { semesterId } : {}),
+      ...(cycleId ? { cycleId } : {}),
       ...(activityId ? { id: activityId } : {}),
     },
   };
@@ -136,6 +138,8 @@ export default async function AdminHojasDeRutaPage({
         rejectionReason: true,
         createdAt: true,
         reviewedAt: true,
+        structuredData: true,
+        project: { select: { id: true, title: true } },
         file: {
           select: {
             id: true,
@@ -149,12 +153,13 @@ export default async function AdminHojasDeRutaPage({
             id: true,
             firstName: true,
             lastName: true,
+            preferredName: true,
             role: true,
             community: { select: { name: true, color: true } },
           },
         },
         reviewedBy: {
-          select: { firstName: true, lastName: true },
+          select: { firstName: true, lastName: true, preferredName: true },
         },
         activity: {
           select: {
@@ -164,12 +169,14 @@ export default async function AdminHojasDeRutaPage({
             startsAt: true,
             endsAt: true,
             location: true,
-            semester: { select: { name: true } },
+            cycle: { select: { name: true } },
             leaders: {
               orderBy: { assignedAt: "asc" },
               select: {
                 userId: true,
-                user: { select: { firstName: true, lastName: true } },
+                user: {
+                  select: { firstName: true, lastName: true, preferredName: true },
+                },
               },
             },
           },
@@ -280,10 +287,10 @@ export default async function AdminHojasDeRutaPage({
       <RunReminderButton lastRunLabel={lastRunLabel} />
 
       <RouteSheetFilters
-        semesters={semesters}
+        cycles={cycles}
         activities={activities}
         status={selectStatus}
-        semesterId={semesterId}
+        cycleId={cycleId}
         activityId={activityId}
       />
 
@@ -298,8 +305,8 @@ export default async function AdminHojasDeRutaPage({
               {statusTitle}
             </h2>
             <p className="mt-1 text-sm text-ink-soft">
-              {semesterId
-                ? `Filtradas por semestre y actividad.`
+              {cycleId
+                ? `Filtradas por ciclo y actividad.`
                 : "Todas las actividades con documentos enviados."}
             </p>
           </div>
@@ -329,7 +336,7 @@ export default async function AdminHojasDeRutaPage({
               description={
                 status === "PENDIENTE_AUTORIZACION"
                   ? "Cuando un encargado suba una hoja de ruta, aparecerá aquí para que la revises."
-                  : "Prueba con otro estado, semestre o actividad."
+                  : "Prueba con otro estado, ciclo o actividad."
               }
               className="border-0 bg-transparent p-0"
             />
@@ -339,10 +346,7 @@ export default async function AdminHojasDeRutaPage({
             {sheets.map((sheet) => {
               const isPending = sheet.status === "PENDIENTE_AUTORIZACION";
               const leaders = sheet.activity.leaders
-                .map(
-                  (leader) =>
-                    `${leader.user.firstName} ${leader.user.lastName}`,
-                )
+                .map((leader) => getDisplayName(leader.user))
                 .join(", ");
 
               return (
@@ -387,7 +391,7 @@ export default async function AdminHojasDeRutaPage({
 
                         <p className="mt-1 text-xs text-ink-soft">
                           {formatDateTime(sheet.activity.startsAt)} ·{" "}
-                          {sheet.activity.semester.name}
+                          {sheet.activity.cycle?.name ?? "Sin ciclo"}
                           {sheet.activity.location
                             ? ` · ${sheet.activity.location}`
                             : ""}
@@ -425,41 +429,58 @@ export default async function AdminHojasDeRutaPage({
                           <FileText className="size-3.5" aria-hidden="true" />
                           Documento
                         </p>
-                        <p className="mt-1.5 break-all text-sm font-medium text-ink">
-                          {sheet.file.originalName}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-ink-soft">
-                          {sheet.file.mimeType} ·{" "}
-                          {formatFileSize(sheet.file.sizeBytes)}
-                        </p>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <a
-                            href={`/api/files/${sheet.file.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={buttonVariants({
-                              variant: "secondary",
-                              size: "sm",
-                            })}
-                          >
-                            <ExternalLink
-                              className="size-4"
-                              aria-hidden="true"
-                            />
-                            Vista previa
-                          </a>
-                          <a
-                            href={`/api/files/${sheet.file.id}`}
-                            download
-                            className={buttonVariants({
-                              variant: "ghost",
-                              size: "sm",
-                            })}
-                          >
-                            <Download className="size-4" aria-hidden="true" />
-                            Descargar
-                          </a>
-                        </div>
+                        {sheet.file ? (
+                          <>
+                            <p className="mt-1.5 break-all text-sm font-medium text-ink">
+                              {sheet.file.originalName}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-ink-soft">
+                              {sheet.file.mimeType} ·{" "}
+                              {formatFileSize(sheet.file.sizeBytes)}
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <a
+                                href={`/api/files/${sheet.file.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={buttonVariants({
+                                  variant: "secondary",
+                                  size: "sm",
+                                })}
+                              >
+                                <ExternalLink
+                                  className="size-4"
+                                  aria-hidden="true"
+                                />
+                                Vista previa
+                              </a>
+                              <a
+                                href={`/api/files/${sheet.file.id}`}
+                                download
+                                className={buttonVariants({
+                                  variant: "ghost",
+                                  size: "sm",
+                                })}
+                              >
+                                <Download
+                                  className="size-4"
+                                  aria-hidden="true"
+                                />
+                                Descargar
+                              </a>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="mt-1.5 text-sm font-medium text-ink">
+                              Formulario oficial de ocho secciones
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-ink-soft">
+                              Enviado directamente en la plataforma, sin archivo
+                              adjunto.
+                            </p>
+                          </>
+                        )}
                       </div>
 
                       <div className="rounded-xl border border-line bg-canvas/40 p-3.5">
@@ -468,8 +489,7 @@ export default async function AdminHojasDeRutaPage({
                           Envío
                         </p>
                         <p className="mt-1.5 text-sm font-medium text-ink">
-                          {sheet.uploadedBy.firstName}{" "}
-                          {sheet.uploadedBy.lastName}
+                          {getDisplayName(sheet.uploadedBy)}
                         </p>
                         <p className="mt-0.5 text-[11px] text-ink-soft">
                           {ROLE_LABELS[sheet.uploadedBy.role]}
@@ -491,15 +511,33 @@ export default async function AdminHojasDeRutaPage({
                             Nota: {sheet.description}
                           </p>
                         ) : null}
+                        {sheet.project ? (
+                          <p className="mt-1 text-[11px] text-ink-soft">
+                            Proyecto:{" "}
+                            <Link
+                              href={`/proyectos/${sheet.project.id}`}
+                              className="font-semibold text-anil-700 hover:underline"
+                            >
+                              {sheet.project.title}
+                            </Link>
+                          </p>
+                        ) : null}
                       </div>
                     </div>
+
+                    {sheet.structuredData ? (
+                      <RouteSheetStructuredView
+                        data={sheet.structuredData}
+                        compact
+                      />
+                    ) : null}
 
                     {sheet.status === "RECHAZADA" ? (
                       <Alert variant="error">
                         <p className="font-semibold">
                           Rechazada
                           {sheet.reviewedBy
-                            ? ` por ${sheet.reviewedBy.firstName} ${sheet.reviewedBy.lastName}`
+                            ? ` por ${getDisplayName(sheet.reviewedBy)}`
                             : ""}
                           {sheet.reviewedAt
                             ? ` el ${formatTimestamp(sheet.reviewedAt)}`
@@ -525,7 +563,7 @@ export default async function AdminHojasDeRutaPage({
                         </p>
                         <p className="mt-1 text-sm">
                           {sheet.reviewedBy
-                            ? `Autorizada por ${sheet.reviewedBy.firstName} ${sheet.reviewedBy.lastName}`
+                            ? `Autorizada por ${getDisplayName(sheet.reviewedBy)}`
                             : "Autorizada por un AA"}
                           {sheet.reviewedAt
                             ? ` el ${formatTimestamp(sheet.reviewedAt)}`

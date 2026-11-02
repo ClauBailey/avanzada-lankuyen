@@ -20,6 +20,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatDateOnly, formatTimestamp } from "@/lib/dates";
 import { logbookStatusLabel } from "@/lib/logbook";
+import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 
@@ -53,6 +54,7 @@ export default async function AdminBitacoraPage() {
             select: {
               firstName: true,
               lastName: true,
+              preferredName: true,
               username: true,
               community: { select: { name: true } },
             },
@@ -70,6 +72,7 @@ export default async function AdminBitacoraPage() {
           id: true,
           firstName: true,
           lastName: true,
+          preferredName: true,
           username: true,
           role: true,
           isLogbookKeeper: true,
@@ -137,7 +140,7 @@ export default async function AdminBitacoraPage() {
             Guardián actual
           </p>
           <p className="mt-1 font-display text-lg font-semibold leading-tight text-ink">
-            {keeper ? `${keeper.firstName} ${keeper.lastName}` : "Cargo vacante"}
+            {keeper ? getDisplayName(keeper) : "Cargo vacante"}
           </p>
           {keeper?.community ? (
             <p className="text-[11px] text-ink-soft">{keeper.community.name}</p>
@@ -177,7 +180,7 @@ export default async function AdminBitacoraPage() {
               >
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
-                    {candidate.firstName} {candidate.lastName}
+                    {getDisplayName(candidate)}
                     {candidate.isLogbookKeeper ? (
                       <Badge variant="gold">
                         <BookOpen className="size-3" aria-hidden="true" />
@@ -192,7 +195,7 @@ export default async function AdminBitacoraPage() {
                 </div>
                 <LogbookKeeperButton
                   userId={candidate.id}
-                  fullName={`${candidate.firstName} ${candidate.lastName}`}
+                  fullName={getDisplayName(candidate)}
                   isKeeper={candidate.isLogbookKeeper}
                 />
               </li>
@@ -256,7 +259,7 @@ export default async function AdminBitacoraPage() {
                     </td>
                     <td className="px-3 py-3.5">
                       <p className="text-ink">
-                        {entry.author.firstName} {entry.author.lastName}
+                        {getDisplayName(entry.author)}
                       </p>
                       <p className="text-[11px] text-ink-soft">
                         @{entry.author.username}

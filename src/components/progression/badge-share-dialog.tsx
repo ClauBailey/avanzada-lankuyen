@@ -366,7 +366,7 @@ async function renderBadgeStory({
   context.fillStyle = "#8d7442";
   context.font = '600 20px "Inter", Arial, sans-serif';
   context.fillText(
-    "SIEMPRE MÁS ALTO · SIEMPRE MÁS LEJOS · SIEMPRE JUNTOS",
+    "¡SIEMPRE ADELANTE!",
     WIDTH / 2,
     cardY + cardHeight - 52,
   );

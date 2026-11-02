@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/lib/action-state";
 import type { Prisma } from "@/generated/prisma/client";
 import { firstIssue, readField } from "@/lib/form-data";
+import { getDisplayName } from "@/lib/user-display";
 import { ratifySchema, rsvpSchema } from "@/features/attendance/schemas";
 import { recordAudit } from "@/server/audit";
 import { requirePermission } from "@/server/auth/session";
@@ -27,6 +28,8 @@ function revalidateAttendance(activityId: string, userIds: string[] = []) {
   revalidatePath(`/calendario/${activityId}`);
   revalidatePath("/admin/asistencia");
   revalidatePath(`/admin/asistencia/${activityId}`);
+  revalidatePath("/mi-comunidad/asistencia");
+  revalidatePath(`/mi-comunidad/asistencia/${activityId}`);
   revalidatePath("/inicio");
   revalidatePath("/perfil");
   revalidatePath("/notificaciones");
@@ -253,7 +256,7 @@ export async function submitRsvpAction(
       }
 
       const audience = await getAudience(tx, user.communityId);
-      const fullName = `${user.firstName} ${user.lastName}`;
+      const fullName = getDisplayName(user);
       const isConfirmed = status === "CONFIRMADO";
 
       for (const recipient of audience) {
@@ -369,11 +372,21 @@ export async function ratifyAttendanceAction(
     return { error: "La actividad ya no existe." };
   }
 
+  // El Coordinador/a ratifica solo a los miembros de su propia comunidad.
+  if (actor.role === "COORDINADOR" && !actor.communityId) {
+    return {
+      error: "Necesitas pertenecer a una comunidad para ratificar asistencia.",
+    };
+  }
+
   const members = await prisma.user.findMany({
     where: {
       id: { in: uniqueUserIds },
       role: { in: ["PP", "COORDINADOR"] },
       deletedAt: null,
+      ...(actor.role === "COORDINADOR"
+        ? { communityId: actor.communityId }
+        : {}),
     },
     select: { id: true, firstName: true, lastName: true },
   });

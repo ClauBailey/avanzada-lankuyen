@@ -71,3 +71,84 @@ export function formatFileSize(bytes: number) {
 export function routeSheetVersionLabel(version: number) {
   return `v${version}`;
 }
+
+export const ROUTE_SHEET_STRUCTURED_SECTIONS = [
+  {
+    key: "responsibleText",
+    order: 1,
+    label: "Responsable de la actividad",
+    hint: "Quién asume la hoja de ruta y cómo se organiza el equipo de encargados.",
+  },
+  {
+    key: "priorMotivation",
+    order: 2,
+    label: "Motivación previa",
+    hint: "Por qué la actividad nace y qué necesidad o sueño la origina.",
+  },
+  {
+    key: "activityObjectives",
+    order: 3,
+    label: "Objetivos de la actividad",
+    hint: "Qué se espera lograr, expresado en resultados observables.",
+  },
+  {
+    key: "locationAndPermits",
+    order: 4,
+    label: "Lugar y permisos",
+    hint: "Dónde se realiza, horarios, accesos y autorizaciones necesarias.",
+  },
+  {
+    key: "phasesAndVariants",
+    order: 5,
+    label: "Fases y variantes",
+    hint: "Momento a momento de la actividad y qué hacer si cambia el plan o el clima.",
+  },
+  {
+    key: "externalHumanResources",
+    order: 6,
+    label: "Recursos humanos externos",
+    hint: "Monitores, invitados, apoderados o especialistas que participan.",
+  },
+  {
+    key: "materialsAndBudget",
+    order: 7,
+    label: "Materiales y presupuesto",
+    hint: "Insumos, transporte, alimentación y financiamiento estimado.",
+  },
+  {
+    key: "riskPrevention",
+    order: 8,
+    label: "Prevención de riesgos",
+    hint: "Riesgos identificados, medidas preventivas y plan de emergencia.",
+  },
+] as const;
+
+export type RouteSheetStructuredSectionKey =
+  (typeof ROUTE_SHEET_STRUCTURED_SECTIONS)[number]["key"];
+
+export type RouteSheetStructuredData = Partial<
+  Record<RouteSheetStructuredSectionKey, string>
+>;
+
+export function parseRouteSheetStructuredData(
+  value: unknown,
+): RouteSheetStructuredData | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const data: RouteSheetStructuredData = {};
+  for (const section of ROUTE_SHEET_STRUCTURED_SECTIONS) {
+    const text = (value as Record<string, unknown>)[section.key];
+    if (typeof text === "string" && text.trim().length > 0) {
+      data[section.key] = text;
+    }
+  }
+
+  return Object.keys(data).length > 0 ? data : null;
+}
+
+export function routeSheetStructuredSectionLabel(key: string): string {
+  return (
+    ROUTE_SHEET_STRUCTURED_SECTIONS.find((section) => section.key === key)
+      ?.label ?? key
+  );
+}

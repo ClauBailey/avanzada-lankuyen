@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
-import { getInitials } from "@/lib/utils";
+import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
 
 export const metadata = {
   title: "Insignias · Panel AA",
@@ -65,6 +65,7 @@ export default async function AdminInsigniasPage({
         id: true,
         firstName: true,
         lastName: true,
+        preferredName: true,
         username: true,
         role: true,
         isActive: true,
@@ -177,7 +178,7 @@ export default async function AdminInsigniasPage({
         ) : (
           <ul className="space-y-4">
             {members.map((member) => {
-              const fullName = `${member.firstName} ${member.lastName}`;
+              const fullName = getDisplayName(member);
               const memberGrants = grantsByMember.get(member.id);
               const obtained = memberGrants?.size ?? 0;
 
@@ -187,7 +188,7 @@ export default async function AdminInsigniasPage({
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/70 bg-canvas/40 px-4 py-3.5 sm:px-5">
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-anil-100 text-xs font-bold text-anil-800">
-                          {getInitials(member.firstName, member.lastName)}
+                          {getDisplayInitials(member)}
                         </span>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">

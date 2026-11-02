@@ -33,6 +33,14 @@ export const materialResourceSchema = z.object({
     .max(9999, "El orden no puede superar 9999."),
 });
 
+/**
+ * Propuesta de material por parte de la coordinación (RF-MAT-02). No incluye
+ * `sortOrder` ni `isPublished`: el AA decide el orden definitivo y publica.
+ */
+export const proposeMaterialResourceSchema = materialResourceSchema.omit({
+  sortOrder: true,
+});
+
 export const updateSettingsSchema = z.object({
   leadDays: z.coerce
     .number()

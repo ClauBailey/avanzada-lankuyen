@@ -27,6 +27,7 @@ import {
 } from "@/lib/activity-types";
 import { formatDateTime, formatLongDate, formatTime, getGreeting } from "@/lib/dates";
 import { ROLE_LABELS } from "@/lib/constants";
+import { getDisplayFirstName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth/session";
 
@@ -103,7 +104,7 @@ export default async function InicioPage() {
             isPublished: true,
             deletedAt: null,
             endsAt: { lt: new Date() },
-            semester: { isActive: true },
+            cycle: { isActive: true },
             evaluations: { none: { userId: user.id } },
           },
         }),
@@ -178,12 +179,12 @@ export default async function InicioPage() {
             {formatLongDate()}
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold leading-tight text-white sm:text-4xl">
-            {getGreeting()}, {user.firstName}.
+            {getGreeting()}, {getDisplayFirstName(user)}.
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-anil-100/75 sm:text-base">
             {isAA
               ? "Tienes la vista completa de la unidad. Acompaña los procesos, revisa las hojas de ruta y mantén el calendario al día."
-              : "Este es tu espacio para avanzar por el Sendero y alcanzar la Cumbre. Revisa tus próximas actividades y registra tu asistencia."}
+              : "Este es tu espacio para recorrer tu camino simbólico a tu ritmo. Revisa tus próximas actividades y registra tu asistencia."}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-2.5">

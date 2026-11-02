@@ -1,96 +1,148 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import * as evaluationDomain from "../src/lib/evaluations.ts";
 import {
-  areaAverages,
-  average,
-  EVALUATION_AREAS,
-  formatEvaluationScore,
-  overallEvaluationAverage,
-  type EvaluationScores,
+  areaFrequency,
+  DEVELOPMENT_AREAS,
+  formatExperiencedAreas,
+  levelDefinition,
+  levelDistribution,
+  OBJECTIVE_ACHIEVEMENT_LEVELS,
+  type QualitativeEvaluation,
 } from "../src/lib/evaluations.ts";
 import { permissionsFor } from "../src/server/rbac/permissions.ts";
 
-const first: EvaluationScores = {
-  affectivityScore: 7,
-  corporalityScore: 6,
-  spiritualityScore: 5,
-  characterScore: 4,
-  creativityScore: 3,
-  sociabilityScore: 2,
+const first: QualitativeEvaluation = {
+  objectiveAchievementLevel: "LOGRADO_PLENAMENTE",
+  experiencedAreas: ["AFECTIVIDAD", "CORPORALIDAD", "ESPIRITUALIDAD"],
 };
 
-const second: EvaluationScores = {
-  affectivityScore: 1,
-  corporalityScore: 2,
-  spiritualityScore: 3,
-  characterScore: 4,
-  creativityScore: 5,
-  sociabilityScore: 6,
+const second: QualitativeEvaluation = {
+  objectiveAchievementLevel: "LOGRADO_PARCIALMENTE",
+  experiencedAreas: ["AFECTIVIDAD", "CREATIVIDAD"],
 };
 
-describe("áreas de evaluación scout", () => {
-  it("mantiene las seis áreas en el orden solicitado", () => {
+const third: QualitativeEvaluation = {
+  objectiveAchievementLevel: "NO_LOGRADO_REPLANTEAR",
+  experiencedAreas: [],
+};
+
+describe("evaluación cualitativa de actividades", () => {
+  it("usa exactamente tres niveles de logro, sin escalas numéricas", () => {
     assert.deepEqual(
-      EVALUATION_AREAS.map((area) => area.label),
+      OBJECTIVE_ACHIEVEMENT_LEVELS.map((level) => level.key),
       [
-        "Afectividad",
-        "Corporalidad",
-        "Espiritualidad",
-        "Carácter",
-        "Creatividad",
-        "Sociabilidad",
+        "LOGRADO_PLENAMENTE",
+        "LOGRADO_PARCIALMENTE",
+        "NO_LOGRADO_REPLANTEAR",
       ],
     );
   });
-});
 
-describe("promedios de evaluación", () => {
-  it("redondea a un decimal", () => {
-    assert.equal(average([1, 2, 2]), 1.7);
-    assert.equal(average([4, 5]), 4.5);
+  it("mantiene las seis áreas de desarrollo scout", () => {
+    assert.deepEqual(
+      DEVELOPMENT_AREAS.map((area) => area.label),
+      [
+        "Corporalidad",
+        "Creatividad",
+        "Carácter",
+        "Afectividad",
+        "Sociabilidad",
+        "Espiritualidad",
+      ],
+    );
   });
 
-  it("devuelve null cuando no hay respuestas", () => {
-    assert.equal(average([]), null);
-    assert.equal(overallEvaluationAverage([]), null);
-    assert.equal(formatEvaluationScore(null), "—");
+  it("cuenta la distribución de niveles sin promediar", () => {
+    const distribution = levelDistribution([first, second, third, first]);
+
+    assert.deepEqual(
+      distribution.map((level) => [level.key, level.count]),
+      [
+        ["LOGRADO_PLENAMENTE", 2],
+        ["LOGRADO_PARCIALMENTE", 1],
+        ["NO_LOGRADO_REPLANTEAR", 1],
+      ],
+    );
   });
 
-  it("promedia las seis áreas de todas las respuestas", () => {
-    assert.equal(overallEvaluationAverage([first, second]), 4);
-    assert.equal(overallEvaluationAverage([first]), 4.5);
+  it("devuelve cero en todos los niveles cuando no hay observaciones", () => {
+    assert.deepEqual(
+      levelDistribution([]).map((level) => level.count),
+      [0, 0, 0],
+    );
   });
 
-  it("calcula el promedio independiente de cada área", () => {
-    assert.deepEqual(areaAverages([first, second]), {
-      affectivityScore: 4,
-      corporalityScore: 4,
-      spiritualityScore: 4,
-      characterScore: 4,
-      creativityScore: 4,
-      sociabilityScore: 4,
-    });
+  it("cuenta la frecuencia de cada área y conserva las seis", () => {
+    const frequency = areaFrequency([first, second]);
+
+    assert.equal(frequency.length, 6);
+    assert.equal(
+      frequency.find((area) => area.key === "AFECTIVIDAD")?.count,
+      2,
+    );
+    assert.equal(
+      frequency.find((area) => area.key === "CORPORALIDAD")?.count,
+      1,
+    );
+    assert.equal(
+      frequency.find((area) => area.key === "SOCIABILIDAD")?.count,
+      0,
+    );
   });
 
-  it("formatea con coma decimal", () => {
-    assert.equal(formatEvaluationScore(4.5), "4,5");
-    assert.equal(formatEvaluationScore(7), "7,0");
+  it("describe las áreas con palabras, no con puntajes", () => {
+    assert.equal(
+      formatExperiencedAreas(["AFECTIVIDAD", "CREATIVIDAD"]),
+      "Afectividad · Creatividad",
+    );
+    assert.equal(formatExperiencedAreas([]), "Sin áreas marcadas");
+  });
+
+  it("encuentra la definición de cada nivel", () => {
+    assert.equal(
+      levelDefinition("LOGRADO_PARCIALMENTE").shortLabel,
+      "Parcialmente",
+    );
+  });
+
+  it("no expone ninguna función de promedio ni de nota", () => {
+    const exported = Object.keys(evaluationDomain);
+
+    assert.equal(exported.includes("average"), false);
+    assert.equal(exported.includes("formatEvaluationScore"), false);
+    assert.equal(exported.includes("overallEvaluationAverage"), false);
+    assert.equal(exported.includes("areaAverages"), false);
   });
 });
 
 describe("permisos de evaluación", () => {
-  it("PP y COORDINADOR pueden responder evaluaciones", () => {
+  it("PP, COORDINADOR y AA pueden dejar su observación", () => {
     assert.equal(permissionsFor("PP").has("activity:evaluate"), true);
     assert.equal(permissionsFor("COORDINADOR").has("activity:evaluate"), true);
-    assert.equal(permissionsFor("AA").has("activity:evaluate"), false);
+    assert.equal(permissionsFor("AA").has("activity:evaluate"), true);
   });
 
-  it("COORDINADOR conserva los mismos permisos que PP en v1", () => {
-    assert.deepEqual(
-      [...permissionsFor("COORDINADOR")].sort(),
-      [...permissionsFor("PP")].sort(),
+  it("COORDINADOR conserva los permisos juveniles y suma la coordinación de su comunidad", () => {
+    const ppPermissions = permissionsFor("PP");
+    const coordinatorPermissions = permissionsFor("COORDINADOR");
+
+    for (const permission of ppPermissions) {
+      assert.equal(
+        coordinatorPermissions.has(permission),
+        true,
+        `COORDINADOR debería conservar ${permission}`,
+      );
+    }
+
+    assert.equal(
+      coordinatorPermissions.has("community:identity_edit"),
+      true,
     );
+    assert.equal(coordinatorPermissions.has("community:roles_manage"), true);
+    assert.equal(ppPermissions.has("community:identity_edit"), false);
+    assert.equal(ppPermissions.has("community:roles_manage"), false);
   });
 
   it("solo los AA pueden leer todas las respuestas", () => {

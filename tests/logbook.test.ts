@@ -251,6 +251,6 @@ describe("numeración y textos de La Bitácora", () => {
   it("usa un lema coherente cuando el AA no dejó dedicatoria", () => {
     assert.match(badgeShareMotto("ETAPA_SENDERO", "ETAPA"), /sendero/i);
     assert.match(badgeShareMotto("ETAPA_CUMBRE", "ETAPA"), /cumbre/i);
-    assert.match(badgeShareMotto("COMP_APRENDER", "COMPETENCIA"), /juntos/i);
+    assert.match(badgeShareMotto("COMP_APRENDER", "COMPETENCIA"), /adelante/i);
   });
 });

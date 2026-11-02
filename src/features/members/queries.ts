@@ -21,6 +21,7 @@ export interface MemberCardView {
   username: string;
   firstName: string;
   lastName: string;
+  preferredName: string | null;
   role: Role;
   community: { id: string; name: string; color: string | null } | null;
   stage: MemberStage | null;
@@ -33,6 +34,7 @@ const memberCardSelect = {
   username: true,
   firstName: true,
   lastName: true,
+  preferredName: true,
   role: true,
   community: { select: { id: true, name: true, color: true } },
   badges: {
@@ -86,6 +88,7 @@ export async function getMembersDirectory(
     username: member.username,
     firstName: member.firstName,
     lastName: member.lastName,
+    preferredName: member.preferredName,
     role: member.role,
     community: member.community,
     stage: pickStage(member.badges),
@@ -110,6 +113,7 @@ export interface SocialMemberProfile {
   username: string;
   firstName: string;
   lastName: string;
+  preferredName: string | null;
   role: Role;
   community: { id: string; name: string; color: string | null } | null;
   memberSince: string;
@@ -135,6 +139,7 @@ export async function getSocialMemberProfile(
       username: true,
       firstName: true,
       lastName: true,
+      preferredName: true,
       role: true,
       createdAt: true,
       community: { select: { id: true, name: true, color: true } },
@@ -166,6 +171,7 @@ export async function getSocialMemberProfile(
     username: member.username,
     firstName: member.firstName,
     lastName: member.lastName,
+    preferredName: member.preferredName,
     role: member.role,
     community: member.community,
     memberSince: member.createdAt.toISOString(),
