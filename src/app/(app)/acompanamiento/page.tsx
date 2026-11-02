@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { ArrowLeft, Compass, TriangleAlert, UsersRound } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpenCheck,
+  Compass,
+  TriangleAlert,
+  UsersRound,
+} from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -57,13 +63,24 @@ export default async function AcompanamientoPage() {
 
       <PageHeader
         eyebrow="Acompañamiento privado 1 a 1"
-        title="Mis jóvenes asignados"
-        description="Aquí solo aparecen los jóvenes que tienes asignados. Puedes leer su Brújula en modo solo lectura y dejar notas de acompañamiento privadas o compartidas."
+        title="Jóvenes que acompaño"
+        description="Aquí solo aparecen las y los jóvenes que tienes asignados. Puedes leer su Brújula en modo solo lectura y dejar notas de acompañamiento privadas o compartidas."
         actions={
-          <Badge variant={students.length > MAX_YOUTH_PER_AA ? "warning" : "default"}>
-            <UsersRound className="size-3.5" aria-hidden="true" />
-            {students.length} de {MAX_YOUTH_PER_AA} recomendados
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={students.length > MAX_YOUTH_PER_AA ? "warning" : "default"}
+            >
+              <UsersRound className="size-3.5" aria-hidden="true" />
+              {students.length} de {MAX_YOUTH_PER_AA} recomendados
+            </Badge>
+            <Link
+              href="/admin/objetivos"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              <BookOpenCheck className="size-4" aria-hidden="true" />
+              Catálogo de objetivos
+            </Link>
+          </div>
         }
       />
 
@@ -78,12 +95,12 @@ export default async function AcompanamientoPage() {
         <Card className="border-dashed bg-surface/70 p-8 text-center">
           <Compass className="mx-auto size-8 text-anil-400" aria-hidden="true" />
           <p className="mt-3 font-display text-lg font-semibold text-ink">
-            Todavía no tienes jóvenes asignados
+            Todavía no tienes personas jóvenes asignadas
           </p>
           <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-ink-soft">
-            Cuando la coordinación te asigne un Pionero/a o Coordinador/a, su
+            Cuando la coordinación te asigne un pionero o pionera, o un coordinador o coordinadora, su
             Brújula aparecerá aquí. La lectura es siempre 1 a 1: no verás a
-            jóvenes de otros AA.
+            personas jóvenes de otros AA.
           </p>
         </Card>
       ) : (
@@ -104,7 +121,9 @@ export default async function AcompanamientoPage() {
                     </p>
                   </div>
                   <Badge variant="outline">
-                    {student.role === "COORDINADOR" ? "Coordinador/a" : "Pionero/a"}
+                    {student.role === "COORDINADOR"
+                      ? "Coordinador o coordinadora"
+                      : "Pionero o pionera"}
                   </Badge>
                 </div>
 
@@ -152,7 +171,7 @@ export default async function AcompanamientoPage() {
       )}
 
       <p className="text-xs leading-relaxed text-ink-soft">
-        El Manual recomienda acompañar como máximo a {MAX_YOUTH_PER_AA} jóvenes
+        El Manual recomienda acompañar como máximo a {MAX_YOUTH_PER_AA} personas jóvenes
         activos por AA. Es una orientación para sostener un vínculo cercano, no
         un bloqueo del sistema.
       </p>

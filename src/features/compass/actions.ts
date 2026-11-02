@@ -7,13 +7,16 @@ import { firstIssue, readField } from "@/lib/form-data";
 import { getDisplayName } from "@/lib/user-display";
 import {
   adoptTemplateObjectiveSchema,
+  compassObjectiveTemplateIdSchema,
   compassReflectionSchema,
+  createCompassObjectiveTemplateSchema,
   createCustomCompassObjectiveSchema,
   mentoringNoteSchema,
   requestCompassConsensusSchema,
   syncOfflineCompassEditsSchema,
   toggleCompassObjectiveSharingSchema,
   updateCompassObjectiveStatusSchema,
+  updateCompassObjectiveTemplateSchema,
   updateCompassObjectiveTextSchema,
 } from "@/features/compass/schemas";
 import {
@@ -25,13 +28,17 @@ import {
   versionsToAppend,
 } from "@/features/compass/rules";
 import { recordAudit } from "@/server/audit";
-import { requireReadyUser, type SessionUser } from "@/server/auth/session";
+import {
+  requirePermission,
+  requireReadyUser,
+  type SessionUser,
+} from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { notifyUser } from "@/server/notifications";
 import { can } from "@/server/rbac/can";
 
 const WRITE_DENIED =
-  "Solo el joven titular puede escribir en su Brújula. Ningún adulto modifica objetivos, estados ni visibilidad.";
+  "Solo la o el joven titular puede escribir en su Brújula. Ningún adulto modifica objetivos, estados ni visibilidad.";
 
 function revalidateCompass(targetUserId?: string) {
   revalidatePath("/brujula");
@@ -48,12 +55,12 @@ function revalidateCompass(targetUserId?: string) {
  * El AA —incluido el encargado— nunca obtiene `compass:write`.
  */
 async function requireCompassWriter(): Promise<
-  { actor: SessionUser } | { error: string }
+  { actor: SessionUser } | { error: string; status: number }
 > {
   const actor = await requireReadyUser();
 
   if (!can(actor, "compass:write") || !canWriteCompass(actor, actor.id)) {
-    return { error: WRITE_DENIED };
+    return { error: WRITE_DENIED, status: 403 };
   }
 
   return { actor };
@@ -64,7 +71,9 @@ export async function adoptTemplateObjectiveAction(
   formData: FormData,
 ): Promise<ActionState> {
   const writer = await requireCompassWriter();
-  if ("error" in writer) return { error: writer.error };
+  if ("error" in writer) {
+    return { error: writer.error, status: writer.status };
+  }
   const { actor } = writer;
 
   const parsed = adoptTemplateObjectiveSchema.safeParse({
@@ -143,7 +152,9 @@ export async function updateCompassObjectiveTextAction(
   formData: FormData,
 ): Promise<ActionState> {
   const writer = await requireCompassWriter();
-  if ("error" in writer) return { error: writer.error };
+  if ("error" in writer) {
+    return { error: writer.error, status: writer.status };
+  }
   const { actor } = writer;
 
   const parsed = updateCompassObjectiveTextSchema.safeParse({
@@ -208,7 +219,9 @@ export async function createCustomCompassObjectiveAction(
   formData: FormData,
 ): Promise<ActionState> {
   const writer = await requireCompassWriter();
-  if ("error" in writer) return { error: writer.error };
+  if ("error" in writer) {
+    return { error: writer.error, status: writer.status };
+  }
   const { actor } = writer;
 
   const parsed = createCustomCompassObjectiveSchema.safeParse({
@@ -263,7 +276,9 @@ export async function updateCompassObjectiveStatusAction(
   formData: FormData,
 ): Promise<ActionState> {
   const writer = await requireCompassWriter();
-  if ("error" in writer) return { error: writer.error };
+  if ("error" in writer) {
+    return { error: writer.error, status: writer.status };
+  }
   const { actor } = writer;
 
   const parsed = updateCompassObjectiveStatusSchema.safeParse({
@@ -314,7 +329,9 @@ export async function toggleCompassObjectiveSharingAction(
   formData: FormData,
 ): Promise<ActionState> {
   const writer = await requireCompassWriter();
-  if ("error" in writer) return { error: writer.error };
+  if ("error" in writer) {
+    return { error: writer.error, status: writer.status };
+  }
   const { actor } = writer;
 
   const parsed = toggleCompassObjectiveSharingSchema.safeParse({
@@ -365,7 +382,9 @@ export async function createCompassReflectionAction(
   formData: FormData,
 ): Promise<ActionState> {
   const writer = await requireCompassWriter();
-  if ("error" in writer) return { error: writer.error };
+  if ("error" in writer) {
+    return { error: writer.error, status: writer.status };
+  }
   const { actor } = writer;
 
   const parsed = compassReflectionSchema.safeParse({
@@ -542,7 +561,7 @@ async function requireAssignedAa(studentId: string): Promise<
   if (!student || student.assignedAaId !== actor.id) {
     return {
       error:
-        "No tienes acceso a la Brújula ni a las notas de este joven: solo su AA encargado puede acompañarlo.",
+        "No tienes acceso a la Brújula ni a las notas de esta persona joven: solo su AA encargado puede acompañarla.",
     };
   }
 
@@ -575,7 +594,9 @@ export async function saveMentoringNoteAction(
     });
 
     if (!note) {
-      return { error: "Esa nota no pertenece al historial de este joven." };
+      return {
+        error: "Esa nota no pertenece al historial de esta persona joven.",
+      };
     }
 
     await prisma.$transaction(async (tx) => {
@@ -639,7 +660,7 @@ export async function saveMentoringNoteAction(
   revalidateCompass(student.id);
   return {
     success: parsed.data.sharedWithStudent
-      ? "Nota guardada y compartida con el joven."
+      ? "Nota guardada y compartida con la o el joven."
       : "Nota guardada como privada del AA encargado.",
   };
 }
@@ -657,7 +678,9 @@ export async function syncOfflineCompassEditsAction(
   formData: FormData,
 ): Promise<ActionState> {
   const writer = await requireCompassWriter();
-  if ("error" in writer) return { error: writer.error };
+  if ("error" in writer) {
+    return { error: writer.error, status: writer.status };
+  }
   const { actor } = writer;
 
   let raw: unknown;
@@ -758,5 +781,215 @@ export async function syncOfflineCompassEditsAction(
       conflicts > 0
         ? `Sincronizamos ${synced} edición${synced === 1 ? "" : "es"}. En ${conflicts} caso${conflicts === 1 ? "" : "s"} el objetivo había cambiado en otro dispositivo: conservamos ambas redacciones como versiones sucesivas.`
         : `Sincronizamos ${synced} edición${synced === 1 ? "" : "es"} de La Brújula.`,
+  };
+}
+
+// ------------------------------------------------------------
+// Catálogo referencial de plantillas (Manual pp. 175–201)
+// ------------------------------------------------------------
+
+function revalidateTemplates() {
+  revalidatePath("/admin/objetivos");
+  revalidatePath("/brujula");
+  revalidatePath("/acompanamiento");
+  revalidatePath("/admin");
+}
+
+function isUniqueViolation(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2002"
+  );
+}
+
+/**
+ * El AA actualiza una plantilla referencial. Nunca toca `UserCompassObjective`
+ * ni `UserCompassObjectiveVersion`: el texto que un joven ya adoptó es suyo y
+ * se conserva intacto (Art. I y II).
+ */
+export async function updateCompassObjectiveTemplateAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("compass_template:manage");
+
+  const parsed = updateCompassObjectiveTemplateSchema.safeParse({
+    templateId: readField(formData, "templateId"),
+    code: readField(formData, "code"),
+    area: readField(formData, "area"),
+    terminalObjective: readField(formData, "terminalObjective"),
+    intermediateObjective: readField(formData, "intermediateObjective"),
+    sortOrder: readField(formData, "sortOrder"),
+  });
+
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  const template = await prisma.compassObjectiveTemplate.findUnique({
+    where: { id: parsed.data.templateId },
+    select: {
+      id: true,
+      code: true,
+      area: true,
+      terminalObjective: true,
+      intermediateObjective: true,
+      sortOrder: true,
+      _count: { select: { adoptions: true } },
+    },
+  });
+
+  if (!template) return { error: "La plantilla ya no existe." };
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.compassObjectiveTemplate.update({
+        where: { id: template.id },
+        data: {
+          code: parsed.data.code,
+          area: parsed.data.area,
+          terminalObjective: parsed.data.terminalObjective,
+          intermediateObjective: parsed.data.intermediateObjective,
+          sortOrder: parsed.data.sortOrder,
+        },
+      });
+
+      await recordAudit(
+        {
+          actor,
+          action: "compass_template.update",
+          entityType: "CompassObjectiveTemplate",
+          entityId: template.id,
+          before: {
+            code: template.code,
+            area: template.area,
+            terminalObjective: template.terminalObjective,
+            intermediateObjective: template.intermediateObjective,
+            sortOrder: template.sortOrder,
+          },
+          after: parsed.data,
+        },
+        tx,
+      );
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return { error: "Ya existe otra plantilla con ese código." };
+    }
+    console.error("Error al actualizar plantilla de La Brújula", error);
+    return { error: "No pudimos guardar la plantilla. Inténtalo nuevamente." };
+  }
+
+  revalidateTemplates();
+  return {
+    success:
+      template._count.adoptions > 0
+        ? `Plantilla actualizada. ${template._count.adoptions} objetivo(s) personal(es) ya adoptado(s) conservan su redacción e historial intactos.`
+        : "Plantilla del catálogo actualizada.",
+  };
+}
+
+/** El AA agrega una línea educativa nueva al catálogo referencial. */
+export async function createCompassObjectiveTemplateAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("compass_template:manage");
+
+  const parsed = createCompassObjectiveTemplateSchema.safeParse({
+    code: readField(formData, "code"),
+    area: readField(formData, "area"),
+    terminalObjective: readField(formData, "terminalObjective"),
+    intermediateObjective: readField(formData, "intermediateObjective"),
+    sortOrder: readField(formData, "sortOrder") || "0",
+  });
+
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  try {
+    const created = await prisma.$transaction(async (tx) => {
+      const template = await tx.compassObjectiveTemplate.create({
+        data: parsed.data,
+        select: { id: true, code: true },
+      });
+
+      await recordAudit(
+        {
+          actor,
+          action: "compass_template.create",
+          entityType: "CompassObjectiveTemplate",
+          entityId: template.id,
+          after: parsed.data,
+        },
+        tx,
+      );
+
+      return template;
+    });
+
+    revalidateTemplates();
+    return {
+      success: `Plantilla ${created.code} agregada al catálogo referencial.`,
+    };
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return { error: "Ya existe una plantilla con ese código." };
+    }
+    console.error("Error al crear plantilla de La Brújula", error);
+    return { error: "No pudimos crear la plantilla. Inténtalo nuevamente." };
+  }
+}
+
+/**
+ * Elimina una plantilla mal cargada. Los objetivos personales que la habían
+ * adoptado quedan con `templateId = null` y conservan su redacción e historial.
+ */
+export async function deleteCompassObjectiveTemplateAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const actor = await requirePermission("compass_template:manage");
+
+  const parsed = compassObjectiveTemplateIdSchema.safeParse({
+    templateId: readField(formData, "templateId"),
+  });
+
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  const template = await prisma.compassObjectiveTemplate.findUnique({
+    where: { id: parsed.data.templateId },
+    select: {
+      id: true,
+      code: true,
+      _count: { select: { adoptions: true } },
+    },
+  });
+
+  if (!template) return { error: "La plantilla ya no existe." };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.compassObjectiveTemplate.delete({ where: { id: template.id } });
+
+    await recordAudit(
+      {
+        actor,
+        action: "compass_template.delete",
+        entityType: "CompassObjectiveTemplate",
+        entityId: template.id,
+        before: {
+          code: template.code,
+          adoptions: template._count.adoptions,
+        },
+      },
+      tx,
+    );
+  });
+
+  revalidateTemplates();
+  return {
+    success:
+      template._count.adoptions > 0
+        ? `Plantilla ${template.code} eliminada. ${template._count.adoptions} objetivo(s) personal(es) se conservan como objetivos propios, con su redacción e historial.`
+        : `Plantilla ${template.code} eliminada del catálogo.`,
   };
 }

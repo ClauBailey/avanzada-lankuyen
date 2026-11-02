@@ -301,7 +301,7 @@ export async function setUserCommunityAction(
   return {
     success: community
       ? `Comunidad actualizada a «${community.name}».`
-      : "El joven quedó sin comunidad durante su período introductorio.",
+      : "La o el joven quedó sin comunidad durante su período introductorio.",
   };
 }
 
@@ -405,8 +405,8 @@ export async function setUserRoleAction(
   return {
     success:
       role === "COORDINADOR"
-        ? "Ahora la cuenta tiene rol Coordinador/a."
-        : "Ahora la cuenta tiene rol Pionero/a.",
+        ? "Ahora la cuenta tiene rol de coordinador o coordinadora."
+        : "Ahora la cuenta tiene rol de pionero o pionera.",
   };
 }
 
@@ -787,7 +787,8 @@ export async function assignAaAction(
   if (!target) return { error: "La cuenta ya no existe." };
   if (!isYouthRole(target.role)) {
     return {
-      error: "Solo Pioneros/as y Coordinadores reciben acompañamiento 1 a 1.",
+      error:
+        "Solo los pioneros y pioneras, y los coordinadores y coordinadoras, reciben acompañamiento 1 a 1.",
     };
   }
 
@@ -939,7 +940,9 @@ export async function assignCommunityAaAction(
   });
 
   if (youth.length === 0) {
-    return { error: "La comunidad no tiene jóvenes activos para asignar." };
+    return {
+      error: "La comunidad no tiene personas jóvenes activas para asignar.",
+    };
   }
 
   const changes = youth.filter(
@@ -947,7 +950,9 @@ export async function assignCommunityAaAction(
   );
 
   if (changes.length === 0) {
-    return { success: "Todos los jóvenes ya tienen ese acompañamiento." };
+    return {
+      success: "Todas las personas jóvenes ya tienen ese acompañamiento.",
+    };
   }
 
   const confirmed =
@@ -964,7 +969,7 @@ export async function assignCommunityAaAction(
   if (early.length > 0 && !confirmed) {
     return {
       error: `${early.length} ${
-        early.length === 1 ? "joven lleva" : "jóvenes llevan"
+        early.length === 1 ? "persona joven lleva" : "personas jóvenes llevan"
       } menos de un año con su AA actual. Confirma el cambio para continuar.`,
     };
   }
@@ -1012,8 +1017,10 @@ export async function assignCommunityAaAction(
   return {
     success: aa
       ? `${changes.length} ${
-          changes.length === 1 ? "joven quedó" : "jóvenes quedaron"
+          changes.length === 1
+            ? "persona joven quedó"
+            : "personas jóvenes quedaron"
         } con ${getDisplayName(aa)} como acompañamiento.`
-      : "Se retiró el acompañamiento a los jóvenes de la comunidad.",
+      : "Se retiró el acompañamiento a las personas jóvenes de la comunidad.",
   };
 }

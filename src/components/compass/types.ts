@@ -20,6 +20,7 @@ export interface ObjectiveView {
   status: "EXPLORANDO" | "LOGRADO_EN_VIDA_COTIDIANA";
   sharedWithCommunity: boolean;
   templateCode: string | null;
+  templateIntermediateObjective?: string | null;
   terminalObjectiveRef: string | null;
   versions: ObjectiveVersionView[];
   reflections: ReflectionView[];

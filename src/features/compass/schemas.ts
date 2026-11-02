@@ -69,6 +69,51 @@ export const createCustomCompassObjectiveSchema = z.object({
   currentText: objectiveText,
 });
 
+/**
+ * Catálogo referencial de plantillas (Manual pp. 175–201). El AA edita la
+ * propuesta oficial; nunca los objetivos personales de un joven.
+ */
+export const compassObjectiveTemplateFields = {
+  code: z
+    .string()
+    .trim()
+    .min(3, "El código debe tener al menos 3 caracteres.")
+    .max(40, "El código no puede superar los 40 caracteres.")
+    .regex(
+      /^[A-Z0-9-]+$/,
+      "Usa mayúsculas, números y guiones (por ejemplo COR-01).",
+    ),
+  area: compassAreaSchema,
+  terminalObjective: z
+    .string()
+    .trim()
+    .min(10, "Escribe el objetivo terminal (mínimo 10 caracteres).")
+    .max(2000, "El objetivo terminal no puede superar los 2000 caracteres."),
+  intermediateObjective: z
+    .string()
+    .trim()
+    .min(10, "Escribe el objetivo intermedio (mínimo 10 caracteres).")
+    .max(2000, "El objetivo intermedio no puede superar los 2000 caracteres."),
+  sortOrder: z.coerce
+    .number()
+    .int("El orden debe ser un número entero.")
+    .min(0, "El orden no puede ser negativo.")
+    .max(9999, "El orden no puede superar 9999."),
+};
+
+export const createCompassObjectiveTemplateSchema = z.object(
+  compassObjectiveTemplateFields,
+);
+
+export const updateCompassObjectiveTemplateSchema = z.object({
+  templateId: uuid("Plantilla"),
+  ...compassObjectiveTemplateFields,
+});
+
+export const compassObjectiveTemplateIdSchema = z.object({
+  templateId: uuid("Plantilla"),
+});
+
 export const updateCompassObjectiveStatusSchema = z.object({
   objectiveId: uuid("Objetivo"),
   status: compassStatusSchema,

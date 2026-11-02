@@ -386,7 +386,7 @@ export function projectConvocationBody(options: {
   const responsible = options.responsibleName
     ? ` Responsable: ${options.responsibleName}.`
     : "";
-  return `Se abrió el proyecto «${options.projectTitle}» (alcance ${locality}). Cualquier joven de la Avanzada puede inscribirse en su Grupo de Trabajo según su interés en la tarea.${responsible}`;
+  return `Se abrió el proyecto «${options.projectTitle}» (alcance ${locality}). Cualquier persona joven de la Avanzada puede inscribirse en su Grupo de Trabajo según su interés en la tarea.${responsible}`;
 }
 
 /** Etiqueta de progreso «paso 3 de 6». */

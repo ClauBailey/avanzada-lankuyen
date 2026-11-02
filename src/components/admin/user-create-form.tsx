@@ -217,7 +217,7 @@ function UserCreateFields({
               setRole(event.target.value as "PP" | "COORDINADOR" | "AA")
             }
           >
-            <option value="PP">Pionero/a</option>
+            <option value="PP">Pionero o pionera</option>
             <option value="COORDINADOR">Coordinador/a</option>
             <option value="AA">Adulto Acompañante</option>
           </Select>
@@ -242,7 +242,7 @@ function UserCreateFields({
             </Select>
             <p className="text-xs text-ink-soft">
               El Equipo Adulto no pertenece a una comunidad juvenil. Acompaña
-              personalmente a un grupo pequeño de Pioneros/as.
+              personalmente a un grupo pequeño de pioneros y pioneras.
             </p>
           </div>
         ) : (
@@ -261,7 +261,7 @@ function UserCreateFields({
             <p className="text-xs text-ink-soft">
               {role === "COORDINADOR"
                 ? "El Coordinador/a pertenece a una comunidad y puede rotar sus cargos internos."
-                : "Todo Pionero/a pertenece a una comunidad de 3 a 6 jóvenes."}
+                : "Todo pionero o pionera pertenece a una comunidad de 3 a 6 personas jóvenes."}
             </p>
             {communities.length === 0 ? (
               <p className="text-xs text-red-700">

@@ -108,7 +108,7 @@ export default async function AdminComunidadesPage() {
       <PageHeader
         eyebrow="Administración"
         title="Comunidades"
-        description="Grupos juveniles de 3 a 6 Pioneros/as. El Equipo Adulto no pertenece a las comunidades: acompaña de forma personal y 1 a 1 a un grupo pequeño de jóvenes."
+        description="Grupos juveniles de 3 a 6 pioneros y pioneras. El Equipo Adulto no pertenece a las comunidades: acompaña de forma personal y 1 a 1 a un grupo pequeño de personas jóvenes."
         actions={
           <Badge variant="default">
             {activeCommunities.length} activa
@@ -128,12 +128,12 @@ export default async function AdminComunidadesPage() {
               {overloadedAas.map((adult) => (
                 <li key={adult.id}>
                   {getDisplayName(adult)} acompaña a{" "}
-                  {adult._count.assignedYouth} jóvenes activos.
+                  {adult._count.assignedYouth} personas jóvenes activas.
                 </li>
               ))}
             </ul>
             <p className="text-xs leading-relaxed">
-              El Manual recomienda un máximo de 6 jóvenes por AA para sostener un
+              El Manual recomienda un máximo de 6 personas jóvenes por AA para sostener un
               acompañamiento cercano. Esta advertencia no bloquea la asignación.
             </p>
           </div>
@@ -235,7 +235,7 @@ export default async function AdminComunidadesPage() {
                             className="inline-flex items-center gap-2 rounded-xl border border-line bg-canvas/60 px-3 py-2 text-xs font-semibold text-anil-800 transition-colors hover:border-anil-200 hover:bg-anil-50"
                           >
                             <UsersRound className="size-4" aria-hidden="true" />
-                            {youthCount} joven{youthCount === 1 ? "" : "es"} activo
+                            {youthCount} persona{youthCount === 1 ? "" : "s"} joven{youthCount === 1 ? "" : "es"} activa{youthCount === 1 ? "" : "s"}
                             {youthCount === 1 ? "" : "s"}
                           </Link>
                         </div>

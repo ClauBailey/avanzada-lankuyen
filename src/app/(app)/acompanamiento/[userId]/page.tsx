@@ -72,7 +72,7 @@ export default async function AcompanamientoDetailPage({
         status: true,
         sharedWithCommunity: true,
         terminalObjectiveRef: true,
-        template: { select: { code: true } },
+        template: { select: { code: true, intermediateObjective: true } },
         versions: {
           orderBy: { createdAt: "asc" },
           select: { id: true, text: true, createdAt: true },
@@ -147,13 +147,13 @@ export default async function AcompanamientoDetailPage({
         className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Volver a mis jóvenes
+        Volver a jóvenes que acompaño
       </Link>
 
       <PageHeader
         eyebrow="Acompañamiento privado 1 a 1"
         title={`La Brújula de ${getDisplayName(student)}`}
-        description="Lectura en modo solo lectura. La Brújula y su autoevaluación pertenecen exclusivamente al joven; tu rol es acompañar, nunca aprobar ni corregir objetivos."
+        description="Lectura en modo solo lectura. La Brújula y su autoevaluación pertenecen exclusivamente a la o el joven; tu rol es acompañar, nunca aprobar ni corregir objetivos."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">
@@ -237,6 +237,16 @@ export default async function AcompanamientoDetailPage({
                     <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
                       <span className="font-semibold">Línea terminal: </span>
                       {objective.terminalObjectiveRef}
+                    </p>
+                  ) : null}
+                  {objective.template &&
+                  objective.template.intermediateObjective !==
+                    objective.currentText ? (
+                    <p className="mt-1.5 rounded-lg border border-anil-200 bg-anil-50/60 px-2.5 py-2 text-[11px] leading-relaxed text-anil-900">
+                      <span className="font-semibold">
+                        Propuesta referencial del Manual:{" "}
+                      </span>
+                      {objective.template.intermediateObjective}
                     </p>
                   ) : null}
 
@@ -337,7 +347,7 @@ export default async function AcompanamientoDetailPage({
             </h2>
             <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
               Escribe una observación positiva. Decide si queda privada o si se
-              comparte con el joven. Nunca es una evaluación ni una nota.
+              comparte con la o el joven. Nunca es una evaluación ni una nota.
             </p>
             <div className="mt-3">
               <MentoringNoteForm studentId={student.id} />
@@ -350,13 +360,13 @@ export default async function AcompanamientoDetailPage({
               Historial de notas ({notes.length})
             </h2>
             <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
-              Solo tú puedes leer este historial completo. El joven ve únicamente
+              Solo tú puedes leer este historial completo. La o el joven ve únicamente
               las notas que compartas con él.
             </p>
 
             {notes.length === 0 ? (
               <p className="mt-3 text-[11px] text-ink-soft">
-                Todavía no has escrito notas para este joven.
+                Todavía no has escrito notas para esta persona joven.
               </p>
             ) : (
               <ul className="mt-3 space-y-3">
@@ -396,9 +406,9 @@ export default async function AcompanamientoDetailPage({
 
           <Card className="border-dashed bg-canvas/50 p-4">
             <p className="text-[11px] leading-relaxed text-ink-soft">
-              Si el joven cambia de AA encargado, este historial se transfiere
+              Si la o el joven cambia de AA encargado, este historial se transfiere
               limpiamente al nuevo encargado porque las notas se consultan por
-              joven y se validan contra el <code>assignedAaId</code> vigente.
+              y se validan contra el <code>assignedAaId</code> vigente.
             </p>
           </Card>
         </section>

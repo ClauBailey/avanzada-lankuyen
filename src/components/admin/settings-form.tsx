@@ -55,7 +55,7 @@ export function SettingsForm({
         />
         <span>
           <span className="block text-sm font-semibold text-ink">
-            Permitir que cualquier Pionero/a suba hojas de ruta
+            Permitir que cualquier pionero o pionera suba hojas de ruta
           </span>
           <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-soft">
             Si está activo, además de los encargados y los AA, cualquier PP o

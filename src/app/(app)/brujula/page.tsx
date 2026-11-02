@@ -17,6 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { COMPASS_AREAS } from "@/features/compass/catalog";
 import { compassTransparencyBanner } from "@/features/compass/rules";
+import { templateReferenceForObjective } from "@/features/compass/templates";
 import { getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
@@ -34,12 +35,12 @@ export default async function BrujulaPage() {
         <PageHeader
           eyebrow="La Brújula"
           title="Acompañar, nunca escribir"
-          description="La Brújula pertenece exclusivamente a cada joven. Como Adulto Acompañante puedes leerla en modo solo lectura desde tu panel de acompañamiento."
+          description="La Brújula pertenece exclusivamente a cada persona joven. Como Adulto Acompañante puedes leerla en modo solo lectura desde tu panel de acompañamiento."
         />
         <EmptyState
           icon={Compass}
           title="Tu cuenta no tiene una Brújula propia"
-          description="Entra a Acompañamiento para leer la Brújula de los jóvenes que tienes asignados y registrar tus notas de acompañamiento."
+          description="Entra a Acompañamiento para leer la Brújula de las y los jóvenes que tienes asignados y registrar tus notas de acompañamiento."
         />
         <Link
           href="/acompanamiento"
@@ -80,7 +81,7 @@ export default async function BrujulaPage() {
           status: true,
           sharedWithCommunity: true,
           terminalObjectiveRef: true,
-          template: { select: { code: true } },
+          template: { select: { code: true, intermediateObjective: true } },
           versions: {
             orderBy: { createdAt: "asc" },
             select: { id: true, text: true, createdAt: true },
@@ -204,6 +205,14 @@ export default async function BrujulaPage() {
     status: objective.status,
     sharedWithCommunity: objective.sharedWithCommunity,
     templateCode: objective.template?.code ?? null,
+    templateIntermediateObjective: templateReferenceForObjective(
+      objective.template,
+      {
+        templateId: null,
+        currentText: objective.currentText,
+        versions: objective.versions,
+      },
+    ).referenceText,
     terminalObjectiveRef: objective.terminalObjectiveRef,
     versions: objective.versions.map((version) => ({
       id: version.id,

@@ -202,7 +202,7 @@ export default async function PerfilPage() {
                 <ShieldCheck className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden="true" />
                 <p className="text-sm leading-relaxed text-anil-100/80">
                   Como AA integras el Equipo Adulto de la Avanzada: acompañas
-                  personalmente a un grupo pequeño de Pioneros/as, revisas su
+                  personalmente a un grupo pequeño de pioneros y pioneras, revisas su
                   progresión, otorgas insignias y sostienes el calendario. Tu
                   cuenta no recibe insignias ni reflexiones de etapa.
                 </p>
@@ -336,7 +336,7 @@ export default async function PerfilPage() {
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">
                 Como AA puedes otorgar insignias, leer las reflexiones de cada
-                Pionero/a y editar el catálogo. Tu cuenta no tiene bloque de
+                Pionero o pionera y editar el catálogo. Tu cuenta no tiene bloque de
                 insignias propias.
               </p>
             </div>
@@ -414,7 +414,7 @@ export default async function PerfilPage() {
             <SectionHeader
               eyebrow="Bloque 3"
               title="Competencias"
-              description="Las siete competencias de la rama Pioneros. Las imágenes a color son las que ya te fueron otorgadas."
+              description="Las siete competencias de la rama Pioneras y Pioneros. Las imágenes a color son las que ya te fueron otorgadas."
               icon={Compass}
             />
 

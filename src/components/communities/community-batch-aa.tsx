@@ -41,7 +41,9 @@ export function CommunityBatchAa({
           <option value="">Retirar acompañamiento del grupo</option>
           {aaOptions.map((aa) => (
             <option key={aa.id} value={aa.id}>
-              {aa.name} · {aa.assignedCount} joven
+              {aa.name} · {aa.assignedCount} persona
+              {aa.assignedCount === 1 ? "" : "s"} joven
+              {aa.assignedCount === 1 ? "" : "es"}
               {aa.assignedCount === 1 ? "" : "es"}
             </option>
           ))}
@@ -61,7 +63,7 @@ export function CommunityBatchAa({
             className="mt-0.5 size-4 rounded border-line text-anil-800"
           />
           <span>
-            Hay jóvenes con menos de un año junto a su AA actual. Confirmo el
+            Hay personas jóvenes con menos de un año junto a su AA actual. Confirmo el
             cambio anticipado para todo el grupo.
           </span>
         </label>

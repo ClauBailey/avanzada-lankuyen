@@ -34,7 +34,7 @@ const adminLinks = [
   {
     href: "/admin/usuarios",
     label: "Crear y gestionar cuentas",
-    description: "Pioneros/as y coordinadores",
+    description: "Pioneros y pioneras, y coordinadores y coordinadoras",
     icon: UserPlus,
   },
   {
@@ -186,7 +186,7 @@ export default async function AdminPage() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Pioneros/as activos"
+          label="Pioneros y pioneras activos"
           value={totalMembers}
           hint={`${totalCoordinators} coordinador/a(s)`}
           icon={Users}

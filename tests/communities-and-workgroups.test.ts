@@ -100,7 +100,10 @@ describe("comunidades juveniles y Equipo Adulto", () => {
   });
 
   it("advierte bajo 3 y sobre 6 jóvenes, sin bloquear el rango 3..6", () => {
-    assert.match(communitySizeAdvisory(2) ?? "", /2 jóvenes activos/i);
+    assert.match(
+      communitySizeAdvisory(2) ?? "",
+      /2 personas jóvenes activas/i,
+    );
     assert.equal(communitySizeAdvisory(COMMUNITY_MIN_YOUTH), null);
     assert.equal(communitySizeAdvisory(COMMUNITY_MAX_YOUTH), null);
     assert.match(communitySizeAdvisory(7) ?? "", /supera el máximo recomendado/i);

@@ -455,6 +455,6 @@ export async function setCommunityMemberRoleAction(
   return {
     success: role
       ? "Cargo interno actualizado y rol de sistema sincronizado."
-      : "Cargo interno retirado. La persona vuelve a Pionero/a.",
+      : "Cargo interno retirado. La persona vuelve a su rol de pionero o pionera.",
   };
 }

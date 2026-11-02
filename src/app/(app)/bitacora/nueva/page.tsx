@@ -63,7 +63,7 @@ export default async function NuevaPaginaBitacoraPage() {
 
       <p className="flex items-start gap-2 rounded-xl border border-line/70 bg-surface/70 px-4 py-3 text-xs leading-relaxed text-ink-soft">
         <Feather className="mt-0.5 size-3.5 shrink-0 text-gold" aria-hidden="true" />
-        Las páginas de los Pioneros/as y Coordinadores/as pasan por revisión de
+        Las páginas de los pioneros y pioneras, y de los coordinadores y coordinadoras, pasan por revisión de
         un AA o del Guardián de La Bitácora. Si tu página es rechazada, podrás
         corregirla y reenviarla desde este mismo espacio.
       </p>

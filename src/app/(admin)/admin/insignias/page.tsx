@@ -132,7 +132,7 @@ export default async function AdminInsigniasPage({
       <PageHeader
         eyebrow="Administración"
         title="Otorgamiento de insignias"
-        description="Busca a cada Pionero/a, revisa de un vistazo su camino y otorga o revoca insignias con una nota. Cada movimiento queda en la auditoría y dispara una notificación."
+        description="Busca a cada pionero o pionera, revisa de un vistazo su camino y otorga o revoca insignias con una nota. Cada movimiento queda en la auditoría y dispara una notificación."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="default">
@@ -168,7 +168,7 @@ export default async function AdminInsigniasPage({
           <Card className="border-dashed bg-surface/70 p-10 text-center">
             <SearchX className="mx-auto size-9 text-anil-400" aria-hidden="true" />
             <p className="mt-3 font-display text-xl font-semibold text-ink">
-              No encontramos pioneros con esos filtros
+              No encontramos pioneros ni pioneras con esos filtros
             </p>
             <p className="mx-auto mt-1 max-w-md text-sm text-ink-soft">
               Prueba con otro nombre o comunidad. Las cuentas AA no participan de
@@ -269,7 +269,7 @@ export default async function AdminInsigniasPage({
               </h2>
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink-soft">
                 Ajusta los títulos y descripciones oficiales sin tocar el código.
-                Los cambios se ven de inmediato en el perfil de cada Pionero/a.
+                Los cambios se ven de inmediato en el perfil de cada pionero o pionera.
               </p>
             </div>
           </div>

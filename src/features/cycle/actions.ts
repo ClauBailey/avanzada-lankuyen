@@ -428,7 +428,7 @@ export async function setAssemblyVoteSessionOpenAction(
   revalidateCycle();
   return {
     success: isOpen
-      ? "Votación abierta. Los jóvenes de la unidad ya fueron notificados."
+      ? "Votación abierta. Las y los jóvenes de la unidad ya fueron notificados."
       : "Votación cerrada. Los resultados quedan disponibles para la Asamblea.",
   };
 }

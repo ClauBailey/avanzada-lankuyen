@@ -66,7 +66,7 @@ export default async function AdminNuevoUsuarioPage() {
             </p>
             <ul className="mt-3 space-y-2 text-sm text-ink-soft">
               <li>· Todas las cuentas, incluidos los AA, tienen comunidad asignada.</li>
-              <li>· Cada AA acompaña la progresión de los Pioneros/as de su comunidad.</li>
+              <li>· Cada AA acompaña la progresión de los pioneros y pioneras de su comunidad.</li>
               <li>· El usuario se guarda en minúsculas y es único.</li>
               <li>· El correo es opcional, pero también sirve para ingresar.</li>
               <li>· Toda cuenta nace con cambio de contraseña obligatorio.</li>

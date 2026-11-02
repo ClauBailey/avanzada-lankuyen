@@ -476,7 +476,7 @@ export default async function ProyectoDetailPage({ params }: PageProps) {
                 Grupo de Trabajo
               </CardTitle>
               <CardDescription>
-                Abierto y transversal: cualquier joven de cualquier Comunidad
+                Abierto y transversal: cualquier persona joven de cualquier Comunidad
                 puede sumarse según su interés en la tarea.
               </CardDescription>
             </CardHeader>

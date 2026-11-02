@@ -30,7 +30,7 @@ export default function LoginPage() {
               Sendero · Cumbre
             </p>
             <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.05] text-white text-balance xl:text-6xl">
-              Pioneros siempre adelante.
+              Pioneros y pioneras siempre adelante.
             </h1>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-anil-100/70 xl:text-base">
               Este es el espacio de la Avanzada Lankuyen: tu progresión personal,
@@ -95,7 +95,7 @@ export default function LoginPage() {
             <div>
               <p className="font-display text-lg font-semibold text-ink">Lankuyen</p>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-soft">
-                Avanzada · Pioneros
+                Avanzada · Pioneros y pioneras
               </p>
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-6 text-center text-[11px] text-ink-soft">
-            Avanzada Lankuyen · Pioneros
+            Avanzada Lankuyen · Pioneros y pioneras
           </p>
         </div>
       </section>

@@ -79,13 +79,13 @@ export function communitySizeAdvisory(count: number): string | null {
   if (count < COMMUNITY_MIN_YOUTH) {
     return `Esta comunidad tiene ${count} ${plural(
       count,
-      "joven activo",
-      "jóvenes activos",
-    )}. El Manual recomienda formar grupos de ${COMMUNITY_MIN_YOUTH} a ${COMMUNITY_MAX_YOUTH} amigos; considera integrar a más Pioneros/as o acompañar el proceso de crecimiento del grupo.`;
+      "persona joven activa",
+      "personas jóvenes activas",
+    )}. El Manual recomienda formar grupos de ${COMMUNITY_MIN_YOUTH} a ${COMMUNITY_MAX_YOUTH} amigos; considera integrar a más pioneros y pioneras o acompañar el proceso de crecimiento del grupo.`;
   }
 
   if (count > COMMUNITY_MAX_YOUTH) {
-    return `Esta comunidad tiene ${count} jóvenes activos y supera el máximo recomendado de ${COMMUNITY_MAX_YOUTH}. El Manual sugiere grupos de ${COMMUNITY_MIN_YOUTH} a ${COMMUNITY_MAX_YOUTH} amigos para sostener el acompañamiento cercano.`;
+    return `Esta comunidad tiene ${count} personas jóvenes activas y supera el máximo recomendado de ${COMMUNITY_MAX_YOUTH}. El Manual sugiere grupos de ${COMMUNITY_MIN_YOUTH} a ${COMMUNITY_MAX_YOUTH} amigos para sostener el acompañamiento cercano.`;
   }
 
   return null;
@@ -97,7 +97,7 @@ export function communitySizeAdvisory(count: number): string | null {
  */
 export function aaLoadAdvisory(count: number): string | null {
   if (count <= MAX_YOUTH_PER_AA) return null;
-  return `Este AA acompaña a ${count} jóvenes activos, por sobre el máximo recomendado de ${MAX_YOUTH_PER_AA}. Revisa la distribución para sostener un acompañamiento personal y cercano.`;
+  return `Este AA acompaña a ${count} personas jóvenes activas, por sobre el máximo recomendado de ${MAX_YOUTH_PER_AA}. Revisa la distribución para sostener un acompañamiento personal y cercano.`;
 }
 
 /** Días completos desde que se asignó el AA actual. `null` si no hay fecha. */
@@ -130,7 +130,7 @@ export function isEarlyAaReassignment(
 /** Texto de confirmación para la UI y las Server Actions. */
 export function earlyReassignmentMessage(days: number | null): string {
   const elapsed = days ?? 0;
-  return `Este joven lleva ${elapsed} ${plural(
+  return `Esta persona joven lleva ${elapsed} ${plural(
     elapsed,
     "día",
     "días",

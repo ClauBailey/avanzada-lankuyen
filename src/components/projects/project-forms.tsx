@@ -566,8 +566,8 @@ export function JoinWorkGroupForm({
   if (!canJoin) {
     return (
       <p className="text-xs text-ink-soft">
-        Solo los jóvenes activos de la Avanzada pueden inscribirse en un Grupo
-        de Trabajo.
+        Solo las personas jóvenes activas de la Avanzada pueden inscribirse en
+        un Grupo de Trabajo.
       </p>
     );
   }

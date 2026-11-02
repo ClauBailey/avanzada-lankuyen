@@ -156,7 +156,7 @@ export function LeaderPicker({ leaders, initialSelected }: LeaderPickerProps) {
         </div>
       </div>
       <p className="text-[11px] leading-relaxed text-ink-soft">
-        Puedes asignar a uno o más Pioneros/as o Coordinadores. Los AA no se asignan
+        Puedes asignar a uno o más pioneros y pioneras, o coordinadores y coordinadoras. Los AA no se asignan
         como encargados.
       </p>
     </div>

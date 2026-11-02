@@ -67,7 +67,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
                 Lankuyen
               </span>
               <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-anil-200/60">
-                Avanzada · Pioneros
+                Avanzada · Pioneros y pioneras
               </span>
             </span>
           </Link>

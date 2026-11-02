@@ -108,7 +108,7 @@ export function UsersFilters({ communities }: UsersFiltersProps) {
             onChange={(event) => apply({ role: event.target.value })}
           >
             <option value="">Todos</option>
-            <option value="PP">Pionero/a</option>
+            <option value="PP">Pionero o pionera</option>
             <option value="COORDINADOR">Coordinador/a</option>
             <option value="AA">Adulto Acompañante</option>
           </Select>

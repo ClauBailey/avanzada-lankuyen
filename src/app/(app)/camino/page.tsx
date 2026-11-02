@@ -24,12 +24,12 @@ export default async function CaminoPage() {
         <PageHeader
           eyebrow="Camino simbólico"
           title="Acompañar el camino"
-          description="Como Adulto Acompañante registras hitos y Promesas desde la ficha de cada Pionero/a o Coordinador/a."
+          description="Como Adulto Acompañante registras hitos y Promesas desde la ficha de cada pionero o pionera, o de cada coordinador o coordinadora."
         />
         <EmptyState
           icon={UsersRound}
           title="Tu cuenta no recorre un camino propio"
-          description="Entra a Usuarios y abre la ficha de un joven para registrar su investidura, el inicio de una etapa, su Promesa o el paso al Clan."
+          description="Entra a Usuarios y abre la ficha de una persona joven para registrar su investidura, el inicio de una etapa, su Promesa o el paso al Clan."
         />
         <Link
           href="/admin/usuarios"

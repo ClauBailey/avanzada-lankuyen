@@ -73,7 +73,9 @@ export default async function MiComunidadPage() {
           community ? (
             <Badge variant="default">
               <UsersRound className="size-3.5" aria-hidden="true" />
-              {members.length} joven{members.length === 1 ? "" : "es"} activo
+              {members.length} persona{members.length === 1 ? "" : "s"} joven
+              {members.length === 1 ? "" : "es"} activa
+              {members.length === 1 ? "" : "s"}
               {members.length === 1 ? "" : "s"}
             </Badge>
           ) : null

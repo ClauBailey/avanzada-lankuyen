@@ -31,7 +31,7 @@ export function MaterialPublishToggle({
         size="sm"
         message={
           isPublished
-            ? `¿Volver a borrador «${title}»? Dejará de estar visible para los Pioneros/as hasta que lo publiques otra vez.`
+            ? `¿Volver a borrador «${title}»? Dejará de estar visible para los pioneros y pioneras hasta que lo publiques otra vez.`
             : `¿Publicar «${title}»? Todo miembro activo de la unidad podrá leerlo desde Material.`
         }
       >

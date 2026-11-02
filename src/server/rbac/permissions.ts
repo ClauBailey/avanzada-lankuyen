@@ -53,6 +53,7 @@ export const PERMISSIONS = [
   "admin:access",
   "compass:view",
   "compass:write",
+  "compass_template:manage",
   "mentoring:note",
   "community_log:view",
   "community_log:manage",
