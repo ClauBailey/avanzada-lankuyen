@@ -11,10 +11,14 @@ import {
   createCustomCompassObjectiveSchema,
   mentoringNoteSchema,
   requestCompassConsensusSchema,
+  syncOfflineCompassEditsSchema,
   toggleCompassObjectiveSharingSchema,
   updateCompassObjectiveStatusSchema,
   updateCompassObjectiveTextSchema,
 } from "@/features/compass/schemas";
+import {
+  reconcileOfflineObjectiveEdit,
+} from "@/features/compass/offline-sync";
 import {
   canRequestConsensus,
   canWriteCompass,
@@ -637,5 +641,122 @@ export async function saveMentoringNoteAction(
     success: parsed.data.sharedWithStudent
       ? "Nota guardada y compartida con el joven."
       : "Nota guardada como privada del AA encargado.",
+  };
+}
+
+/**
+ * Sincroniza las ediciones de La Brújula realizadas sin conexión (RF-PWA-02).
+ *
+ * Cada edición trae el texto base sobre el que se escribió offline. Si el
+ * servidor cambió mientras tanto, `reconcileOfflineObjectiveEdit` conserva
+ * ambos textos: las versiones del servidor quedan intactas y la redacción
+ * offline se agrega como versión sucesiva. Nunca se sobrescribe el historial.
+ */
+export async function syncOfflineCompassEditsAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const writer = await requireCompassWriter();
+  if ("error" in writer) return { error: writer.error };
+  const { actor } = writer;
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readField(formData, "edits") || "[]");
+  } catch {
+    return { error: "No pudimos leer las ediciones pendientes." };
+  }
+
+  const parsed = syncOfflineCompassEditsSchema.safeParse({ edits: raw });
+
+  if (!parsed.success) return { error: firstIssue(parsed.error) };
+
+  let synced = 0;
+  let conflicts = 0;
+  let skipped = 0;
+
+  await prisma.$transaction(async (tx) => {
+    for (const edit of parsed.data.edits) {
+      const objective = await tx.userCompassObjective.findFirst({
+        where: { id: edit.objectiveId, userId: actor.id },
+        select: {
+          id: true,
+          currentText: true,
+          versions: {
+            select: { text: true, createdAt: true },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      });
+
+      if (!objective) {
+        skipped += 1;
+        continue;
+      }
+
+      const reconciliation = reconcileOfflineObjectiveEdit({
+        serverCurrentText: objective.currentText,
+        serverVersions: objective.versions,
+        offlineBaseText: edit.offlineBaseText,
+        offlineNewText: edit.offlineNewText,
+      });
+
+      if (!reconciliation.shouldAppend) {
+        skipped += 1;
+        continue;
+      }
+
+      for (const version of reconciliation.versionsToAppend) {
+        await tx.userCompassObjectiveVersion.create({
+          data: {
+            objectiveId: objective.id,
+            text: version.text,
+            createdAt: new Date(version.createdAt),
+          },
+        });
+      }
+
+      await tx.userCompassObjective.update({
+        where: { id: objective.id },
+        data: { currentText: reconciliation.finalText },
+      });
+
+      if (reconciliation.conflict) conflicts += 1;
+      synced += 1;
+
+      await recordAudit(
+        {
+          actor,
+          action: "compass.objective_offline_sync",
+          entityType: "UserCompassObjective",
+          entityId: objective.id,
+          before: { currentText: objective.currentText },
+          after: {
+            currentText: reconciliation.finalText,
+            conflict: reconciliation.conflict,
+            history: reconciliation.resultingHistory,
+          },
+        },
+        tx,
+      );
+    }
+  });
+
+  revalidateCompass(actor.id);
+
+  if (synced === 0) {
+    return {
+      success:
+        skipped > 0
+          ? "No había cambios nuevos por sincronizar. Tus objetivos ya estaban al día."
+          : "No había ediciones pendientes.",
+    };
+  }
+
+  return {
+    success:
+      conflicts > 0
+        ? `Sincronizamos ${synced} edición${synced === 1 ? "" : "es"}. En ${conflicts} caso${conflicts === 1 ? "" : "s"} el objetivo había cambiado en otro dispositivo: conservamos ambas redacciones como versiones sucesivas.`
+        : `Sincronizamos ${synced} edición${synced === 1 ? "" : "es"} de La Brújula.`,
   };
 }

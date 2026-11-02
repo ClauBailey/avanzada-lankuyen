@@ -19,6 +19,7 @@ import { RsvpPanel } from "@/components/attendance/rsvp-panel";
 import { ActivityCompassReflection } from "@/components/evaluations/activity-compass-reflection";
 import { EvaluationForm } from "@/components/evaluations/evaluation-form";
 import { CommunityTag } from "@/components/brand/community-tag";
+import { RouteSheetStructuredView } from "@/components/route-sheets/route-sheet-structured-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -102,12 +103,14 @@ export default async function ActivityDetailPage({
         select: {
           id: true,
           fileId: true,
+          structuredData: true,
           title: true,
           version: true,
           status: true,
           rejectionReason: true,
           createdAt: true,
           reviewedAt: true,
+          project: { select: { id: true, title: true } },
           reviewedBy: {
             select: { firstName: true, lastName: true, preferredName: true },
           },
@@ -339,24 +342,54 @@ export default async function ActivityDetailPage({
                 </p>
                 <div className="mt-2">
                   {approvedSheet ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <a
-                        href={`/api/files/${approvedSheet.fileId}`}
-                        className={buttonVariants({
-                          variant: "secondary",
-                          size: "sm",
-                        })}
-                      >
-                        <Download className="size-4" aria-hidden="true" />
-                        Hoja de ruta disponible
-                        {approvedSheet.version
-                          ? ` · v${approvedSheet.version}`
-                          : ""}
-                      </a>
-                      {approvedSheet.reviewedBy ? (
-                        <span className="text-[11px] text-ink-soft">
-                          Aprobada por {getDisplayName(approvedSheet.reviewedBy)}
-                        </span>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {approvedSheet.fileId ? (
+                          <a
+                            href={`/api/files/${approvedSheet.fileId}`}
+                            className={buttonVariants({
+                              variant: "secondary",
+                              size: "sm",
+                            })}
+                          >
+                            <Download className="size-4" aria-hidden="true" />
+                            Hoja de ruta disponible
+                            {approvedSheet.version
+                              ? ` · v${approvedSheet.version}`
+                              : ""}
+                          </a>
+                        ) : (
+                          <Badge variant="success">
+                            Hoja de ruta aprobada
+                            {approvedSheet.version
+                              ? ` · v${approvedSheet.version}`
+                              : ""}
+                          </Badge>
+                        )}
+                        {approvedSheet.reviewedBy ? (
+                          <span className="text-[11px] text-ink-soft">
+                            Aprobada por{" "}
+                            {getDisplayName(approvedSheet.reviewedBy)}
+                          </span>
+                        ) : null}
+                      </div>
+                      {approvedSheet.project ? (
+                        <p className="text-[11px] text-ink-soft">
+                          Proyecto:{" "}
+                          <Link
+                            href={`/proyectos/${approvedSheet.project.id}`}
+                            className="font-semibold text-anil-700 hover:underline"
+                          >
+                            {approvedSheet.project.title}
+                          </Link>
+                        </p>
+                      ) : null}
+                      {approvedSheet.structuredData ? (
+                        <RouteSheetStructuredView
+                          data={approvedSheet.structuredData}
+                          compact
+                          className="rounded-xl border border-anil-200 bg-anil-50/30 p-3"
+                        />
                       ) : null}
                     </div>
                   ) : canSeeRouteSheetStatus &&
@@ -367,13 +400,26 @@ export default async function ActivityDetailPage({
                           <Clock3 className="size-3" aria-hidden="true" />
                           Hoja de ruta: En revisión · v{latestSheet.version}
                         </Badge>
-                        <a
-                          href={`/api/files/${latestSheet.fileId}`}
-                          className="text-[11px] font-semibold text-anil-700 hover:text-anil-900"
-                        >
-                          Ver documento enviado
-                        </a>
+                        {latestSheet.fileId ? (
+                          <a
+                            href={`/api/files/${latestSheet.fileId}`}
+                            className="text-[11px] font-semibold text-anil-700 hover:text-anil-900"
+                          >
+                            Ver documento enviado
+                          </a>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-anil-700">
+                            Formulario oficial enviado
+                          </span>
+                        )}
                       </div>
+                      {latestSheet.structuredData ? (
+                        <RouteSheetStructuredView
+                          data={latestSheet.structuredData}
+                          compact
+                          className="rounded-xl border border-anil-200 bg-anil-50/30 p-3"
+                        />
+                      ) : null}
                       <p className="text-xs text-ink-soft">
                         Los AA están revisando esta versión. No se puede subir
                         otra hasta que respondan.

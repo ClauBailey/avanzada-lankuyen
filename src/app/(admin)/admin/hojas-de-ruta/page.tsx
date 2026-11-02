@@ -17,6 +17,7 @@ import {
 import { RouteSheetFilters } from "@/components/route-sheets/route-sheet-filters";
 import { RouteSheetReviewActions } from "@/components/route-sheets/route-sheet-review-actions";
 import { RouteSheetStatusBadge } from "@/components/route-sheets/route-sheet-status-badge";
+import { RouteSheetStructuredView } from "@/components/route-sheets/route-sheet-structured-view";
 import { RunReminderButton } from "@/components/route-sheets/run-reminder-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -137,6 +138,8 @@ export default async function AdminHojasDeRutaPage({
         rejectionReason: true,
         createdAt: true,
         reviewedAt: true,
+        structuredData: true,
+        project: { select: { id: true, title: true } },
         file: {
           select: {
             id: true,
@@ -426,41 +429,58 @@ export default async function AdminHojasDeRutaPage({
                           <FileText className="size-3.5" aria-hidden="true" />
                           Documento
                         </p>
-                        <p className="mt-1.5 break-all text-sm font-medium text-ink">
-                          {sheet.file.originalName}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-ink-soft">
-                          {sheet.file.mimeType} ·{" "}
-                          {formatFileSize(sheet.file.sizeBytes)}
-                        </p>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <a
-                            href={`/api/files/${sheet.file.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={buttonVariants({
-                              variant: "secondary",
-                              size: "sm",
-                            })}
-                          >
-                            <ExternalLink
-                              className="size-4"
-                              aria-hidden="true"
-                            />
-                            Vista previa
-                          </a>
-                          <a
-                            href={`/api/files/${sheet.file.id}`}
-                            download
-                            className={buttonVariants({
-                              variant: "ghost",
-                              size: "sm",
-                            })}
-                          >
-                            <Download className="size-4" aria-hidden="true" />
-                            Descargar
-                          </a>
-                        </div>
+                        {sheet.file ? (
+                          <>
+                            <p className="mt-1.5 break-all text-sm font-medium text-ink">
+                              {sheet.file.originalName}
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-ink-soft">
+                              {sheet.file.mimeType} ·{" "}
+                              {formatFileSize(sheet.file.sizeBytes)}
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <a
+                                href={`/api/files/${sheet.file.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={buttonVariants({
+                                  variant: "secondary",
+                                  size: "sm",
+                                })}
+                              >
+                                <ExternalLink
+                                  className="size-4"
+                                  aria-hidden="true"
+                                />
+                                Vista previa
+                              </a>
+                              <a
+                                href={`/api/files/${sheet.file.id}`}
+                                download
+                                className={buttonVariants({
+                                  variant: "ghost",
+                                  size: "sm",
+                                })}
+                              >
+                                <Download
+                                  className="size-4"
+                                  aria-hidden="true"
+                                />
+                                Descargar
+                              </a>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="mt-1.5 text-sm font-medium text-ink">
+                              Formulario oficial de ocho secciones
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-ink-soft">
+                              Enviado directamente en la plataforma, sin archivo
+                              adjunto.
+                            </p>
+                          </>
+                        )}
                       </div>
 
                       <div className="rounded-xl border border-line bg-canvas/40 p-3.5">
@@ -491,8 +511,26 @@ export default async function AdminHojasDeRutaPage({
                             Nota: {sheet.description}
                           </p>
                         ) : null}
+                        {sheet.project ? (
+                          <p className="mt-1 text-[11px] text-ink-soft">
+                            Proyecto:{" "}
+                            <Link
+                              href={`/proyectos/${sheet.project.id}`}
+                              className="font-semibold text-anil-700 hover:underline"
+                            >
+                              {sheet.project.title}
+                            </Link>
+                          </p>
+                        ) : null}
                       </div>
                     </div>
+
+                    {sheet.structuredData ? (
+                      <RouteSheetStructuredView
+                        data={sheet.structuredData}
+                        compact
+                      />
+                    ) : null}
 
                     {sheet.status === "RECHAZADA" ? (
                       <Alert variant="error">

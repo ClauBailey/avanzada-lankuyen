@@ -9,11 +9,13 @@ import {
   ChevronRight,
   FileText,
   Flag,
+  FolderKanban,
   Handshake,
   KeyRound,
   Sparkles,
   Trophy,
   UserPlus,
+  UserRoundX,
   Vote,
   type LucideIcon,
 } from "lucide-react";
@@ -110,6 +112,14 @@ const typeStyles: Record<
   CICLO_VOTACION_ABIERTA: {
     icon: Vote,
     className: "bg-anil-50 text-anil-700",
+  },
+  PROYECTO_CONVOCATORIA: {
+    icon: FolderKanban,
+    className: "bg-anil-50 text-anil-700",
+  },
+  SOLICITUD_BAJA: {
+    icon: UserRoundX,
+    className: "bg-amber-50 text-amber-700",
   },
 };
 

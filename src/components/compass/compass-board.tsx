@@ -27,6 +27,7 @@ import { formatTimestamp } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 interface CompassBoardProps {
+  userId: string;
   objectives: ObjectiveView[];
   templates: Record<string, CatalogTemplateView[]>;
   sharedObjectives: SharedObjectiveView[];
@@ -37,6 +38,7 @@ interface CompassBoardProps {
 }
 
 export function CompassBoard({
+  userId,
   objectives,
   templates,
   sharedObjectives,
@@ -206,6 +208,7 @@ export function CompassBoard({
                       <ObjectiveTextForm
                         objectiveId={objective.id}
                         currentText={objective.currentText}
+                        userId={userId}
                       />
                     </div>
 

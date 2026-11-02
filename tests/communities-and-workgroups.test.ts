@@ -33,6 +33,19 @@ import {
   getDisplayName,
 } from "../src/lib/user-display.ts";
 import { PERMISSIONS, permissionsFor } from "../src/server/rbac/permissions.ts";
+import {
+  canDissolveWorkGroup,
+  canEditProject,
+  canJoinWorkGroup,
+  canSubmitFinalReport,
+  nextProjectStep,
+  PROJECT_STEPS,
+  projectStepProgress,
+  validateWorkGroupMemberInput,
+  workGroupMemberKindLabel,
+  type ProjectActor,
+  type ProjectPermissionContext,
+} from "../src/features/projects/rules.ts";
 
 const NOW = new Date("2026-10-30T12:00:00.000Z");
 
@@ -327,5 +340,203 @@ describe("ausencia de roles de educación entre pares", () => {
   it("expone permisos de identidad y cargos para coordinación", () => {
     assert.equal(PERMISSIONS.includes("community:identity_edit"), true);
     assert.equal(PERMISSIONS.includes("community:roles_manage"), true);
+  });
+});
+
+/**
+ * Artículo V · Proyectos y Grupos de Trabajo (Fase 5).
+ *
+ * El Grupo de Trabajo es abierto y transversal: cualquier joven de cualquier
+ * Comunidad se inscribe por interés en la tarea. También puede integrar
+ * monitores de la Red de Apoyo e invitados externos sin cuenta. El grupo se
+ * disuelve recién después del Informe Final, dejando memoria histórica.
+ */
+describe("Artículo V · Ciclo de Proyecto y Grupo de Trabajo", () => {
+  const youth: ProjectActor = { id: "joven-1", role: "PP", isActive: true };
+  const coordinator: ProjectActor = {
+    id: "coord-1",
+    role: "COORDINADOR",
+    isActive: true,
+  };
+  const adult: ProjectActor = { id: "aa-1", role: "AA", isActive: true };
+
+  const activeProject: ProjectPermissionContext = {
+    responsibleUserId: "joven-1",
+    workGroupStatus: "ACTIVO",
+    memberUserIds: ["joven-1"],
+  };
+
+  it("declara los seis pasos del proyecto en orden y cierra en Celebrar", () => {
+    assert.deepEqual(
+      PROJECT_STEPS.map((step) => step.key),
+      ["SONAR", "ELEGIR", "ORGANIZAR", "REALIZAR", "EVALUAR", "CELEBRAR"],
+    );
+
+    assert.equal(nextProjectStep("SONAR"), "ELEGIR");
+    assert.equal(nextProjectStep("ORGANIZAR"), "REALIZAR");
+    assert.equal(nextProjectStep("CELEBRAR"), null);
+    assert.equal(projectStepProgress("ORGANIZAR"), "Paso 3 de 6 · Organizar");
+  });
+
+  it("inscribe a cualquier joven de cualquier comunidad en un grupo activo", () => {
+    const otherCommunityYouth: ProjectActor = {
+      id: "joven-otra-comunidad",
+      role: "PP",
+      isActive: true,
+    };
+
+    assert.equal(
+      canJoinWorkGroup(otherCommunityYouth, {
+        workGroupStatus: "ACTIVO",
+        memberUserIds: [],
+      }),
+      true,
+    );
+
+    assert.equal(
+      canJoinWorkGroup(coordinator, {
+        workGroupStatus: "ACTIVO",
+        memberUserIds: [],
+      }),
+      true,
+    );
+
+    // El AA no se inscribe como joven y el grupo disuelto no recibe altas.
+    assert.equal(
+      canJoinWorkGroup(adult, {
+        workGroupStatus: "ACTIVO",
+        memberUserIds: [],
+      }),
+      false,
+    );
+    assert.equal(
+      canJoinWorkGroup(otherCommunityYouth, {
+        workGroupStatus: "HISTORICO_DISUELTO",
+        memberUserIds: [],
+      }),
+      false,
+    );
+  });
+
+  it("valida las tres identidades de integrante sin mezclarlas", () => {
+    const interno = validateWorkGroupMemberInput({
+      userId: "joven-otra-comunidad",
+    });
+    assert.deepEqual(interno, { valid: true, kind: "INTERNO" });
+    assert.equal(
+      workGroupMemberKindLabel({ userId: "joven-otra-comunidad" }),
+      "Miembro con cuenta",
+    );
+
+    const monitor = validateWorkGroupMemberInput({
+      supportContactId: "contacto-red-apoyo",
+    });
+    assert.deepEqual(monitor, { valid: true, kind: "MONITOR" });
+    assert.equal(
+      workGroupMemberKindLabel({ supportContactId: "contacto-red-apoyo" }),
+      "Monitor de la Red de Apoyo",
+    );
+
+    const externo = validateWorkGroupMemberInput({
+      externalName: "Camila, amiga invitada",
+      externalOrganization: "Vecina del sector",
+    });
+    assert.deepEqual(externo, { valid: true, kind: "EXTERNO" });
+    assert.equal(
+      workGroupMemberKindLabel({
+        externalName: "Camila, amiga invitada",
+      }),
+      "Participante externo invitado",
+    );
+
+    const mezcla = validateWorkGroupMemberInput({
+      userId: "joven-1",
+      externalName: "Camila",
+    });
+    assert.equal(mezcla.valid, false);
+
+    const vacio = validateWorkGroupMemberInput({});
+    assert.equal(vacio.valid, false);
+  });
+
+  it("permite editar al Responsable y a los participantes activos", () => {
+    assert.equal(canEditProject(youth, activeProject), true);
+    assert.equal(canEditProject(coordinator, activeProject), true);
+    assert.equal(canEditProject(adult, activeProject), true);
+
+    const otroJoven: ProjectActor = {
+      id: "joven-2",
+      role: "PP",
+      isActive: true,
+    };
+    assert.equal(canEditProject(otroJoven, activeProject), false);
+
+    assert.equal(
+      canEditProject(otroJoven, {
+        ...activeProject,
+        memberUserIds: ["joven-1", "joven-2"],
+      }),
+      true,
+    );
+
+    // Un grupo disuelto ya no admite ediciones de participantes.
+    assert.equal(
+      canEditProject(otroJoven, {
+        ...activeProject,
+        workGroupStatus: "HISTORICO_DISUELTO",
+        memberUserIds: ["joven-1", "joven-2"],
+      }),
+      false,
+    );
+  });
+
+  it("exige el Informe Final antes de disolver el Grupo de Trabajo", () => {
+    assert.equal(
+      canSubmitFinalReport(youth, { ...activeProject, step: "EVALUAR" }),
+      true,
+    );
+    assert.equal(
+      canSubmitFinalReport(youth, { ...activeProject, step: "ORGANIZAR" }),
+      false,
+    );
+
+    assert.equal(
+      canDissolveWorkGroup(youth, { ...activeProject, step: "REALIZAR" }),
+      false,
+    );
+    assert.equal(
+      canDissolveWorkGroup(youth, { ...activeProject, step: "EVALUAR" }),
+      true,
+    );
+    assert.equal(
+      canDissolveWorkGroup(youth, { ...activeProject, step: "CELEBRAR" }),
+      true,
+    );
+    assert.equal(
+      canDissolveWorkGroup(youth, {
+        ...activeProject,
+        workGroupStatus: "HISTORICO_DISUELTO",
+        step: "CELEBRAR",
+      }),
+      false,
+    );
+  });
+
+  it("expone los permisos de proyectos y Red de Apoyo en el catálogo", () => {
+    for (const permission of [
+      "project:view",
+      "project:manage",
+      "support_network:view",
+      "support_network:manage",
+    ] as const) {
+      assert.equal(PERMISSIONS.includes(permission), true);
+    }
+
+    assert.equal(permissionsFor("COORDINADOR").has("support_network:view"), true);
+    assert.equal(
+      permissionsFor("COORDINADOR").has("support_network:manage"),
+      false,
+    );
+    assert.equal(permissionsFor("AA").has("support_network:manage"), true);
   });
 });

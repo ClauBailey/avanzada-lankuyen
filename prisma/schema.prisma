@@ -208,6 +208,8 @@ enum NotificationType {
   COMPETENCIA_RECONOCIDA
   CONSENSO_SOLICITADO
   CICLO_VOTACION_ABIERTA
+  PROYECTO_CONVOCATORIA
+  SOLICITUD_BAJA
 }
 
 enum LogbookEntryStatus {
@@ -280,6 +282,8 @@ model User {
   mustChangePassword Boolean   @default(true) @map("must_change_password")
   lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(3)
   createdById        String?   @map("created_by_id") @db.Uuid
+  accountDeletionRequestedAt DateTime? @map("account_deletion_requested_at") @db.Timestamptz(3)
+  accountDeletionReason String? @map("account_deletion_reason") @db.Text
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(3)
@@ -328,6 +332,10 @@ model User {
   diagnosesWritten    CommunityDiagnosis[]  @relation("CommunityDiagnosisAuthor")
   proposalsProposed   ActivityProposal[]   @relation("ActivityProposalProposer")
   assemblyVotes       AssemblyVote[]       @relation("AssemblyVoteVoter")
+  responsibleProjects Project[]            @relation("ProjectResponsible")
+  accompaniedProjects Project[]            @relation("ProjectAccompanyingAa")
+  workGroupMemberships WorkGroupMember[]   @relation("WorkGroupMemberUser")
+  proposedResources   UnitResource[]       @relation("UnitResourceProposedBy")
 
   @@index([communityId])
   @@index([role])
@@ -547,6 +555,7 @@ model ProgramCycle {
   proposals     ActivityProposal[]
   voteSessions  AssemblyVoteSession[]
   diagnoses     CommunityDiagnosis[]
+  projects      Project[]
 
   @@map("program_cycles")
 }
@@ -577,6 +586,7 @@ model Activity {
   evaluations ActivityEvaluation[]
   logbookEntries LogbookEntry[]
   compassReflections UserCompassReflection[]
+  projectActivityItems ProjectActivityItem[]
 
   @@index([cycleId, startsAt])
   @@index([startsAt])
@@ -704,6 +714,150 @@ model AssemblyVote {
 }
 
 // ------------------------------------------------------------
+// Proyectos, Grupos de Trabajo y Red de Apoyo (Fase 5)
+// ------------------------------------------------------------
+
+/**
+ * Los seis pasos del Ciclo de Proyecto (Manual p. 261–265).
+ */
+enum ProjectStep {
+  SONAR
+  ELEGIR
+  ORGANIZAR
+  REALIZAR
+  EVALUAR
+  CELEBRAR
+}
+
+enum ProjectLocality {
+  LOCAL
+  COMUNAL
+  REGIONAL
+}
+
+/**
+ * `CENTRAL` es la actividad insustituible del proyecto; `CONEXA` amplía su
+ * alcance sin reemplazarla (Manual p. 259).
+ */
+enum ProjectActivityKind {
+  CENTRAL
+  CONEXA
+}
+
+/**
+ * El Grupo de Trabajo se disuelve al concluir e informar el proyecto
+ * (Manual p. 104): pasa a `HISTORICO_DISUELTO`.
+ */
+enum WorkGroupStatus {
+  ACTIVO
+  HISTORICO_DISUELTO
+}
+
+/**
+ * Directorio de colaboradores confiables de la Red de Apoyo (RF-PRY-06).
+ * El contacto directo queda visible solo para AA y la Reunión de Coordinadores.
+ */
+model SupportNetworkContact {
+  id                   String          @id @default(uuid()) @db.Uuid
+  fullName             String          @map("full_name") @db.VarChar(160)
+  relationshipOrRole   String          @map("relationship_or_role") @db.VarChar(160)
+  organization         String?         @db.VarChar(160)
+  contactInfo          String?         @map("contact_info") @db.VarChar(200)
+  supportedAreas       CompetencyArea[] @map("supported_areas")
+  collaborationNotes   String?         @map("collaboration_notes") @db.Text
+  isActive             Boolean         @default(true) @map("is_active")
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  members WorkGroupMember[]
+
+  @@index([isActive])
+  @@map("support_network_contacts")
+}
+
+/**
+ * Proyecto del Ciclo de Programa con su Pauta de Identificación
+ * (Manual p. 268) y su avance por los seis pasos.
+ */
+model Project {
+  id                            String            @id @default(uuid()) @db.Uuid
+  cycleId                       String?           @map("cycle_id") @db.Uuid
+  title                         String            @db.VarChar(160)
+  step                          ProjectStep       @default(SONAR)
+  workGroupStatus               WorkGroupStatus   @default(ACTIVO) @map("work_group_status")
+  responsibleUserId             String?           @map("responsible_user_id") @db.Uuid
+  accompanyingAaId              String?           @map("accompanying_aa_id") @db.Uuid
+  beneficiaries                 String            @db.Text
+  locality                      ProjectLocality   @default(LOCAL)
+  durationText                  String            @map("duration_text") @db.VarChar(120)
+  isSocialEnvironmentalIntervention Boolean       @default(false) @map("is_social_environmental_intervention")
+  problemDiagnosis              String            @map("problem_diagnosis") @db.Text
+  generalObjective              String            @map("general_objective") @db.Text
+  specificObjectives            String            @map("specific_objectives") @db.Text
+  observableIndicators          String?           @map("observable_indicators") @db.Text
+  budgetSummary                 String?           @map("budget_summary") @db.Text
+  requiredCompetencies          CompetencyArea[]  @map("required_competencies")
+  finalReportPreparation        String?           @map("final_report_preparation") @db.Text
+  finalReportConclusions        String?           @map("final_report_conclusions") @db.Text
+  celebrationNotes              String?           @map("celebration_notes") @db.Text
+  createdAt                     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cycle             ProgramCycle?       @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+  responsibleUser   User?               @relation("ProjectResponsible", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+  accompanyingAa    User?               @relation("ProjectAccompanyingAa", fields: [accompanyingAaId], references: [id], onDelete: SetNull)
+  activities        ProjectActivityItem[]
+  members           WorkGroupMember[]
+  routeSheets       RouteSheet[]
+
+  @@index([cycleId, step])
+  @@index([responsibleUserId])
+  @@index([workGroupStatus])
+  @@map("projects")
+}
+
+model ProjectActivityItem {
+  id          String              @id @default(uuid()) @db.Uuid
+  projectId   String              @map("project_id") @db.Uuid
+  activityId  String?             @map("activity_id") @db.Uuid
+  title       String              @db.VarChar(160)
+  kind        ProjectActivityKind @default(CENTRAL)
+  isCompleted Boolean             @default(false) @map("is_completed")
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activity Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, kind])
+  @@index([activityId])
+  @@map("project_activity_items")
+}
+
+/**
+ * Integrante del Grupo de Trabajo (Art. V). Puede ser un joven con cuenta de
+ * cualquier Comunidad, un monitor de la Red de Apoyo o un invitado externo sin
+ * cuenta (`externalName` presente y `userId` nulo).
+ */
+model WorkGroupMember {
+  id                   String   @id @default(uuid()) @db.Uuid
+  projectId            String   @map("project_id") @db.Uuid
+  userId               String?  @map("user_id") @db.Uuid
+  supportContactId     String?  @map("support_contact_id") @db.Uuid
+  externalName         String?  @map("external_name") @db.VarChar(160)
+  externalOrganization String?  @map("external_organization") @db.VarChar(160)
+  taskRole             String   @map("task_role") @db.VarChar(160)
+  joinedAt             DateTime @default(now()) @map("joined_at") @db.Timestamptz(3)
+
+  project        Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           User?                 @relation("WorkGroupMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  supportContact SupportNetworkContact? @relation(fields: [supportContactId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([supportContactId])
+  @@map("work_group_members")
+}
+
+// ------------------------------------------------------------
 // Asistencia en dos fases
 // ------------------------------------------------------------
 
@@ -814,10 +968,12 @@ model File {
 model RouteSheet {
   id              String           @id @default(uuid()) @db.Uuid
   activityId      String           @map("activity_id") @db.Uuid
+  projectId       String?          @map("project_id") @db.Uuid
   uploadedById    String           @map("uploaded_by_id") @db.Uuid
-  fileId          String           @map("file_id") @db.Uuid
+  fileId          String?          @map("file_id") @db.Uuid
   title           String?          @db.VarChar(160)
   description     String?          @db.Text
+  structuredData  Json?            @map("structured_data")
   status          RouteSheetStatus @default(PENDIENTE_AUTORIZACION)
   version         Int              @default(1)
   reviewedById    String?          @map("reviewed_by_id") @db.Uuid
@@ -828,12 +984,14 @@ model RouteSheet {
   deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz(3)
 
   activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   uploadedBy User     @relation("RouteSheetUploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
-  file       File     @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  file       File?    @relation(fields: [fileId], references: [id], onDelete: Restrict)
   reviewedBy User?    @relation("RouteSheetReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@unique([activityId, version])
   @@index([activityId, status])
+  @@index([projectId])
   @@map("route_sheets")
 }
 
@@ -916,13 +1074,17 @@ model UnitResource {
   imageFileId String?  @map("image_file_id") @db.Uuid
   sortOrder   Int      @default(0) @map("sort_order")
   isPublished Boolean  @default(true) @map("is_published")
+  proposedById String? @map("proposed_by_id") @db.Uuid
   updatedById String?  @map("updated_by_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   imageFile File? @relation("UnitResourceImage", fields: [imageFileId], references: [id], onDelete: SetNull)
+  proposedBy User? @relation("UnitResourceProposedBy", fields: [proposedById], references: [id], onDelete: SetNull)
   updatedBy User? @relation("UnitResourceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
+  @@index([isPublished, sortOrder])
+  @@index([proposedById])
   @@map("unit_resources")
 }
 

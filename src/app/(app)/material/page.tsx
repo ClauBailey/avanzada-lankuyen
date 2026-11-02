@@ -4,11 +4,14 @@ import {
   ArrowRight,
   BookOpen,
   Compass,
+  Lightbulb,
+  PenLine,
   SearchX,
   ShieldCheck,
 } from "lucide-react";
 
 import { MaterialFilters } from "@/components/material/material-filters";
+import { MaterialProposalForm } from "@/components/material/material-proposal-form";
 import {
   BanderaSection,
   GritoSection,
@@ -31,6 +34,7 @@ import {
 } from "@/lib/material";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
+import { can } from "@/server/rbac/can";
 
 export const metadata = {
   title: "Material digital",
@@ -115,6 +119,20 @@ export default async function MaterialPage({
     if (meta) core.set(meta.key, resource);
     else additional.push(resource);
   }
+
+  const canPropose = can(user, "material:propose");
+  const ownProposals = canPropose
+    ? await prisma.unitResource.findMany({
+        where: { proposedById: user.id, isPublished: false },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          createdAt: true,
+        },
+      })
+    : [];
 
   const { visible, filteredAdditional, resultCount } = visibleSections(
     core,
@@ -213,6 +231,68 @@ export default async function MaterialPage({
           totalCount={resources.length}
         />
       </Suspense>
+
+      {canPropose ? (
+        <Card className="overflow-hidden">
+          <details className="group">
+            <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5 transition-colors hover:bg-canvas/50">
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-anil-800 text-white">
+                  <Lightbulb className="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="font-display text-lg font-semibold text-ink">
+                    Proponer material como coordinación
+                  </p>
+                  <p className="text-xs text-ink-soft">
+                    Fichas técnicas, guías o recursos que la unidad podría
+                    necesitar. El Equipo Adulto los revisa y publica.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {ownProposals.length > 0 ? (
+                  <Badge variant="warning">
+                    {ownProposals.length} en revisión
+                  </Badge>
+                ) : null}
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-anil-700">
+                  <PenLine className="size-3.5" aria-hidden="true" />
+                  Abrir formulario
+                </span>
+              </div>
+            </summary>
+            <div className="space-y-4 border-t border-line/70 bg-canvas/25 p-5 sm:p-6">
+              <MaterialProposalForm />
+
+              {ownProposals.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                    Tus propuestas pendientes
+                  </p>
+                  <ul className="space-y-1.5">
+                    {ownProposals.map((proposal) => (
+                      <li
+                        key={proposal.id}
+                        className="rounded-lg border border-line/70 bg-surface px-3 py-2"
+                      >
+                        <p className="text-sm font-semibold text-ink">
+                          {proposal.title}
+                        </p>
+                        {proposal.summary ? (
+                          <p className="text-[11px] text-ink-soft">
+                            {proposal.summary}
+                          </p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </details>
+        </Card>
+      ) : null}
 
       {navSections.length > 0 ? (
         <MaterialSectionNav sections={navSections} />

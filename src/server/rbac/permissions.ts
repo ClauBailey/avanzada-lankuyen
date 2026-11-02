@@ -27,6 +27,10 @@ export const PERMISSIONS = [
   "promise:manage",
   "route_sheet:upload",
   "route_sheet:review",
+  "project:view",
+  "project:manage",
+  "support_network:view",
+  "support_network:manage",
   "badge:view",
   "badge:grant",
   "badge:catalog_manage",
@@ -39,6 +43,7 @@ export const PERMISSIONS = [
   "community:roles_manage",
   "material:view",
   "material:manage",
+  "material:propose",
   "logbook:view",
   "logbook:create",
   "logbook:review",
@@ -83,6 +88,8 @@ const PP_PERMISSIONS = [
   "cycle:diagnose",
   "cycle:propose",
   "assembly:vote",
+  "project:view",
+  "project:manage",
 ] as const satisfies readonly Permission[];
 
 /**
@@ -106,6 +113,7 @@ const COORDINADOR_PERMISSIONS = [
   "achievement:view",
   "member:view",
   "material:view",
+  "material:propose",
   "logbook:view",
   "logbook:create",
   "community:identity_edit",
@@ -121,6 +129,9 @@ const COORDINADOR_PERMISSIONS = [
   "cycle:propose",
   "assembly:vote",
   "activity:manage_community",
+  "project:view",
+  "project:manage",
+  "support_network:view",
 ] as const satisfies readonly Permission[];
 
 /**

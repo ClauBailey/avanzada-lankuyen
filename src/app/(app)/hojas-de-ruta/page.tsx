@@ -16,6 +16,7 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { RouteSheetStatusBadge } from "@/components/route-sheets/route-sheet-status-badge";
+import { RouteSheetStructuredView } from "@/components/route-sheets/route-sheet-structured-view";
 import { RouteSheetUploadForm } from "@/components/route-sheets/route-sheet-upload-form";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,18 @@ export default async function HojasDeRutaPage() {
   const activeCycle = await prisma.programCycle.findFirst({
     where: { isActive: true },
     select: { id: true, name: true },
+  });
+
+  const projectOptions = await prisma.project.findMany({
+    where: {
+      workGroupStatus: "ACTIVO",
+      OR: [
+        { responsibleUserId: user.id },
+        { members: { some: { userId: user.id } } },
+      ],
+    },
+    orderBy: { title: "asc" },
+    select: { id: true, title: true },
   });
 
   const [assignments, repository] = await Promise.all([
@@ -102,6 +115,8 @@ export default async function HojasDeRutaPage() {
             createdAt: true,
             reviewedAt: true,
             fileId: true,
+            structuredData: true,
+            project: { select: { id: true, title: true } },
             file: {
               select: {
                 id: true,
@@ -136,6 +151,8 @@ export default async function HojasDeRutaPage() {
         reviewedAt: true,
         createdAt: true,
         fileId: true,
+        structuredData: true,
+        project: { select: { id: true, title: true } },
         file: {
           select: {
             id: true,
@@ -337,16 +354,22 @@ export default async function HojasDeRutaPage() {
                             .
                           </p>
                         </div>
-                        <a
-                          href={`/api/files/${approved.fileId}`}
-                          className={buttonVariants({
-                            variant: "secondary",
-                            size: "sm",
-                          })}
-                        >
-                          <Download className="size-4" aria-hidden="true" />
-                          Descargar
-                        </a>
+                        {approved.fileId ? (
+                          <a
+                            href={`/api/files/${approved.fileId}`}
+                            className={buttonVariants({
+                              variant: "secondary",
+                              size: "sm",
+                            })}
+                          >
+                            <Download className="size-4" aria-hidden="true" />
+                            Descargar
+                          </a>
+                        ) : (
+                          <Badge variant="outline">
+                            Formulario oficial
+                          </Badge>
+                        )}
                       </div>
                     ) : pending ? (
                       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3">
@@ -395,6 +418,13 @@ export default async function HojasDeRutaPage() {
                       </div>
                     )}
 
+                    {latest?.structuredData ? (
+                      <RouteSheetStructuredView
+                        data={latest.structuredData}
+                        compact
+                      />
+                    ) : null}
+
                     {needsUpload ? (
                       <div className="rounded-xl border border-line bg-canvas/40 p-4">
                         <p className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-anil-700">
@@ -408,6 +438,7 @@ export default async function HojasDeRutaPage() {
                           activityTitle={activity.title}
                           nextVersion={nextVersion}
                           isResubmission={Boolean(rejected)}
+                          projects={projectOptions}
                         />
                       </div>
                     ) : null}
@@ -439,17 +470,43 @@ export default async function HojasDeRutaPage() {
                                 <span className="text-[11px] text-ink-soft">
                                   {formatTimestamp(sheet.createdAt)}
                                 </span>
-                                <a
-                                  href={`/api/files/${sheet.fileId}`}
-                                  className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-anil-700 hover:text-anil-900"
-                                >
-                                  <FileText
-                                    className="size-3"
-                                    aria-hidden="true"
-                                  />
-                                  Ver archivo
-                                </a>
+                                {sheet.fileId ? (
+                                  <a
+                                    href={`/api/files/${sheet.fileId}`}
+                                    className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-anil-700 hover:text-anil-900"
+                                  >
+                                    <FileText
+                                      className="size-3"
+                                      aria-hidden="true"
+                                    />
+                                    Ver archivo
+                                  </a>
+                                ) : (
+                                  <span className="ml-auto text-[11px] font-semibold text-anil-700">
+                                    Formulario oficial
+                                  </span>
+                                )}
                               </div>
+
+                              {sheet.project ? (
+                                <p className="mt-1 text-[11px] text-ink-soft">
+                                  Proyecto:{" "}
+                                  <Link
+                                    href={`/proyectos/${sheet.project.id}`}
+                                    className="font-semibold text-anil-700 hover:underline"
+                                  >
+                                    {sheet.project.title}
+                                  </Link>
+                                </p>
+                              ) : null}
+
+                              {sheet.structuredData ? (
+                                <RouteSheetStructuredView
+                                  data={sheet.structuredData}
+                                  compact
+                                  className="mt-2 rounded-lg border border-anil-200 bg-anil-50/30 p-2.5"
+                                />
+                              ) : null}
 
                               {sheet.status === "RECHAZADA" &&
                               sheet.rejectionReason ? (
@@ -567,20 +624,35 @@ export default async function HojasDeRutaPage() {
                         {sheet.reviewedAt
                           ? ` · aprobada el ${formatTimestamp(sheet.reviewedAt)}`
                           : ""}
+                        {sheet.project
+                          ? ` · Proyecto: ${sheet.project.title}`
+                          : ""}
                       </p>
+
+                      {sheet.structuredData ? (
+                        <RouteSheetStructuredView
+                          data={sheet.structuredData}
+                          compact
+                          className="mt-2 rounded-lg border border-anil-200 bg-anil-50/30 p-2.5"
+                        />
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-                      <a
-                        href={`/api/files/${sheet.fileId}`}
-                        className={buttonVariants({
-                          variant: "secondary",
-                          size: "sm",
-                        })}
-                      >
-                        <Download className="size-4" aria-hidden="true" />
-                        Descargar
-                      </a>
+                      {sheet.fileId ? (
+                        <a
+                          href={`/api/files/${sheet.fileId}`}
+                          className={buttonVariants({
+                            variant: "secondary",
+                            size: "sm",
+                          })}
+                        >
+                          <Download className="size-4" aria-hidden="true" />
+                          Descargar
+                        </a>
+                      ) : (
+                        <Badge variant="outline">Formulario oficial</Badge>
+                      )}
                       <Link
                         href={`/calendario/${sheet.activity.id}`}
                         className={buttonVariants({ variant: "ghost", size: "sm" })}

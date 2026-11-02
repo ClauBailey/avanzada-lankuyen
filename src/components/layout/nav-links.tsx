@@ -13,6 +13,8 @@ import {
   Compass,
   FileCheck2,
   FileText,
+  FolderKanban,
+  Handshake,
   Home,
   LayoutDashboard,
   Settings2,
@@ -51,6 +53,8 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   "users-round": UsersRound,
   compass: Compass,
   vote: Vote,
+  "folder-kanban": FolderKanban,
+  handshake: Handshake,
   settings: Settings2,
   "arrow-left": ArrowLeft,
 };

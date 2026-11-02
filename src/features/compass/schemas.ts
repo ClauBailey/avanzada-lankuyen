@@ -93,6 +93,28 @@ export const compassReflectionSchema = z.object({
   sharedWithCommunity: optionalCheckbox,
 });
 
+/**
+ * Edición de objetivo realizada sin conexión y guardada en la cola local.
+ * La reconciliación con el servidor conserva siempre ambas redacciones.
+ */
+export const offlineCompassEditSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  kind: z.literal("OBJECTIVE_TEXT"),
+  objectiveId: uuid("Objetivo"),
+  offlineBaseText: z
+    .string()
+    .max(2000, "El texto base no puede superar los 2000 caracteres."),
+  offlineNewText: objectiveText,
+  createdAt: z.string().trim().max(40).optional(),
+});
+
+export const syncOfflineCompassEditsSchema = z.object({
+  edits: z
+    .array(offlineCompassEditSchema)
+    .min(1, "No hay ediciones pendientes por sincronizar.")
+    .max(50, "Demasiadas ediciones pendientes en una sola sincronización."),
+});
+
 export const requestCompassConsensusSchema = z.object({
   objectiveId: optionalUuid("Objetivo"),
   message: z

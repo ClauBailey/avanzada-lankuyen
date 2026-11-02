@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Compass, Eye, Lock, UsersRound } from "lucide-react";
 
 import { CompassBoard } from "@/components/compass/compass-board";
+import { CompassOfflineSync } from "@/components/compass/compass-offline-sync";
 import type {
   CatalogTemplateView,
   ObjectiveView,
@@ -303,7 +304,10 @@ export default async function BrujulaPage() {
         </div>
       ) : null}
 
+      <CompassOfflineSync userId={user.id} snapshot={objectiveViews} />
+
       <CompassBoard
+        userId={user.id}
         objectives={objectiveViews}
         templates={templatesByArea}
         sharedObjectives={sharedObjectiveViews}

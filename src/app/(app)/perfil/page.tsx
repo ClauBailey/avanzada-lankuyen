@@ -13,10 +13,12 @@ import {
 
 import { BadgeCard, type BadgeGrantView, type BadgeView } from "@/components/progression/badge-card";
 import { StageTimeline, type StageEntry } from "@/components/progression/stage-timeline";
+import { DataSovereigntyCard } from "@/components/profile/data-sovereignty-card";
 import { PreferredNameForm } from "@/components/profile/preferred-name-form";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLE_LABELS } from "@/lib/constants";
+import { formatTimestamp } from "@/lib/dates";
 import { SYMBOLIC_MOMENTS } from "@/lib/symbolic-path";
 import { getDisplayInitials, getDisplayName } from "@/lib/user-display";
 import { prisma } from "@/server/db";
@@ -30,7 +32,8 @@ export default async function PerfilPage() {
   const user = await requireUser();
   const isAA = user.role === "AA";
 
-  const [badges, grants, reflections, milestones, promise] = await Promise.all([
+  const [badges, grants, reflections, milestones, promise, deletionRequest] =
+    await Promise.all([
     prisma.badge.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
@@ -58,13 +61,17 @@ export default async function PerfilPage() {
           where: { userId: user.id },
           select: { moment: true, occurredAt: true },
         }),
-    isAA
-      ? Promise.resolve(null)
-      : prisma.userPromise.findUnique({
-          where: { userId: user.id },
-          select: { status: true },
-        }),
-  ]);
+      isAA
+        ? Promise.resolve(null)
+        : prisma.userPromise.findUnique({
+            where: { userId: user.id },
+            select: { status: true },
+          }),
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { accountDeletionRequestedAt: true },
+      }),
+    ]);
 
   const milestoneByMoment = new Map(
     milestones.map((milestone) => [milestone.moment, milestone]),
@@ -223,6 +230,30 @@ export default async function PerfilPage() {
           <PreferredNameForm
             preferredName={user.preferredName}
             registralName={`${user.firstName} ${user.lastName}`}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="size-5 text-anil-700" aria-hidden="true" />
+            Soberanía de tus Datos y Paso al Clan
+          </CardTitle>
+          <CardDescription>
+            Tu historia te pertenece: puedes llevarla contigo en un archivo
+            portable, imprimirla como memoria y pedir el Paso al Clan cuando
+            tenga sentido para ti.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataSovereigntyCard
+            displayName={displayName}
+            requestedAt={
+              deletionRequest?.accountDeletionRequestedAt
+                ? formatTimestamp(deletionRequest.accountDeletionRequestedAt)
+                : null
+            }
           />
         </CardContent>
       </Card>

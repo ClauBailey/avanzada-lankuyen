@@ -35,6 +35,15 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
     if (item.href === "/acompanamiento") {
       return user.role === "AA";
     }
+    if (variant === "admin" && user.role !== "AA") {
+      // La coordinación solo entra a la Red de Apoyo en modo consulta.
+      return [
+        "/proyectos",
+        "/ciclo",
+        "/admin/red-de-apoyo",
+        "/inicio",
+      ].includes(item.href);
+    }
     return true;
   });
   const fullName = getDisplayName(user);
@@ -49,7 +58,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
         <div className="relative z-10 flex h-full flex-col">
           <Link
-            href={variant === "admin" ? "/admin" : "/inicio"}
+            href={variant === "admin" && user.role === "AA" ? "/admin" : "/inicio"}
             className="flex items-center gap-3 px-5 pb-6 pt-6"
           >
             <BrandMark size={46} className="ring-2 ring-white/15" />
@@ -66,7 +75,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
           <div className="scrollbar-thin flex-1 overflow-y-auto px-3 pb-4">
             {variant === "admin" ? (
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-anil-200/45">
-                Administración
+                {user.role === "AA" ? "Administración" : "Coordinación"}
               </p>
             ) : (
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-anil-200/45">

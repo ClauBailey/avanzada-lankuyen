@@ -18,6 +18,8 @@ export type NavIconName =
   | "settings"
   | "compass"
   | "vote"
+  | "folder-kanban"
+  | "handshake"
   | "arrow-left";
 
 export interface NavItem {
@@ -38,6 +40,7 @@ export const memberNav: NavItem[] = [
   { href: "/logros", label: "Logros", icon: "trophy" },
   { href: "/calendario", label: "Calendario", icon: "calendar" },
   { href: "/ciclo", label: "Ciclo y Asamblea", icon: "vote" },
+  { href: "/proyectos", label: "Proyectos", icon: "folder-kanban" },
   { href: "/bitacora", label: "Bitácora", icon: "book" },
   { href: "/hojas-de-ruta", label: "Hojas de ruta", icon: "file" },
   { href: "/material", label: "Material", icon: "book" },
@@ -52,6 +55,8 @@ export const adminNav: NavItem[] = [
   { href: "/admin/comunidades", label: "Comunidades", icon: "community" },
   { href: "/admin/actividades", label: "Actividades", icon: "calendar-plus" },
   { href: "/ciclo", label: "Ciclo y Asamblea", icon: "vote" },
+  { href: "/proyectos", label: "Proyectos", icon: "folder-kanban" },
+  { href: "/admin/red-de-apoyo", label: "Red de apoyo", icon: "handshake" },
   { href: "/admin/asistencia", label: "Asistencia", icon: "clipboard" },
   { href: "/admin/evaluaciones", label: "Evaluaciones", icon: "star" },
   { href: "/admin/bitacora", label: "Bitácora", icon: "book" },
