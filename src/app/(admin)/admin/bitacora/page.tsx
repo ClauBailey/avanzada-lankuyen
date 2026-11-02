@@ -155,7 +155,7 @@ export default async function AdminBitacoraPage() {
               Guardián de La Bitácora
             </h2>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink-soft">
-              Elige a un Pionero/a o Coordinador/a para cuidar el libro. Suma la
+              Elige a un pionero o pionera, o a un coordinador o coordinadora, para cuidar el libro. Suma la
               moderación de La Bitácora a su rol, sin reemplazarlo.
             </p>
             <LogbookKeeperHint />
@@ -169,7 +169,7 @@ export default async function AdminBitacoraPage() {
 
         {keeperCandidates.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-line bg-canvas/40 p-4 text-sm text-ink-soft">
-            No hay Pioneros/as o Coordinadores/as activos para asignar.
+            No hay pioneros y pioneras, ni coordinadores y coordinadoras, activos para asignar.
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-line/70">
@@ -189,7 +189,10 @@ export default async function AdminBitacoraPage() {
                     ) : null}
                   </p>
                   <p className="text-[11px] text-ink-soft">
-                    @{candidate.username} · {candidate.role === "PP" ? "Pionero/a" : "Coordinador/a"}
+                    @{candidate.username} ·{" "}
+                    {candidate.role === "PP"
+                      ? "Pionero o pionera"
+                      : "Coordinador o coordinadora"}
                     {candidate.community ? ` · ${candidate.community.name}` : ""}
                   </p>
                 </div>

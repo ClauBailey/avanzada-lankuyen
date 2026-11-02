@@ -44,7 +44,7 @@ async function resolveTarget(
     if (actor.role === "AA") {
       return {
         error:
-          "Las cuentas AA no registran un camino simbólico propio. Elige a un Pionero/a o Coordinador/a.",
+          "Las cuentas AA no registran un camino simbólico propio. Elige a un pionero o pionera, o a un coordinador o coordinadora.",
       };
     }
 

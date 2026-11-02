@@ -262,7 +262,7 @@ export default async function LogrosPage({
         <p className="text-xs leading-relaxed text-ink-soft">
           Los logros marcados como{" "}
           <strong>{ACHIEVEMENT_VISIBILITY_LABELS.SECRET}</strong> se muestran
-          como “???” a los Pioneros/as hasta que se los otorgues. Los{" "}
+          como “???” a los pioneros y pioneras hasta que se los otorgues. Los{" "}
           <strong>{ACHIEVEMENT_VISIBILITY_LABELS.HINT}</strong> revelan solo su
           pista.
         </p>

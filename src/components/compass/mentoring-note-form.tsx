@@ -98,7 +98,7 @@ function NoteFields({
           className="mt-0.5 size-3.5 accent-anil-800"
         />
         <span>
-          Compartir esta nota con el joven.
+          Compartir esta nota con la o el joven.
           <span className="mt-0.5 block text-[10px] text-ink-soft">
             Si la dejas sin marcar, la nota será privada del AA encargado. Nunca
             es una evaluación ni una nota académica.

@@ -167,6 +167,16 @@ export function CompassBoard({
                         {objective.terminalObjectiveRef}
                       </p>
                     ) : null}
+                    {objective.templateIntermediateObjective &&
+                    objective.templateIntermediateObjective !==
+                      objective.currentText ? (
+                      <p className="mt-1.5 rounded-lg border border-anil-200 bg-anil-50/60 px-2.5 py-2 text-[11px] leading-relaxed text-anil-900">
+                        <span className="font-semibold">
+                          Propuesta referencial del Manual:{" "}
+                        </span>
+                        {objective.templateIntermediateObjective}
+                      </p>
+                    ) : null}
 
                     <details className="mt-3 rounded-xl border border-line bg-canvas/40 px-3 py-2.5">
                       <summary className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-anil-800 marker:text-anil-500">

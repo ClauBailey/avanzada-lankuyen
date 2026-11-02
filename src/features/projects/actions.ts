@@ -117,7 +117,7 @@ export async function createProjectAction(
   if (!canCreateProject(actor)) {
     return {
       error:
-        "Solo los jóvenes y el Equipo Adulto de la Avanzada pueden abrir un proyecto.",
+        "Solo las personas jóvenes y el Equipo Adulto de la Avanzada pueden abrir un proyecto.",
     };
   }
 
@@ -150,7 +150,7 @@ export async function createProjectAction(
   if (parsed.data.responsibleUserId && !responsible) {
     return {
       error:
-        "El Responsable del Grupo de Trabajo debe ser un joven activo de la Avanzada.",
+        "El Responsable del Grupo de Trabajo debe ser una persona joven activa de la Avanzada.",
     };
   }
 
@@ -322,7 +322,7 @@ export async function updateProjectAction(
     if (!responsible) {
       return {
         error:
-          "El Responsable del Grupo de Trabajo debe ser un joven activo de la Avanzada.",
+          "El Responsable del Grupo de Trabajo debe ser una persona joven activa de la Avanzada.",
       };
     }
   }
@@ -546,7 +546,7 @@ export async function joinWorkGroupAction(
       error:
         project.workGroupStatus !== "ACTIVO"
           ? "Este Grupo de Trabajo ya fue disuelto: el proyecto concluyó y quedó como memoria histórica."
-          : "Solo los jóvenes activos de la Avanzada pueden inscribirse en un Grupo de Trabajo.",
+          : "Solo las personas jóvenes activas de la Avanzada pueden inscribirse en un Grupo de Trabajo.",
     };
   }
 
@@ -622,11 +622,13 @@ export async function addWorkGroupMemberAction(
     });
 
     if (!member) {
-      return { error: "El integrante indicado no es un joven activo." };
+      return { error: "El integrante indicado no es una persona joven activa." };
     }
 
     if (project.memberUserIds.includes(member.id)) {
-      return { success: "Ese joven ya forma parte del Grupo de Trabajo." };
+      return {
+        success: "Esa persona joven ya forma parte del Grupo de Trabajo.",
+      };
     }
   }
 

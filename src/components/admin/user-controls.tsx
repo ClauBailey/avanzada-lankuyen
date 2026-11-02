@@ -94,7 +94,9 @@ export function UserRoleButton({ userId, role }: UserRoleButtonProps) {
       <input type="hidden" name="role" value={nextRole} />
       <SubmitButton variant="ghost" size="sm" pendingLabel="Cambiando…">
         <ShieldCheck aria-hidden="true" />
-        {nextRole === "COORDINADOR" ? "Hacer Coordinador/a" : "Hacer Pionero/a"}
+        {nextRole === "COORDINADOR"
+          ? "Hacer coordinador o coordinadora"
+          : "Hacer pionero o pionera"}
       </SubmitButton>
       {state.error ? (
         <p className="max-w-52 text-[11px] text-red-700">{state.error}</p>

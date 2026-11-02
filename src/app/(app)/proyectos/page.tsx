@@ -149,7 +149,7 @@ export default async function ProyectosPage() {
       <PageHeader
         eyebrow="Ciclo de Proyecto"
         title="Proyectos y Grupos de Trabajo"
-        description="Un proyecto nace de un sueño compartido y avanza por seis pasos: Soñar, Elegir, Organizar, Realizar, Evaluar y Celebrar ¡La Peña!. El Grupo de Trabajo es abierto: cualquier joven de la Avanzada se suma según su interés en la tarea."
+        description="Un proyecto nace de un sueño compartido y avanza por seis pasos: Soñar, Elegir, Organizar, Realizar, Evaluar y Celebrar ¡La Peña!. El Grupo de Trabajo es abierto: cualquier persona joven de la Avanzada se suma según su interés en la tarea."
         actions={
           can(user, "support_network:view") ? (
             <Link

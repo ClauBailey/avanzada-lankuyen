@@ -248,7 +248,7 @@ export default async function CicloPage() {
                 Gestión de fases del ciclo
               </h2>
               <p className="mt-1 text-xs text-ink-soft">
-                El ciclo avanza una fase a la vez. Los jóvenes conservan la
+                El ciclo avanza una fase a la vez. Las y los jóvenes conservan la
                 palabra y el voto.
               </p>
             </div>
@@ -360,7 +360,7 @@ export default async function CicloPage() {
                   Muro de propuestas
                 </CardTitle>
                 <CardDescription>
-                  Los jóvenes y las Comunidades proponen lo que quieren vivir.
+                  Las y los jóvenes y las Comunidades proponen lo que quieren vivir.
                   Los proyectos de intervención social o ambiental se deliberan
                   con foco especial.
                 </CardDescription>
@@ -431,7 +431,7 @@ export default async function CicloPage() {
                     <CardTitle>Abrir una sesión de votación</CardTitle>
                     <CardDescription>
                       La Reunión de Coordinadores abre y cierra la votación. El
-                      voto pertenece exclusivamente a los jóvenes.
+                      voto pertenece exclusivamente a las y los jóvenes.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -664,7 +664,7 @@ export default async function CicloPage() {
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-ink-soft">
             Es tiempo de vivir las actividades y proyectos programados. Al
-            cierre, la autoevaluación de ciclo vive en La Brújula de cada joven
+            cierre, la autoevaluación de ciclo vive en La Brújula de cada persona joven
             y la evaluación general se conversa en la Asamblea.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">

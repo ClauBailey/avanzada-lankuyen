@@ -25,7 +25,7 @@ export default function OfflinePage() {
               Lankuyen
             </p>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-anil-200/60">
-              Avanzada · Pioneros
+              Avanzada · Pioneros y pioneras
             </p>
           </div>
         </div>

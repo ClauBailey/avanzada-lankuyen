@@ -34,7 +34,7 @@ export function CommunityMemberRoles({
   if (members.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-line bg-canvas/40 p-3 text-xs text-ink-soft">
-        La comunidad aún no tiene jóvenes activos.
+        La comunidad aún no tiene personas jóvenes activas.
       </p>
     );
   }

@@ -95,7 +95,7 @@ export function DeleteAchievementDialog({
 
                 <p className="text-sm leading-relaxed text-ink-soft">
                   ¿Eliminar permanentemente el logro{" "}
-                  <strong className="text-ink">«{title}»</strong>? Si algún joven
+                  <strong className="text-ink">«{title}»</strong>? Si alguna persona joven
                   ya lo había desbloqueado, se quitará de su perfil. Esta acción
                   no se puede deshacer.
                 </p>

@@ -14,6 +14,10 @@ import {
   type CompassTarget,
 } from "../src/features/compass/rules.ts";
 import { permissionsFor } from "../src/server/rbac/permissions.ts";
+import {
+  templateEditPreservesPersonalObjective,
+  templateReferenceForObjective,
+} from "../src/features/compass/templates.ts";
 
 /**
  * Artículos I, VII y VIII de la Constitución.
@@ -241,6 +245,98 @@ describe("solicitud de Encuentro de Consenso", () => {
         assignedAaId: AA_ID,
       }),
       false,
+    );
+  });
+});
+
+/**
+ * v2.1 · catálogo referencial de objetivos.
+ *
+ * El AA administra las plantillas oficiales del Manual, pero nunca los
+ * objetivos personales ni su historial. La corrección de una plantilla se
+ * ofrece como referencia y jamás sobrescribe `currentText` ni las versiones.
+ */
+describe("gestión de plantillas de La Brújula", () => {
+  it("solo el AA recibe compass_template:manage", () => {
+    assert.equal(permissionsFor("AA").has("compass_template:manage"), true);
+    assert.equal(
+      permissionsFor("PP").has("compass_template:manage"),
+      false,
+    );
+    assert.equal(
+      permissionsFor("COORDINADOR").has("compass_template:manage"),
+      false,
+    );
+  });
+
+  it("el AA sigue sin poder escribir objetivos personales", () => {
+    assert.equal(canWriteCompass(assignedAa, YOUTH_ID), false);
+    assert.equal(canWriteCompass(youth, YOUTH_ID), true);
+    assert.equal(canWriteCompass(youth, PEER_ID), false);
+  });
+
+  it("una corrección de plantilla conserva texto y versiones personales", () => {
+    const personal = {
+      templateId: "template-corporalidad",
+      currentText: "Mi propia redacción, escrita por mí.",
+      versions: [
+        { text: "Mi primera redacción." },
+        { text: "Mi propia redacción, escrita por mí." },
+      ],
+    };
+
+    const result = templateEditPreservesPersonalObjective(personal, {
+      intermediateObjective:
+        "Reconozco mis límites y posibilidades corporales desde el Manual.",
+    });
+
+    assert.equal(
+      result.personalObjective.currentText,
+      personal.currentText,
+    );
+    assert.deepEqual(result.personalObjective.versions, personal.versions);
+    assert.equal(
+      result.referenceText,
+      "Reconozco mis límites y posibilidades corporales desde el Manual.",
+    );
+    assert.equal(result.personalObjective.templateId, "template-corporalidad");
+  });
+
+  it("no muestra referencia cuando la plantilla coincide con el texto personal", () => {
+    const text = "Cuido mi cuerpo y descanso mejor.";
+    const result = templateReferenceForObjective(
+      { intermediateObjective: text },
+      { templateId: null, currentText: text, versions: [] },
+    );
+
+    assert.equal(result.referenceText, null);
+    assert.equal(result.personalObjective.currentText, text);
+  });
+
+  it("devuelve una copia: mutar el resultado no altera el objetivo original", () => {
+    const versions = [{ text: "Versión original" }];
+    const personal = {
+      templateId: null,
+      currentText: "Texto original",
+      versions,
+    };
+
+    const result = templateReferenceForObjective(
+      { intermediateObjective: "Nueva propuesta" },
+      personal,
+    );
+
+    const mutatedCopy = [
+      ...result.personalObjective.versions,
+      { text: "Versión manipulada" },
+    ];
+
+    assert.equal(mutatedCopy.length, 2);
+    assert.equal(personal.versions.length, 1);
+    assert.equal(personal.currentText, "Texto original");
+    assert.notEqual(
+      result.personalObjective.versions,
+      personal.versions,
     );
   });
 });

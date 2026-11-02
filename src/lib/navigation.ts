@@ -53,6 +53,7 @@ export const adminNav: NavItem[] = [
   { href: "/acompanamiento", label: "Acompañamiento", icon: "users-round" },
   { href: "/miembros", label: "Miembros", icon: "users-round" },
   { href: "/admin/comunidades", label: "Comunidades", icon: "community" },
+  { href: "/admin/objetivos", label: "Objetivos Brújula", icon: "compass" },
   { href: "/admin/actividades", label: "Actividades", icon: "calendar-plus" },
   { href: "/ciclo", label: "Ciclo y Asamblea", icon: "vote" },
   { href: "/proyectos", label: "Proyectos", icon: "folder-kanban" },

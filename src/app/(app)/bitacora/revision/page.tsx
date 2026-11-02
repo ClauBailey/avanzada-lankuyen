@@ -152,7 +152,7 @@ export default async function RevisionBitacoraPage() {
             No hay páginas esperando revisión
           </h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-ink-soft">
-            Cuando un Pionero/a o Coordinador/a envíe una página, aparecerá aquí
+            Cuando un pionero o pionera, o un coordinador o coordinadora, envíe una página, aparecerá aquí
             junto a su fotografía y su relato completo.
           </p>
         </Card>

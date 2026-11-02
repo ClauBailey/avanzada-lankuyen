@@ -60,7 +60,7 @@ export function BadgesFilters({ communities }: BadgesFiltersProps) {
           }}
           className="space-y-2"
         >
-          <Label htmlFor="badges-search">Buscar pionero/a</Label>
+          <Label htmlFor="badges-search">Buscar pionero o pionera</Label>
           <div className="flex gap-2">
             <Input
               id="badges-search"

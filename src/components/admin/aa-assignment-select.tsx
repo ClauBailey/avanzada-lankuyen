@@ -51,7 +51,9 @@ export function AaAssignmentSelect({
         <option value="">Sin acompañamiento asignado</option>
         {aaOptions.map((aa) => (
           <option key={aa.id} value={aa.id}>
-            {aa.name} · {aa.assignedCount} joven
+            {aa.name} · {aa.assignedCount} persona
+            {aa.assignedCount === 1 ? "" : "s"} joven
+            {aa.assignedCount === 1 ? "" : "es"}
             {aa.assignedCount === 1 ? "" : "es"}
           </option>
         ))}

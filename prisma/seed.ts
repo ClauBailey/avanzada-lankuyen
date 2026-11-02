@@ -309,7 +309,7 @@ const ACHIEVEMENTS = [
     code: "SILENT_PLACES",
     title: "Explorador de lo Oculto",
     description: "Fuiste parte de una expedición o registro estilo Lugares que NO hablan.",
-    hint: "Hay rincones que no tienen voz hasta que un pionero va a grabarlos.",
+    hint: "Hay rincones que no tienen voz hasta que una persona joven va a grabarlos.",
     icon: "Video",
     category: "ESPECIAL",
     visibility: "HINT",
@@ -494,7 +494,7 @@ const UNIT_RESOURCES = [
 
 const SETTINGS = [
   { key: "unit.name", value: "Avanzada Lankuyen" },
-  { key: "unit.tagline", value: "Pioneros en camino a la cumbre" },
+  { key: "unit.tagline", value: "Pioneros y pioneras en camino a la cumbre" },
   { key: "timezone", value: "America/Santiago" },
   { key: "cron.hour", value: 11 },
   { key: "reminder.leadDays", value: 7 },

@@ -1,28 +1,211 @@
 # Avanzada Lankuyen
 
-Plataforma web de gestión para la **Avanzada Lankuyen** (unidad de Pioneros).
-Estado actual: **v1.1 — Insignias compartibles y La Bitácora de la unidad.**
+Plataforma web de gestión y acompañamiento para la **Avanzada de Pioneros y Pioneras Lankuyen** del **Grupo Guía y Scout Alfa Cruz**, Concepción, Chile.
+
+**Estado actual: v2.1.0** — lenguaje inclusivo de la Rama, gestión del catálogo referencial de objetivos de La Brújula por el Equipo Adulto y documentación integral.
 
 ---
 
-## Stack
+## Jerarquía normativa
+
+`CONSTITUTION.md` y el **Manual de la Rama Pioneras y Pioneros (AGSCh)** mandan sobre cualquier decisión técnica. Cuando el código, una interfaz o una optimización entren en conflicto con ellos, se corrige el código.
+
+Los principios que estructuran la plataforma son:
+
+1. **La Brújula pertenece a la persona joven.** Solo ella escribe sus objetivos, estados y visibilidad. Ningún adulto aprueba, corrige ni reescribe su Brújula.
+2. **El historial es inmutable.** Cada reformulación agrega una versión nueva en `UserCompassObjectiveVersion`; jamás se sobrescribe ni se elimina una redacción anterior.
+3. **La lectura es 1 a 1.** El AA encargado acompaña; otro adulto no accede. Los compañeros de comunidad solo ven lo compartido explícitamente.
+4. **No hay evaluación escolar.** Se observa cualitativamente en tres niveles y seis áreas; no existen notas, promedios, porcentajes ni rankings de personas.
+5. **El camino simbólico no tiene prerrequisitos.** Sendero, Cumbre, Promesa y Paso al Clan son memoria y sentido, no condiciones de acceso.
+6. **La soberanía de datos es real.** Cada joven puede exportar todo su recorrido, imprimirlo y solicitar el Paso al Clan con acompañamiento adulto.
+
+---
+
+## Pilares de la versión v2.0 / v2.1
+
+### La Brújula y la columna única de 15–17 años
+
+- Seis Áreas de Desarrollo: **Corporalidad, Creatividad, Carácter, Afectividad, Sociabilidad y Espiritualidad**.
+- Catálogo referencial de **24 objetivos** basado en el Manual (pp. 175–201), disponible completo desde el ingreso.
+- Redacción en primera persona, sin etapas, edades ni antigüedad como requisitos.
+- Historial inmutable de redacciones y estados cualitativos (`EXPLORANDO`, `LOGRADO_EN_VIDA_COTIDIANA`).
+- **Gestión del catálogo por el Equipo Adulto** en `/admin/objetivos`: crear, editar y eliminar plantillas con auditoría. Corregir una plantilla **no** modifica los objetivos personales ya adoptados; solo muestra una nota discreta con la propuesta oficial del Manual.
+- **Soporte offline**: copia local de lectura y cola de ediciones. Al volver la red, `reconcileOfflineObjectiveEdit` conserva ambas redacciones como versiones sucesivas si hubo edición concurrente en otro dispositivo.
+
+### Acompañamiento 1 a 1 y privacidad estricta
+
+- `assignedAaId` define al AA encargado; se recomienda un máximo de **6 personas jóvenes** por adulto.
+- Notas privadas de acompañamiento (`MentoringNote`), compartidas solo si el AA lo decide.
+- Prohibición de lectura cruzada entre AA y entre comunidades.
+- Registro de auditoría para cada acción sensible.
+
+### Comunidades juveniles, Grupos de Trabajo y Proyectos
+
+- El **Equipo Adulto no pertenece a las comunidades juveniles**.
+- Cargos internos rotativos: coordinación, secretaría, tesorería y otros.
+- **Bitácora privada de comunidad** (`/mi-comunidad/bitacora`), con visibilidad acotada y moderación.
+- **Proyectos** con los seis pasos del Manual: *Soñar, Elegir, Organizar, Realizar, Evaluar, Celebrar ¡La Peña!*.
+- **Grupo de Trabajo abierto y transversal**: cualquier persona joven de cualquier comunidad se inscribe según su interés en la tarea; puede integrar monitores de la Red de Apoyo e invitados externos sin cuenta.
+- Disolución del grupo a `HISTORICO_DISUELTO` tras el Informe Final, conservando su memoria.
+- **Red de Apoyo** (`/admin/red-de-apoyo`): directorio de colaboradores confiables, editable por AA y consultable por la coordinación.
+
+### Democracia juvenil en el Ciclo de Programa
+
+- Cuatro fases secuenciales: diagnóstico y énfasis, propuesta y selección, organización y preparación, desarrollo y evaluación.
+- Reunión de Coordinadores y Asamblea de Avanzada.
+- Juegos democráticos: elección directa, ranking de estrellas y asignación de puntos.
+- **Voto exclusivo de jóvenes**: el Equipo Adulto recibe `403` y no puede emitir votos.
+
+### Desescolarización y camino simbólico
+
+- Evaluaciones posteriores por observación cualitativa: tres niveles de logro y seis áreas de desarrollo.
+- Sin notas 1 a 7, sin promedios, sin porcentajes de asistencia.
+- Promesa independiente de la etapa y de la antigüedad; fórmula propia de cada persona.
+- Siete áreas oficiales de Competencias.
+
+### Identidad social y soberanía de datos
+
+- `preferredName` tiene prioridad absoluta en toda la interfaz y en los PNG compartibles (`1080×1920`).
+- Exportación portable `.json` en `/api/perfil/exportar`.
+- Vista imprimible/PDF en `/perfil/imprimir`.
+- Solicitud de **Paso al Clan** desde `/perfil`, con aviso al Equipo Adulto y registro en `audit_logs`.
+
+---
+
+## Arquitectura y stack
 
 | Capa | Tecnología |
 |---|---|
-| Frontend + Backend | Next.js 16 (App Router), React 19, TypeScript |
+| Frontend + Backend | Next.js 16 (App Router, Server Actions), React 19, TypeScript estricto |
 | Estilos | Tailwind CSS v4, componentes propios estilo shadcn/ui |
 | Base de datos | PostgreSQL 17 + Prisma ORM 7 (driver adapter `pg`) |
 | Autenticación | Auth.js v5 (Credentials) + Argon2id |
 | Archivos | Adaptador local o Cloudflare R2/S3 compatible (`STORAGE_DRIVER`) |
 | Fechas | `America/Santiago`, almacenamiento en UTC (`timestamptz`) |
+| PWA | `@ducanh2912/next-pwa`, service worker generado en `public/sw.js` |
 
-## Requisitos
+### Decisiones de arquitectura
+
+- **Dominio puro** en `src/features/<área>/rules.ts`, sin Prisma ni Next.js, para probarlo con `node --test`.
+- **Server Actions** en `src/features/<área>/actions.ts`, con validación Zod en `schemas.ts`.
+- **RBAC centralizado** en `src/server/rbac/permissions.ts` + `can()`; nunca se compara el rol directamente.
+- **Sesión revalidada contra la base** en cada petición (`src/server/auth/session.ts`).
+- **Auditoría** de acciones sensibles en `audit_logs`.
+- **Route groups**: `(app)` para jóvenes, `(admin)/admin` para el panel adulto, `(auth)` para login y cambio de contraseña.
+
+---
+
+## Estructura del repositorio
+
+```text
+prisma/
+  schema.prisma              # Modelos, enums y relaciones
+  seed.ts                    # Insignias, material, ciclo, comunidad base, AA y catálogo
+  migrations/                # Migraciones versionadas e inmutables
+src/
+  app/
+    (auth)/                  # Login y cambio de contraseña
+    (app)/                   # Vistas de jóvenes y acompañamiento
+    (admin)/admin/           # Panel del Equipo Adulto
+    api/auth/                # Handlers de Auth.js
+    api/files/               # Descarga autorizada de archivos privados
+    api/perfil/exportar/     # Exportación portable del recorrido
+    ~offline/                # Fallback de la PWA
+  components/
+    activities/              # Calendario, formularios y encargados
+    admin/                   # Formularios del panel AA
+    attendance/              # RSVP, ratificación y resumen
+    compass/                 # La Brújula, versiones, notas y sincronización offline
+    communities/             # Comunidades, cargos y asignación de AA
+    evaluations/             # Observación cualitativa
+    logbook/                 # Bitácora de la unidad
+    projects/                # Proyectos, grupos de trabajo y Red de Apoyo
+    route-sheets/            # Hojas de ruta estructuradas y archivos
+    layout/                  # Shell, sidebar y navegación móvil
+    shared/                  # Encabezados, estados vacíos, métricas
+    ui/                      # Botones, inputs, cards, badges, alerts
+  features/
+    achievements/ activities/ attendance/ auth/ communities/ compass/
+    cycle/ evaluations/ journey/ logbook/ material/ members/
+    notifications/ profile/ progression/ projects/ route-sheets/
+    settings/ users/
+  lib/                       # Utilidades, fechas, navegación, reglas puras auxiliares
+  server/
+    auth/                    # Auth.js, Argon2 y sesión revalidada
+    rbac/                    # permissions.ts + can.ts
+    cron/                    # Recordatorios de hojas de ruta
+    storage/                 # Adaptador LOCAL/R2
+  data/
+    instrumento-objetivos.json  # Semilla inicial del catálogo de La Brújula
+tests/                       # Suites constitucionales y de regresión
+```
+
+---
+
+## Mapa de rutas
+
+### Vistas de jóvenes y acompañamiento — `(app)`
+
+| Ruta | Descripción |
+|---|---|
+| `/inicio` | Tablero personal |
+| `/perfil` | Identidad, insignias, camino, competencias y soberanía de datos |
+| `/perfil/imprimir` | Vista imprimible / PDF del recorrido |
+| `/brujula` | La Brújula personal con historial y soporte offline |
+| `/camino` | Camino simbólico y Promesa |
+| `/mi-comunidad` | Comunidad juvenil y cargos |
+| `/mi-comunidad/bitacora` | Bitácora privada de la comunidad |
+| `/mi-comunidad/asistencia` | Asistencia de la comunidad |
+| `/miembros`, `/miembros/[username]` | Directorio social |
+| `/logros` | Logros con niebla de guerra |
+| `/calendario`, `/calendario/[activityId]` | Calendario y detalle de actividad |
+| `/ciclo` | Ciclo de Programa y Asamblea |
+| `/proyectos`, `/proyectos/[id]` | Proyectos y Grupos de Trabajo |
+| `/hojas-de-ruta` | Presentación y seguimiento de hojas de ruta |
+| `/bitacora`, `/bitacora/nueva` | Bitácora de la unidad |
+| `/bitacora/[entryId]/editar`, `/bitacora/revision` | Edición y moderación |
+| `/material` | Material digital de la unidad |
+| `/acompanamiento`, `/acompanamiento/[userId]` | Acompañamiento 1 a 1 del AA |
+| `/notificaciones` | Bandeja de notificaciones |
+
+### Panel del Equipo Adulto — `(admin)/admin`
+
+| Ruta | Descripción |
+|---|---|
+| `/admin` | Tablero general |
+| `/admin/usuarios`, `/admin/usuarios/nuevo`, `/admin/usuarios/[id]` | Gestión de cuentas |
+| `/admin/comunidades` | Comunidades, cargos y asignación de AA |
+| `/admin/objetivos` | Catálogo referencial de objetivos de La Brújula |
+| `/admin/actividades` | Programación de actividades |
+| `/admin/asistencia`, `/admin/asistencia/[activityId]` | Ratificación de asistencia |
+| `/admin/evaluaciones`, `/admin/evaluaciones/[activityId]` | Observación cualitativa |
+| `/admin/bitacora` | Moderación de la bitácora |
+| `/admin/hojas-de-ruta` | Revisión de hojas de ruta |
+| `/admin/insignias` | Otorgamiento de insignias |
+| `/admin/red-de-apoyo` | Directorio de la Red de Apoyo |
+| `/admin/material` | Publicación de material digital |
+| `/admin/configuracion` | Ajustes de la unidad |
+
+### API
+
+| Ruta | Descripción |
+|---|---|
+| `/api/auth/[...nextauth]` | Autenticación |
+| `/api/files/[fileId]` | Descarga autorizada de archivos privados |
+| `/api/perfil/exportar` | Exportación `.json` del recorrido personal |
+| `/api/cron/route-sheet-reminder` | Recordatorio semanal de hojas de ruta |
+
+---
+
+## Instalación y desarrollo local
+
+### Requisitos
 
 - Node.js 20 o superior (probado con Node 24).
-- Docker Desktop **o** una instalación local de PostgreSQL 17.
+- Docker Desktop **o** PostgreSQL 17 local.
 - npm 10 o superior.
 
-## Puesta en marcha
+### Puesta en marcha
 
 ```bash
 # 1. Dependencias
@@ -36,8 +219,8 @@ cp .env.example .env
 docker compose up -d
 
 # 4. Migraciones y datos iniciales
-npx prisma migrate deploy   # aplica las migraciones versionadas
-npm run db:seed             # insignias, material, semestre actual y AA inicial
+npx prisma migrate deploy
+npm run db:seed
 
 # 5. Desarrollo
 npm run dev
@@ -45,9 +228,18 @@ npm run dev
 
 Abrir <http://localhost:3000>.
 
-> **Puerto 5433:** el `docker-compose.yml` expone PostgreSQL en `5433` para no
-> chocar con una instalación local que ya use `5432`. El `DATABASE_URL` de
-> `.env.example` ya apunta a ese puerto.
+> **Puerto 5433:** `docker-compose.yml` expone PostgreSQL en `5433` para no chocar con una instalación local en `5432`. `.env.example` ya apunta a ese puerto.
+
+### Variables de entorno principales
+
+| Variable | Uso |
+|---|---|
+| `DATABASE_URL` | Conexión PostgreSQL para la aplicación |
+| `DIRECT_URL` | Conexión directa para migraciones (puede ser igual a `DATABASE_URL`) |
+| `AUTH_SECRET` | Firma de sesiones de Auth.js |
+| `CRON_SECRET` | Autorización `Bearer` del cron |
+| `STORAGE_DRIVER` | `local` o `r2` |
+| `INITIAL_AA_USERNAME` / `INITIAL_AA_PASSWORD` | Cuenta AA inicial del seed |
 
 ### Credenciales iniciales
 
@@ -60,435 +252,99 @@ contraseña: Lankuyen2026!
 
 En el primer inicio de sesión la plataforma obliga a cambiarla.
 
-> Si tu equipo no tiene Docker, puedes apuntar `DATABASE_URL` a cualquier
-> PostgreSQL 17 local y ejecutar las migraciones normalmente. La única
-> condición es que el usuario tenga permiso `CREATEDB` (Prisma lo necesita
-> para la shadow database).
+> Si no tienes Docker, apunta `DATABASE_URL` a cualquier PostgreSQL 17 local y ejecuta las migraciones. El usuario debe tener permiso `CREATEDB` para la shadow database de Prisma.
+
+### Migraciones
+
+`prisma migrate dev` no funciona en modo no interactivo. El flujo del proyecto es:
+
+```bash
+npx prisma migrate diff \
+  --from-config-datasource \
+  --to-schema prisma/schema.prisma \
+  --script \
+  --output prisma/migrations/<timestamp>_<nombre>/migration.sql
+
+npx prisma migrate deploy
+npx prisma generate
+```
+
+Para verificar que no hay drift:
+
+```bash
+npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
+# Debe imprimir: -- This is an empty migration.
+```
+
+---
 
 ## Comandos
 
 | Comando | Descripción |
 |---|---|
-| `npm run dev` | Servidor de desarrollo |
-| `npm run build` | Build de producción |
-| `npm run typecheck` | Verificación de TypeScript |
+| `npm run dev` | Servidor de desarrollo (`next dev --webpack`) |
+| `npm run build` | Build de producción + PWA |
+| `npm run start` | Servidor de producción |
+| `npm run typecheck` | TypeScript estricto |
 | `npm run lint` | ESLint |
-| `npm test` | Pruebas del cron, promedios, permisos por rol, Guardián y validación de La Bitácora |
-| `npm run cron:local` | Invoca el cron local; agrega `-- --bypass` para probarlo fuera de la ventana |
+| `npm test` | Suites de pruebas del proyecto |
+| `npm run cron:local` | Ejecuta el cron local; `-- --bypass` para probarlo fuera de la ventana |
+| `npm run db:generate` | Regenera el cliente Prisma |
 | `npm run db:migrate` | Crea/aplica migraciones en desarrollo |
-| `npm run db:seed` | Insignias, material, semestre actual y AA inicial (idempotente) |
+| `npm run db:seed` | Seed idempotente de insignias, material, ciclo, catálogo y AA inicial |
 | `npm run db:studio` | Prisma Studio |
 | `npm run db:reset` | Reinicia la base y vuelve a sembrar |
 
-## Estructura
+### Puertas de calidad
 
-```text
-prisma/
-  schema.prisma        # 21 modelos, enums y relaciones
-  seed.ts              # insignias, recursos, semestre actual, comunidad base y AA
-src/
-  app/
-    (auth)/            # login y cambio de contraseña
-    (app)/             # vistas PP y COORDINADOR (idénticas en v1)
-    (admin)/admin/     # panel exclusivo AA
-    api/auth/          # handlers de Auth.js
-    api/files/         # descarga autorizada de archivos privados
-  components/
-    activities/        # calendario, formularios y selector de encargados
-    attendance/        # RSVP, ratificador y resumen de asistencia
-    evaluations/       # formulario PP y lectura de respuestas por los AA
-    route-sheets/      # subida, moderación, filtros y estado de hojas de ruta
-    logbook/           # libro interactivo, formulario, revisión y Guardián
-    brand/             # logo, etiqueta de comunidad
-    layout/            # shell, sidebar y navegación móvil
-    shared/            # page header, stats, progress, placeholders
-    ui/                # botones, inputs, cards, badges, alerts
-  features/
-    activities/        # esquemas y acciones de semestres y actividades
-    attendance/        # RSVP, justificaciones, ratificación y estadísticas
-    evaluations/       # esquema y acción de evaluación posterior
-    route-sheets/      # esquemas y acciones de subida, aprobación y rechazo
-    logbook/           # esquemas y acciones de páginas, moderación y Guardián
-    auth/              # esquemas, acciones y formularios
-  lib/                 # utilidades, fechas, navegación, constantes
-  server/
-    auth/              # Auth.js, Argon2 y sesión revalidada
-    rbac/              # permissions.ts + can.ts
-    cron/              # job semanal de recordatorios de hoja de ruta
-    storage/           # adaptador LOCAL (R2 pendiente)
-  types/               # augmentación de tipos de Auth.js
-public/
-  brand/               # logo placeholder reemplazable
-  badges/              # 10 insignias placeholder
-  textures/            # topografía y montañas
-```
-
-## Roles y RBAC
-
-Los roles viven en la base de datos como enum (`AA`, `PP`, `COORDINADOR`) y
-toda decisión pasa por `can(actor, permission)`:
-
-```ts
-import { can } from "@/server/rbac/can";
-
-if (!can(user, "route_sheet:review")) {
-  throw new ForbiddenError("route_sheet:review");
-}
-```
-
-`COORDINADOR` tiene su propio conjunto de permisos explícito y, en v1, son
-exactamente los mismos que los de `PP`: un coordinador es un Pionero/a con
-idénticas vistas y permisos, incluida la evaluación posterior de actividades.
-Las evaluaciones las responden `PP` y `COORDINADOR`; solo los AA leen todas las
-respuestas. No se usa `role === "PP" || role === "COORDINADOR"` en ninguna parte:
-habilitar permisos intermedios futuros solo requiere editar
-`src/server/rbac/permissions.ts`.
-
-Los layouts protegidos son:
-
-- `src/app/(app)/layout.tsx` → requiere sesión y contraseña ya cambiada.
-- `src/app/(admin)/admin/layout.tsx` → requiere `admin:access` (AA).
-
-Cada Server Action debe volver a validar el permiso; la UI solo oculta.
-
-## Autenticación
-
-- **Sin registro público.** Las cuentas se crean desde el panel AA (Módulo 2).
-- Login con `username` **o** `email` (ambos normalizados a minúsculas).
-- Contraseñas con **Argon2id** (`memoryCost: 19456`, `timeCost: 2`).
-- Auth.js usa JWT porque el proveedor Credentials no soporta sesiones en base
-  de datos. Para compensar, `getCurrentUser()` **revalida contra PostgreSQL en
-  cada request**: una cuenta desactivada o eliminada pierde acceso de inmediato,
-  y los cambios de rol se reflejan sin esperar al token.
-- `must_change_password` desvía al usuario a `/cambiar-password` antes de
-  entrar a cualquier vista de la aplicación.
-- Cookies `httpOnly`, `sameSite=lax`, expiración de 8 horas.
-
-> **Datos de prueba locales:** la base de desarrollo conserva la cuenta
-> `pp.prueba` (Pionero/a, comunidad «Comunidad Cumbre») para probar la
-> progresión y la asistencia. No forma parte del seed reproducible.
-
-## Módulo 2 — Comunidades, usuarios y progresión
-
-- `/admin/comunidades`: crear y editar nombre, descripción y color de la
-  etiqueta; desactivar (soft delete) y ver el conteo de miembros.
-- `/admin/usuarios`: crear cuentas PP/COORDINADOR/AA con credenciales
-  temporales copiables, filtros por comunidad/rol/estado, cambio rápido de
-  comunidad, alternancia PP ↔ COORDINADOR, activación/desactivación y reseteo
-  de contraseña.
-- `/admin/usuarios/[id]`: ficha del miembro con acciones rápidas, reflexiones de
-  etapa en solo lectura e insignias con nota/revocación.
-- `/admin/insignias`: matriz por miembro con búsqueda y filtro por comunidad;
-  otorgar o revocar insignias con una nota opcional y editar el título y la
-  descripción de las 7 competencias sin tocar código.
-- `/perfil`: cabecera con comunidad, contador de insignias, Promesa, etapas en
-  `StageTimeline`, reflexiones editables y grilla de competencias. Las insignias
-  no obtenidas se muestran en gris, con opacidad reducida y candado.
-- `/inicio` y `/perfil`: contadores de insignias obtenidas **sin barra ni
-  denominador**. Las cuentas AA no tienen bloque de progresión.
-- `/notificaciones`: bandeja in-app con lectura individual o total; la campana
-  del topbar y la navegación móvil muestran el número real de no leídas.
-- Cada otorgamiento/revocación escribe en `audit_logs` (`badge.grant` /
-  `badge.revoke`) y, al otorgar, se crea la notificación `INSIGNIA_OTORGADA`.
-
-## Módulo 3 — Calendario, asistencia y ratificación
-
-- `/admin/actividades`: crea semestres `YYYY-S1/S2` con fechas y un único
-  semestre activo; CRUD de actividades con título, tipo, inicio/término en hora
-  de Chile, ubicación, descripción, visibilidad, soft delete y multi-select de
-  encargados PP/COORDINADOR. Los AA no se asignan como encargados.
-- `/calendario` y `/calendario/[activityId]`: filtros por mes, tipo y
-  próximas/pasadas; fecha y hora, tipo, ubicación, encargados con su comunidad,
-  etiqueta «Eres encargado», hoja de ruta aprobada descargable o
-  «Hoja de ruta: Pendiente», RSVP propio y asistencia final ratificada.
-- **Fase 1 · RSVP:** solo mientras la actividad es futura y no está ratificada.
-  `CONFIRMADO` no requiere justificación; `NO_ASISTE` exige texto y/o un archivo
-  (PDF, JPG, PNG o WEBP, máximo 10 MB). Los adjuntos se guardan en
-  `files`/`justification_files` con el adaptador local de desarrollo.
-- **Acceso a archivos:** `/api/files/[fileId]` valida la sesión. Las
-  justificaciones solo las ven su autor y los AA; las hojas de ruta aprobadas,
-  cualquier miembro autenticado. Un archivo ajeno responde `404` para no revelar
-  su existencia.
-- **Notificaciones:** al confirmar se avisa a los AA de la comunidad del miembro
-  (o a todos los AA activos si esa comunidad no tiene ninguno) con
-  `RSVP_CONFIRMADO`; una inasistencia justificada genera
-  `INASISTENCIA_JUSTIFICADA` con prioridad y enlace directo al panel de
-  asistencia.
-- `/admin/asistencia/[activityId]`: resumen en vivo de RSVP, filtros por
-  comunidad, respuesta y búsqueda; «Pre-rellenar según RSVP» mapea
-  `CONFIRMADO → PRESENTE`, `NO_ASISTE → JUSTIFICADO` y sin respuesta → `AUSENTE`.
-  Cada estado y nota es editable; al guardar se registran `attendance_records`
-  con `ratified_by_id`/`ratified_at` y auditoría `attendance.ratify`. Se puede
-  volver a ratificar y cada cambio conserva el antes/después.
-- `/inicio`, `/perfil` y `/admin/usuarios/[id]`: la próxima actividad enlaza
-  directo a confirmar asistencia y el porcentaje de asistencia efectiva del
-  semestre activo se calcula sobre los registros ratificados.
-
-## Módulo 4 — Hojas de ruta, storage y recordatorios
-
-- `/hojas-de-ruta` (PP, COORDINADOR y AA): bloque destacado «Mis asignaciones»
-  con las actividades futuras donde la persona es encargada y el estado de su
-  hoja (falta subir, en revisión, rechazada con motivo o aprobada). El formulario
-  solo aparece cuando no hay una versión pendiente ni aprobada; cada tarjeta
-  conserva el historial completo de versiones.
-- **Repositorio del semestre:** lista todas las hojas `APROBADA`, enlazadas a su
-  actividad y descargables. Las mismas aparecen en `/calendario` («Hoja de ruta
-  disponible · vN») y en el detalle de la actividad.
-- **Subida y versionado:** pueden subir los AA, los encargados de la actividad y
-  cualquier PP/COORDINADOR si `route_sheet.allowAnyPpUpload` está activo. Se
-  aceptan PDF, DOC, DOCX, JPG, PNG y WEBP de hasta 10 MB, guardados con el
-  adaptador de storage (`LOCAL` en desarrollo). La v1 nace
-  `PENDIENTE_AUTORIZACION`; mientras haya una pendiente o aprobada no se admite
-  otra versión; tras un rechazo se sube v2+ conservando historial y motivo.
-- `/admin/hojas-de-ruta`: bandeja de moderación con contadores y filtros por
-  estado, semestre y actividad. Muestra vista previa/descarga del archivo y los
-  datos del envío (autor, rol, comunidad, versión, fecha y nota). Autorizar fija
-  `reviewed_by_id`/`reviewed_at` y desmarca cualquier aprobación previa; rechazar
-  exige un motivo de al menos 10 caracteres.
-- **Notificaciones y auditoría:** `HOJA_ENVIADA` a los AA activos;
-  `HOJA_APROBADA` y `HOJA_RECHAZADA` a encargados y a quien subió, con el motivo
-  en el rechazo. Cada operación registra `route_sheet.upload`,
-  `route_sheet.approve` o `route_sheet.reject` con antes/después.
-- **Acceso a archivos:** una hoja `APROBADA` de una actividad publicada responde
-  `200` a cualquier miembro activo. `PENDIENTE_AUTORIZACION` y `RECHAZADA` solo
-  son visibles para AA, quien la subió y los encargados de la actividad; el resto
-  recibe `404`. Sin sesión, `401`.
-- **Recordatorio semanal:** `/api/cron/route-sheet-reminder` (Bearer
-  `CRON_SECRET`) corre el miércoles a las 11:00 en `America/Santiago` y lee
-  `cron.enabled`, `cron.hour` y `reminder.leadDays` (7 por defecto) desde
-  `app_settings`. Busca actividades publicadas y futuras dentro de la ventana sin
-  hoja aprobada ni pendiente, avisa a sus encargados
-  (`RECORDATORIO_HOJA_FALTANTE`) o a los AA si no hay encargados, y es idempotente
-  mediante `job_runs` y `notifications.dedupe_key` por semana.
-- **Prueba manual:** el botón «Ejecutar verificación ahora» del panel AA y
-  `npm run cron:local -- --bypass` omiten la ventana horaria sin consumir el
-  `run_key` semanal. `npm test` valida el guard de miércoles 11:00 y el cálculo
-  de semana ISO, incluidos los cambios de horario de verano e invierno.
-
-## Módulo 5 — Material digital, ajustes y auditoría
-
-- `/material` (PP, COORDINADOR y AA): lector **mobile-first** con estética Añil y
-  Blanco. Solo muestra recursos `is_published = true`, ordenados por `sort_order`.
-  El encabezado resume cuántos recursos están publicados para la unidad.
-- **Cuatro pilares con diseño propio:**
-  - **El Grito**: bloque oscuro de alto impacto tipográfico. Los encabezados
-    `Llamado` y `Respuesta` permiten distinguir las voces del grito.
-  - **La Oración**: texto centrado, versos espaciados y ornamentos dorados.
-  - **El Himno**: estrofas y coro con saltos de línea preservados, pensado para
-    leer o cantar desde el teléfono y para sumar enlaces de audio/acordes.
-  - **La Bandera**: vista dividida con imagen prominente, lightbox al tocar y
-    descarga. Si no hay foto oficial se usa
-    `public/material/bandera-placeholder.svg`, un SVG limpio de referencia.
-- **Biblioteca de la unidad**: recursos adicionales creados por los AA
-  (`manuales`, historia de Lankuyen, guías de etapa, cantos) con su propia
-  tarjeta desplegable.
-- **Navegación rápida**: anclas pegajosas por sección, buscador y filtro por
-  sección calculados en el servidor (`?q=`, `?seccion=`) para no enviar todos los
-  cuerpos al cliente. El botón **Copiar texto** aparece en Grito, Oración, Himno
-  y Bandera.
-- `/admin/material`: los AA editan los cinco recursos sembrados y crean nuevos.
-  Campos `title`, `summary`, `bodyMd` y `sort_order`, con **vista previa Markdown
-  en vivo**; la publicación se cambia con un botón separado. La imagen se sube
-  por el adaptador de storage (`image_file_id → files`) y acepta PNG, JPG, WEBP y
-  SVG de hasta 5 MB. Los SVG se validan y se sirven con CSP restrictiva.
-- **Auditoría:** `material.create`, `material.update` (con `before`/`after`) y
-  `material.toggle_publish`; además `settings.update` al cambiar parámetros.
-- `/admin/configuracion`: edición en caliente de `reminder.leadDays` y
-  `route_sheet.allowAnyPpUpload`, contexto del cron/hojas de ruta y tabla de solo
-  lectura con los últimos 30 eventos de `audit_logs`.
-- **Acceso a imágenes:** `/api/files/[fileId]` responde `200` a cualquier usuario
-  activo cuando la imagen pertenece a un `unit_resource` publicado. Un AA también
-  puede previsualizar imágenes de borradores; para el resto son `404`.
-- **Storage:** `STORAGE_DRIVER="local"` guarda en `LOCAL_STORAGE_DIR` (desarrollo);
-  `STORAGE_DRIVER="r2"` usa `@aws-sdk/client-s3` contra Cloudflare R2 o cualquier
-  endpoint S3 compatible (`R2_ACCOUNT_ID` o `R2_ENDPOINT`, credenciales, bucket,
-  `R2_REGION`, `R2_FORCE_PATH_STYLE`). La capa de dominio solo conoce
-  `StorageAdapter`, así que Hojas de Ruta y Material comparten el mismo driver.
-- `/inicio`: acceso directo a `/material` con el conteo real de recursos
-  publicados. El tablero AA enlaza a Material y Configuración.
-
-## Módulo 6 — Evaluaciones posteriores de actividades
-
-- **Cuándo se habilita:** en `/calendario/[activityId]` aparece el bloque
-  «Evaluación posterior» únicamente cuando `ends_at` ya pasó. Antes de eso los
-  PP y coordinadores solo ven la actividad y su asistencia.
-- **Quién responde:** cuentas `PP` y `COORDINADOR` con el permiso
-  `activity:evaluate` (en v1 ambos roles tienen los mismos permisos). `AA` no ve
-  el formulario ni puede invocar la Server Action; la acción revalida el permiso
-  y vuelve a comprobar que la actividad terminó.
-- **Qué se evalúa:** las seis áreas de desarrollo scout —Afectividad,
-  Corporalidad, Espiritualidad, Carácter, Creatividad y Sociabilidad— en una
-  escala entera de **1 a 7**. El comentario escrito es opcional (máximo 2000
-  caracteres). Una persona puede corregir su propia evaluación: el modelo tiene
-  una sola fila por actividad y evaluador (`activity_id`, `user_id`).
-- **Dónde se leen:** `/admin/evaluaciones` lista las actividades terminadas del
-  semestre con respuestas, evaluadores esperados (PP y coordinadores), pendientes
-  y promedio general.
-  `/admin/evaluaciones/[activityId]` muestra los promedios por área y todas las
-  respuestas con nombre, comunidad, notas por área, comentario y fecha de
-  actualización. El detalle AA de la actividad enlaza a esta vista.
-- **Descubrimiento:** las tarjetas de actividades pasadas muestran «Evaluación
-  pendiente» o «Evaluada», y el botón principal lleva directo al formulario.
-  El panel AA incorpora «Evaluaciones» en el sidebar y en sus atajos.
-- **Integridad:** una migración agrega la tabla `activity_evaluations`, su
-  unicidad por actividad/evaluador y un `CHECK` de base de datos para las seis
-  notas entre 1 y 7. Cada envío o corrección registra
-  `activity.evaluation_submit` / `activity.evaluation_update` en auditoría con
-  las notas anteriores y nuevas.
-
-## v1.1 — Insignias compartibles y La Bitácora
-
-### Insignias: texto y generador 9:16
-
-- Las insignias aún no obtenidas muestran exactamente:
-  **«Cuando tu AA la otorgue, la imagen se activará a todo color.»**
-- Cada insignia obtenida incorpora **«Compartir insignia»**, tanto en la Promesa
-  como en las etapas y competencias de `/perfil`.
-- El generador dibuja en el cliente un PNG **1080 × 1920** con Canvas: fondo Añil
-  con topografía sutil, tarjeta clara con detalles dorados, logo de la unidad,
-  insignia a color, nombre completo, `@username`, comunidad, fecha de
-  otorgamiento en `America/Santiago` y la dedicatoria del AA (o un lema de
-  Sendero/Cumbre si no dejó nota).
-- El modal ofrece vista previa, **Compartir** con `navigator.share` cuando el
-  dispositivo admite archivos y **Descargar imagen PNG** con el nombre
-  `insignia-[slug]-[username].png`. Sin servidor ni almacenamiento adicional.
-
-### La Bitácora de la unidad
-
-- **Rol acumulable:** `User.isLogbookKeeper` (`is_logbook_keeper`) agrega el
-  cargo **📖 Guardián de la Bitácora** sin reemplazar `PP` ni `COORDINADOR`. Los
-  AA pueden asignarlo o traspasarlo desde `/admin/bitacora`, la tabla de usuarios
-  y la ficha del miembro. Solo existe un Guardián activo: al asignar uno nuevo se
-  retira el anterior.
-- **RBAC:** `logbook:view` y `logbook:create` para PP, COORDINADOR y AA;
-  `logbook:review` para AA y para quien tenga `isLogbookKeeper`; `logbook:manage`
-  solo para AA. `can()` acepta `isLogbookKeeper` sin duplicar roles en las vistas.
-- **Páginas:** título, fecha de la aventura (por defecto hoy, puede ser pasada y
-  opcionalmente vincularse a una actividad terminada), relato Markdown y una
-  fotografía opcional. Todos los miembros activos pueden proponer páginas.
-- **Fotografías:** se comprimen en el cliente con Canvas a WebP (o JPEG si el
-  navegador no lo soporta), lado mayor máximo `1600 px` y calidad `0.82`. El
-  servidor exige máximo **1.5 MB** (`1_572_864` bytes) y solo JPG, PNG o WEBP.
-  Una página tiene como máximo una foto, guardada en `files` y servida por
-  `/api/files/[fileId]`.
-- **Estados:** `PENDIENTE_APROBACION`, `PUBLICADA` y `RECHAZADA`. Las páginas
-  de PP/Coordinador nacen pendientes; AA y Guardián pueden publicarlas de
-  inmediato. Aprobar asigna el número correlativo siguiente; rechazar exige un
-  motivo y el autor puede corregir y reenviar desde `/bitacora/[entryId]/editar`.
-- **Notificaciones:** `BITACORA_ENVIADA` a todos los AA y al Guardián al recibir
-  una propuesta; `BITACORA_APROBADA` / `BITACORA_RECHAZADA` al autor con el
-  número de página o el motivo.
-- **Auditoría:** `logbook.submit`, `logbook.approve`, `logbook.reject`,
-  `logbook.assign_keeper` y `logbook.delete`.
-- **Privacidad de fotos:** una foto de página `PUBLICADA` responde `200` a
-  cualquier miembro activo. Pendientes y rechazadas solo son visibles para su
-  autor, los AA y el Guardián; el resto recibe `404`. Sin sesión, `401`.
-- **Libro interactivo (`/bitacora`):** portada con el Guardián actual, total de
-  páginas e índice navegable; cada página muestra número, fecha, título en
-  Fraunces, Markdown seguro, polaroid con lightbox y firma
-  «Escrito por [Nombre] ([Comunidad])». Navegación con botones, teclado y swipe;
-  al final aparece una página en blanco con el llamado a escribir.
-- **Bandejas:** `/bitacora/revision` es la bandeja compartida de AA y Guardián
-  para aprobar o rechazar con feedback. `/admin/bitacora` es el tablero AA con
-  contadores, asignación del Guardián y retiro de páginas publicadas.
-- **Navegación:** «Bitácora» aparece en la navegación de miembros y en la del
-  panel AA, además del atajo del tablero.
-
-## Modelo de datos
-
-20 modelos en `prisma/schema.prisma`:
-
-- **Usuarios:** `User`, `Community`
-- **Progresión:** `Badge`, `UserBadge`, `StageReflection`
-- **Calendario y evaluaciones:** `Semester`, `Activity`, `ActivityLeader`,
-  `ActivityEvaluation`
-- **Asistencia:** `AttendanceResponse`, `JustificationFile`, `AttendanceRecord`
-- **Documentos:** `File`, `RouteSheet`
-- **Bitácora:** `LogbookEntry`
-- **Notificaciones:** `Notification`, `NotificationDelivery`, `JobRun`
-- **Contenido y soporte:** `UnitResource`, `AppSetting`, `AuditLog`
-
-Restricciones destacadas (migración SQL adicional):
-
-- Un usuario no puede tener dos concesiones activas de la misma insignia.
-- Solo puede existir **una hoja aprobada** por actividad.
-- Un solo semestre activo a la vez.
-- Una sola evaluación por actividad y evaluador; las seis notas deben estar entre 1 y 7.
-- Un único Guardián de La Bitácora activo y números de página publicados sin repetición.
-- Username/email únicos sin distinguir mayúsculas.
-- `PP`, `COORDINADOR` y `AA` deben tener comunidad; varias cuentas AA pueden
-  compartir la misma comunidad.
-- `ends_at > starts_at` en actividades y semestres.
-
-## Imágenes reemplazables
-
-Los placeholders están en:
-
-- `public/brand/logo-lankuyen.svg` → insignia de la unidad.
-- `public/badges/*.svg` → 10 insignias (2 etapas, 7 competencias, promesa).
-- `public/material/bandera-placeholder.svg` → referencia de la Bandera hasta que
-  los AA suban la imagen oficial desde `/admin/material` (queda en `files` y se
-  sirve por `/api/files/[fileId]`).
-
-Para reemplazar los SVG, basta con sobrescribir el archivo manteniendo el nombre,
-o actualizar `Badge.imagePath` / la ruta del logo. No hay rutas codificadas en los
-componentes más allá de esos paths.
-
-## Cronjob
-
-`/api/cron/route-sheet-reminder` está implementado y se invoca por `GET` o
-`POST` con `Authorization: Bearer <CRON_SECRET>`:
-
-1. Un scheduler (por ejemplo, cron de Vercel, Railway o un contenedor) lo llama
-   cada hora.
-2. Solo ejecuta si en `America/Santiago` es miércoles entre 11:00 y 11:59
-   (`cron.hour` configurable en `app_settings`).
-3. Usa `job_runs (job_name, run_key)` para garantizar una ejecución semanal
-   incluso con reintentos o múltiples invocaciones.
-4. Busca actividades publicadas y futuras dentro de `reminder.leadDays` días
-   (7 por defecto) sin hoja `PENDIENTE_AUTORIZACION` ni `APROBADA`.
-5. Notifica a los encargados; si no hay encargados, a todos los AA activos.
-6. `notifications.dedupe_key` evita avisos repetidos por actividad y semana.
-7. `?bypassScheduleCheck=1` y el botón del panel AA permiten probarlo en
-   cualquier momento; el `run_key` manual no consume la ejecución semanal.
-
-Variables relevantes: `CRON_SECRET`, `STORAGE_DRIVER` y `LOCAL_STORAGE_DIR`.
-Ajustes en `app_settings`: `timezone`, `cron.enabled`, `cron.hour`,
-`reminder.leadDays` y `route_sheet.allowAnyPpUpload`.
+Antes de entregar cualquier cambio:
 
 ```bash
-# Prueba local contra el servidor de desarrollo
-npm run cron:local             # respeta el guard de miércoles 11:00
-npm run cron:local -- --bypass # fuerza la ejecución ahora
+npm run typecheck
+npm run lint
+npm test
+npm run build
 ```
 
-## Roadmap
+---
 
-- [x] Módulo 1: base, datos, seed, RBAC, autenticación, layouts y tema visual.
-- [x] Módulo 2: comunidades, usuarios, perfil, insignias, reflexiones y
-  notificaciones in-app.
-- [x] Módulo 3: calendario semestral, asistencia en dos fases, ratificación y
-  estadísticas de asistencia.
-- [x] Módulo 4: hojas de ruta, storage, moderación AA y cron de recordatorios.
-- [x] Módulo 5: material digital editable, ajustes operativos, auditoría y
-  cierre del adaptador R2.
-- [x] Módulo 6: evaluación posterior de actividades en seis áreas por PP y
-  coordinadores, con lectura agregada y por respuesta para los AA.
-- [x] v1.1: texto de insignias bloqueadas, generador de historia 9:16 y módulo
-  completo de La Bitácora con Guardián, moderación, fotos y notificaciones.
+## Pruebas
 
-## Seguridad antes de producción
+`npm test` ejecuta una lista explícita de archivos definida en `package.json` (hoy **13 archivos de prueba**). Para correr un archivo aislado:
 
-0. **v1.1:** ejecutar `npx prisma migrate deploy` contra la base Neon de
-   producción antes de desplegar. La migración
-   `20261027040629_v1_1_logbook_and_profile` es retrocompatible: agrega
-   `is_logbook_keeper` con `DEFAULT false`, crea `logbook_entries` y suma valores
-   al enum de notificaciones, sin borrar ni reescribir datos existentes.
-1. Generar un `AUTH_SECRET` y un `CRON_SECRET` nuevos.
-2. Cambiar la contraseña del AA inicial (el flujo ya lo exige).
-3. Configurar `STORAGE_DRIVER="r2"` con credenciales propias y mantener el bucket
-   privado; el adaptador R2 ya está implementado.
-4. Configurar HTTPS y `AUTH_URL` con el dominio real.
-5. Agregar rate limiting al login (recomendado: Upstash Ratelimit o middleware
-   propio) antes de exponer la instancia a Internet.
-6. Revisar la política de copias de seguridad de PostgreSQL y del bucket.
+```bash
+npx tsx --test tests/communities-and-workgroups.test.ts
+```
+
+Los tests importan módulos de `src` por ruta relativa con extensión `.ts` explícita y usan `node:test` + `assert`.
+
+### Suites constitucionales
+
+| Suite | Artículos / foco |
+|---|---|
+| `no-school-grading.test.ts` | Art. III · evaluación no escolar |
+| `promise-and-stages.test.ts` | Art. IV · camino simbólico y Promesa |
+| `compass-privacy.test.ts` | Art. I, VII y VIII · La Brújula y privacidad 1 a 1; catálogo de plantillas |
+| `compass-versioning.test.ts` | Art. I, II y XII · historial inmutable, offline sin pérdida y exportación |
+| `democratic-assembly.test.ts` | Art. VI · voto exclusivo de jóvenes |
+| `communities-and-workgroups.test.ts` | Art. V · comunidades, Grupos de Trabajo y Red de Apoyo |
+
+A ellas se suman las suites de regresión para hojas de ruta, evaluaciones, bitácora, notificaciones, logros, eliminación de cuentas y ciclo de programa.
+
+---
+
+## Operación
+
+- **Zona horaria:** todas las fechas se guardan en UTC y se muestran en `America/Santiago`.
+- **Cron:** `GET` o `POST` autenticado con `Authorization: Bearer <CRON_SECRET>`.
+- **Archivos privados:** cada descarga pasa por `/api/files/[fileId]`, que autoriza según rol, actividad y estado del documento.
+- **Service worker:** nunca cachea respuestas autenticadas de `/api/*`.
+- **Migraciones:** versionadas e inmutables; el seed es idempotente y no destructivo.
+
+---
+
+## Documentación relacionada
+
+- `CONSTITUTION.md` — principios normativos de la Avanzada.
+- `REQUIREMENTS.md` — requisitos funcionales y no funcionales (RF-*, RNF-*).
+- `AGENTS.md` — guía operativa para agentes de desarrollo.

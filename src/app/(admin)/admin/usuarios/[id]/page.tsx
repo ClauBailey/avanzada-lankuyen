@@ -437,7 +437,7 @@ export default async function AdminUsuarioDetallePage({
                 </p>
                 <p className="max-w-60 text-[11px] leading-relaxed text-ink-soft">
                   El Equipo Adulto no pertenece a una comunidad juvenil. Acompaña
-                  personalmente a un grupo pequeño de Pioneros/as.
+                  personalmente a un grupo pequeño de pioneros y pioneras.
                 </p>
               </div>
             ) : (

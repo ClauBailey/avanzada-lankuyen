@@ -32,11 +32,11 @@ export const PROGRAM_CYCLE_PHASES = [
     label: "Propuestas y Selección en Asamblea",
     shortLabel: "Propuestas",
     description:
-      "Los jóvenes y las Comunidades publican propuestas de actividades. La Asamblea las delibera y vota con la dinámica democrática que elija.",
+      "Las y los jóvenes y las Comunidades publican propuestas de actividades. La Asamblea las delibera y vota con la dinámica democrática que elija.",
     youthHint:
       "Propón las actividades que quieres vivir y, cuando la votación esté abierta, emite tu voto.",
     adultHint:
-      "Abre y cierra la sesión de votación. Acompaña la deliberación: el voto pertenece exclusivamente a los jóvenes.",
+      "Abre y cierra la sesión de votación. Acompaña la deliberación: el voto pertenece exclusivamente a las y los jóvenes.",
   },
   {
     key: "ORGANIZACION_Y_PREPARACION",
@@ -132,9 +132,9 @@ export const DEMOCRATIC_VOTE_DYNAMICS = [
     key: "ELECCION_DIRECTA",
     label: "Elección directa",
     descriptionTotally:
-      "Un día de elecciones: cada joven marca las propuestas que apoya.",
+      "Un día de elecciones: cada persona joven marca las propuestas que apoya.",
     description:
-      "Cada joven marca las propuestas que apoya. Cada propuesta cuenta un voto.",
+      "Cada persona joven marca las propuestas que apoya. Cada propuesta cuenta un voto.",
     minValue: 1,
     maxValue: 1,
   },
@@ -142,7 +142,7 @@ export const DEMOCRATIC_VOTE_DYNAMICS = [
     key: "RANKING_ESTRELLAS",
     label: "Ranking de estrellas",
     description:
-      "Cada joven califica cada propuesta de 1 a 5 estrellas, como en una playlist compartida.",
+      "Cada persona joven califica cada propuesta de 1 a 5 estrellas, como en una playlist compartida.",
     minValue: 1,
     maxValue: 5,
   },
@@ -150,7 +150,7 @@ export const DEMOCRATIC_VOTE_DYNAMICS = [
     key: "ASIGNACION_PUNTOS",
     label: "Asignación de puntos",
     description:
-      "Cada joven reparte un pozo de puntos entre las propuestas que más le importan.",
+      "Cada persona joven reparte un pozo de puntos entre las propuestas que más le importan.",
     minValue: 0,
     maxValue: 10,
   },

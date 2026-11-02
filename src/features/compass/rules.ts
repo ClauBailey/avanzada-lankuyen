@@ -48,13 +48,13 @@ export const MENTORING_NOTE_PRIVACY = [
     key: "PRIVADA",
     label: "Privada del AA encargado",
     description:
-      "Solo tú puedes leer esta nota. El joven no la ve en su Brújula.",
+      "Solo tú puedes leer esta nota. La o el joven no la ve en su Brújula.",
   },
   {
     key: "COMPARTIDA",
-    label: "Compartida con el joven",
+    label: "Compartida con la o el joven",
     description:
-      "La nota aparece en la Brújula del joven, siempre como acompañamiento y nunca como evaluación.",
+      "La nota aparece en la Brújula de la o el joven, siempre como acompañamiento y nunca como evaluación.",
   },
 ] as const;
 
