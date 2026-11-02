@@ -81,7 +81,7 @@ export default async function ActivityDetailPage({
       endsAt: true,
       location: true,
       isPublished: true,
-      semester: { select: { name: true } },
+      cycle: { select: { name: true } },
       leaders: {
         orderBy: { assignedAt: "asc" },
         select: {
@@ -234,7 +234,9 @@ export default async function ActivityDetailPage({
       </Link>
 
       <PageHeader
-        eyebrow={`Semestre ${activity.semester.name}`}
+        eyebrow={
+          activity.cycle ? `Ciclo ${activity.cycle.name}` : "Actividad sin ciclo"
+        }
         title={activity.title}
         description={activity.description ?? undefined}
         actions={

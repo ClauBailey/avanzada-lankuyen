@@ -29,8 +29,8 @@ export const metadata = {
 export default async function AdminAsistenciaPage() {
   await requirePermission("attendance:ratify");
 
-  const [activeSemester, memberCount] = await Promise.all([
-    prisma.semester.findFirst({
+  const [activeCycle, memberCount] = await Promise.all([
+    prisma.programCycle.findFirst({
       where: { isActive: true },
       select: { id: true, name: true },
     }),
@@ -43,7 +43,7 @@ export default async function AdminAsistenciaPage() {
     }),
   ]);
 
-  if (!activeSemester) {
+  if (!activeCycle) {
     return (
       <div className="space-y-8">
         <PageHeader
@@ -53,15 +53,15 @@ export default async function AdminAsistenciaPage() {
         />
         <EmptyState
           icon={ClipboardCheck}
-          title="No hay un semestre activo"
-          description="Activa un semestre y publica actividades para comenzar a ratificar asistencia."
+          title="No hay un ciclo activo"
+          description="Activa un ciclo y publica actividades para comenzar a ratificar asistencia."
         />
       </div>
     );
   }
 
   const activities = await prisma.activity.findMany({
-    where: { semesterId: activeSemester.id, deletedAt: null },
+    where: { cycleId: activeCycle.id, deletedAt: null },
     orderBy: { startsAt: "desc" },
     select: {
       id: true,
@@ -104,7 +104,7 @@ export default async function AdminAsistenciaPage() {
       <PageHeader
         eyebrow="Administración"
         title="Ratificación de asistencia"
-        description={`Semestre ${activeSemester.name}: revisa las respuestas previas sobre ${memberCount} miembros activos y ratifica la asistencia real de cada actividad.`}
+        description={`Ciclo ${activeCycle.name}: revisa las respuestas previas sobre ${memberCount} miembros activos y ratifica la asistencia real de cada actividad.`}
         actions={
           <Link
             href="/admin/actividades"
@@ -119,7 +119,7 @@ export default async function AdminAsistenciaPage() {
       <section className="grid gap-4 sm:grid-cols-3">
         <Card className="p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
-            Actividades del semestre
+            Actividades del ciclo
           </p>
           <p className="mt-2 font-display text-3xl font-semibold text-ink">
             {decorated.length}
@@ -152,14 +152,14 @@ export default async function AdminAsistenciaPage() {
         title="Pendientes de ratificar"
         description="Puedes revisar el resumen en vivo antes del evento y ratificar cuando corresponda."
         activities={toRatify}
-        emptyMessage="No hay actividades pendientes de ratificación en este semestre."
+        emptyMessage="No hay actividades pendientes de ratificación en este ciclo."
       />
 
       <ActivitySection
         title="Ratificadas"
         description="Puedes reabrir cualquiera para corregir un estado; cada cambio queda en auditoría."
         activities={ratified}
-        emptyMessage="Aún no hay actividades ratificadas en este semestre."
+        emptyMessage="Aún no hay actividades ratificadas en este ciclo."
       />
     </div>
   );

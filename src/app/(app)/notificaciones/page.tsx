@@ -14,6 +14,7 @@ import {
   Sparkles,
   Trophy,
   UserPlus,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
 
@@ -105,6 +106,10 @@ const typeStyles: Record<
   CONSENSO_SOLICITADO: {
     icon: Handshake,
     className: "bg-gold-soft text-[#7a5a16]",
+  },
+  CICLO_VOTACION_ABIERTA: {
+    icon: Vote,
+    className: "bg-anil-50 text-anil-700",
   },
 };
 

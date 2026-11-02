@@ -6,6 +6,12 @@ import { Filter, RotateCcw } from "lucide-react";
 
 import { Select } from "@/components/ui/select";
 import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from "@/lib/activity-types";
+import {
+  ACTIVITY_SCHEDULE_TYPES,
+  ACTIVITY_SCHEDULE_TYPE_LABELS,
+  ACTIVITY_SCOPES,
+  ACTIVITY_SCOPE_LABELS,
+} from "@/lib/activity-scopes";
 import { cn } from "@/lib/utils";
 
 interface MonthOption {
@@ -17,10 +23,12 @@ interface CalendarFiltersProps {
   months: MonthOption[];
   month: string;
   type: string;
-  scope: string;
+  when: string;
+  activityScope: string;
+  scheduleType: string;
 }
 
-const SCOPES = [
+const WHEN_OPTIONS = [
   { value: "proximas", label: "Próximas" },
   { value: "pasadas", label: "Pasadas" },
   { value: "todas", label: "Todas" },
@@ -30,7 +38,9 @@ export function CalendarFilters({
   months,
   month,
   type,
-  scope,
+  when,
+  activityScope,
+  scheduleType,
 }: CalendarFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,7 +59,9 @@ export function CalendarFilters({
     });
   };
 
-  const hasFilters = Boolean(month || type) || scope !== "proximas";
+  const hasFilters =
+    Boolean(month || type || activityScope || scheduleType) ||
+    when !== "proximas";
 
   return (
     <div
@@ -65,15 +77,15 @@ export function CalendarFilters({
         </span>
 
         <div className="flex rounded-xl border border-line bg-canvas p-0.5">
-          {SCOPES.map((option) => (
+          {WHEN_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
-              onClick={() => update("scope", option.value)}
-              aria-pressed={scope === option.value}
+              onClick={() => update("when", option.value)}
+              aria-pressed={when === option.value}
               className={cn(
                 "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                scope === option.value
+                when === option.value
                   ? "bg-surface text-anil-800 shadow-sm"
                   : "text-ink-soft hover:text-ink",
               )}
@@ -110,6 +122,38 @@ export function CalendarFilters({
             {ACTIVITY_TYPES.map((item) => (
               <option key={item} value={item}>
                 {ACTIVITY_TYPE_LABELS[item]}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="w-44">
+          <Select
+            value={activityScope}
+            onChange={(event) => update("scope", event.target.value)}
+            aria-label="Filtrar por alcance"
+            className="h-9"
+          >
+            <option value="">Todos los alcances</option>
+            {ACTIVITY_SCOPES.map((item) => (
+              <option key={item} value={item}>
+                {ACTIVITY_SCOPE_LABELS[item]}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="w-40">
+          <Select
+            value={scheduleType}
+            onChange={(event) => update("schedule", event.target.value)}
+            aria-label="Filtrar por carácter"
+            className="h-9"
+          >
+            <option value="">Todo carácter</option>
+            {ACTIVITY_SCHEDULE_TYPES.map((item) => (
+              <option key={item} value={item}>
+                {ACTIVITY_SCHEDULE_TYPE_LABELS[item]}
               </option>
             ))}
           </Select>

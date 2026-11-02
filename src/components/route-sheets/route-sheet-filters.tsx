@@ -14,7 +14,7 @@ import {
 } from "@/lib/route-sheets";
 import { cn } from "@/lib/utils";
 
-interface SemesterOption {
+interface ProgramCycleOption {
   id: string;
   name: string;
   isActive: boolean;
@@ -23,22 +23,22 @@ interface SemesterOption {
 interface ActivityOption {
   id: string;
   title: string;
-  semesterId: string;
+  cycleId: string | null;
 }
 
 interface RouteSheetFiltersProps {
-  semesters: SemesterOption[];
+  cycles: ProgramCycleOption[];
   activities: ActivityOption[];
   status: RouteSheetStatus | "all";
-  semesterId: string;
+  cycleId: string;
   activityId: string;
 }
 
 export function RouteSheetFilters({
-  semesters,
+  cycles,
   activities,
   status,
-  semesterId,
+  cycleId,
   activityId,
 }: RouteSheetFiltersProps) {
   const router = useRouter();
@@ -66,9 +66,9 @@ export function RouteSheetFilters({
 
   const hasFilters =
     status !== "PENDIENTE_AUTORIZACION" ||
-    Boolean(semesterId || activityId);
-  const semesterNameById = new Map(
-    semesters.map((semester) => [semester.id, semester.name]),
+    Boolean(cycleId || activityId);
+  const cycleNameById = new Map(
+    cycles.map((cycle) => [cycle.id, cycle.name]),
   );
 
   return (
@@ -101,19 +101,19 @@ export function RouteSheetFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="route-sheet-semester">Semestre</Label>
+          <Label htmlFor="route-sheet-cycle">Ciclo</Label>
           <Select
-            id="route-sheet-semester"
-            value={semesterId}
+            id="route-sheet-cycle"
+            value={cycleId}
             onChange={(event) =>
-              apply({ semester: event.target.value, activity: null })
+              apply({ cycle: event.target.value, activity: null })
             }
           >
             <option value="">Todos</option>
-            {semesters.map((semester) => (
-              <option key={semester.id} value={semester.id}>
-                {semester.name}
-                {semester.isActive ? " · activo" : ""}
+            {cycles.map((cycle) => (
+              <option key={cycle.id} value={cycle.id}>
+                {cycle.name}
+                {cycle.isActive ? " · activo" : ""}
               </option>
             ))}
           </Select>
@@ -129,8 +129,10 @@ export function RouteSheetFilters({
             <option value="">Todas</option>
             {activities.map((activity) => (
               <option key={activity.id} value={activity.id}>
-                {semesterNameById.get(activity.semesterId) ?? "—"} ·{" "}
-                {activity.title}
+                {activity.cycleId
+                  ? (cycleNameById.get(activity.cycleId) ?? "—")
+                  : "Sin ciclo"}{" "}
+                · {activity.title}
               </option>
             ))}
           </Select>

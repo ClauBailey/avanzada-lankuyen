@@ -8,12 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { createSemesterAction } from "@/features/activities/actions";
+import { createProgramCycleAction } from "@/features/activities/actions";
 import { EMPTY_ACTION_STATE } from "@/lib/action-state";
 
-export function SemesterForm({ hasActiveSemester }: { hasActiveSemester: boolean }) {
+export function ProgramCycleForm({
+  hasActiveCycle,
+}: {
+  hasActiveCycle: boolean;
+}) {
   const [state, formAction] = useActionState(
-    createSemesterAction,
+    createProgramCycleAction,
     EMPTY_ACTION_STATE,
   );
 
@@ -22,10 +26,11 @@ export function SemesterForm({ hasActiveSemester }: { hasActiveSemester: boolean
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
         <div>
           <p className="font-display text-sm font-semibold text-ink">
-            Crear semestre
+            Crear ciclo de programa
           </p>
           <p className="mt-0.5 text-xs text-ink-soft">
-            Formato 2026-S1 (marzo–julio) o 2026-S2 (agosto–diciembre).
+            Por ejemplo, «Ciclo Otoño–Invierno 2026» (marzo–julio) o «Ciclo
+            Primavera–Verano 2026» (agosto–diciembre).
           </p>
         </div>
         <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-anil-700">
@@ -38,36 +43,31 @@ export function SemesterForm({ hasActiveSemester }: { hasActiveSemester: boolean
         action={formAction}
         className="space-y-4 border-t border-line/70 bg-canvas/30 p-4"
       >
-        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_1fr_1.1fr]">
+        <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="space-y-2">
-            <Label htmlFor="semester-name">Nombre</Label>
+            <Label htmlFor="cycle-name">Nombre</Label>
             <Input
-              id="semester-name"
+              id="cycle-name"
               name="name"
-              placeholder="2026-S2"
-              maxLength={60}
+              placeholder="Ciclo Primavera–Verano 2026"
+              maxLength={120}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="semester-start">Inicio</Label>
-            <Input
-              id="semester-start"
-              name="startsOn"
-              type="date"
-              required
-            />
+            <Label htmlFor="cycle-start">Inicio</Label>
+            <Input id="cycle-start" name="startDate" type="date" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="semester-end">Término</Label>
-            <Input id="semester-end" name="endsOn" type="date" required />
+            <Label htmlFor="cycle-end">Término</Label>
+            <Input id="cycle-end" name="endDate" type="date" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="semester-active">Estado</Label>
+            <Label htmlFor="cycle-active">Estado</Label>
             <Select
-              id="semester-active"
+              id="cycle-active"
               name="isActive"
-              defaultValue={hasActiveSemester ? "false" : "true"}
+              defaultValue={hasActiveCycle ? "false" : "true"}
             >
               <option value="false">Inactivo</option>
               <option value="true">Activo</option>
@@ -81,10 +81,10 @@ export function SemesterForm({ hasActiveSemester }: { hasActiveSemester: boolean
         <div className="flex flex-wrap items-center gap-2">
           <SubmitButton size="sm" pendingLabel="Creando…">
             <Check aria-hidden="true" />
-            Crear semestre
+            Crear ciclo
           </SubmitButton>
           <p className="text-[11px] text-ink-soft">
-            Solo puede existir un semestre activo a la vez.
+            Solo puede existir un ciclo activo a la vez.
           </p>
         </div>
       </form>

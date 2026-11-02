@@ -134,6 +134,45 @@ enum ActivityType {
   OTRO
 }
 
+/**
+ * Fases del Ciclo de Programa (RF-CIC-01, Manual p. 208–209).
+ *
+ * El ciclo se recorre en orden: diagnóstico y énfasis, propuestas y selección
+ * en Asamblea, organización del calendario y, por último, desarrollo y
+ * evaluación. `FINALIZADO` cierra el ciclo.
+ */
+enum ProgramCyclePhase {
+  DIAGNOSTICO_Y_ENFASIS
+  PROPUESTA_Y_SELECCION
+  ORGANIZACION_Y_PREPARACION
+  DESARROLLO_Y_EVALUACION
+  FINALIZADO
+}
+
+/** Alcance de una actividad dentro del calendario (RF-CAL-01, M p. 246–248). */
+enum ActivityScope {
+  COMUNIDAD
+  AVANZADA
+  GRUPO_DE_TRABAJO
+}
+
+/**
+ * Carácter de la actividad respecto al ciclo de programa (RF-CAL-01).
+ * `FIJA` reúne lo permanente (reuniones, peñas, campamentos, ceremonias);
+ * `VARIABLE` lo que nace de las propuestas del ciclo.
+ */
+enum ActivityScheduleType {
+  FIJA
+  VARIABLE
+}
+
+/** Dinámica de votación de la Asamblea (RF-CIC-04, M p. 219–220). */
+enum DemocraticVoteDynamic {
+  ELECCION_DIRECTA
+  RANKING_ESTRELLAS
+  ASIGNACION_PUNTOS
+}
+
 enum RsvpStatus {
   CONFIRMADO
   NO_ASISTE
@@ -168,6 +207,7 @@ enum NotificationType {
   PROMESA_SOLICITADA
   COMPETENCIA_RECONOCIDA
   CONSENSO_SOLICITADO
+  CICLO_VOTACION_ABIERTA
 }
 
 enum LogbookEntryStatus {
@@ -212,6 +252,8 @@ model Community {
   users       User[]
   roleHistory CommunityRoleHistory[]
   logEntries  CommunityLogEntry[]
+  diagnoses   CommunityDiagnosis[]
+  proposals   ActivityProposal[]
 
   @@map("communities")
 }
@@ -283,6 +325,9 @@ model User {
   mentoringNotesReceived MentoringNote[]   @relation("MentoringNoteStudent")
   mentoringNotesWritten  MentoringNote[]   @relation("MentoringNoteAuthor")
   communityLogEntries CommunityLogEntry[]  @relation("CommunityLogEntryAuthor")
+  diagnosesWritten    CommunityDiagnosis[]  @relation("CommunityDiagnosisAuthor")
+  proposalsProposed   ActivityProposal[]   @relation("ActivityProposalProposer")
+  assemblyVotes       AssemblyVote[]       @relation("AssemblyVoteVoter")
 
   @@index([communityId])
   @@index([role])
@@ -477,47 +522,65 @@ model UserAchievement {
 // Calendario semestral
 // ------------------------------------------------------------
 
-model Semester {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique @db.VarChar(60)
-  startsOn  DateTime @map("starts_on") @db.Date
-  endsOn    DateTime @map("ends_on") @db.Date
-  isActive  Boolean  @default(false) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+/**
+ * Ciclo de Programa (RF-CIC-01).
+ *
+ * Reemplaza al antiguo «semestre». Además de las fechas, guarda la fase
+ * democrática vigente, el diagnóstico general acordado en la Reunión de
+ * Coordinadores, el énfasis educativo del período y la aprobación del
+ * calendario por parte de la Asamblea.
+ */
+model ProgramCycle {
+  id                           String             @id @default(uuid()) @db.Uuid
+  name                         String             @unique @db.VarChar(120)
+  startDate                    DateTime           @map("start_date") @db.Date
+  endDate                      DateTime           @map("end_date") @db.Date
+  isActive                     Boolean            @default(false) @map("is_active")
+  phase                        ProgramCyclePhase  @default(DIAGNOSTICO_Y_ENFASIS)
+  diagnosisSummary             String?            @map("diagnosis_summary") @db.Text
+  educationalEmphasis          String?            @map("educational_emphasis") @db.Text
+  isCalendarApprovedByAssembly Boolean            @default(false) @map("is_calendar_approved_by_assembly")
+  createdAt                    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  activities Activity[]
+  activities    Activity[]
+  proposals     ActivityProposal[]
+  voteSessions  AssemblyVoteSession[]
+  diagnoses     CommunityDiagnosis[]
 
-  @@map("semesters")
+  @@map("program_cycles")
 }
 
 model Activity {
-  id          String       @id @default(uuid()) @db.Uuid
-  semesterId  String       @map("semester_id") @db.Uuid
-  title       String       @db.VarChar(160)
-  description String?      @db.Text
-  type        ActivityType @default(REUNION)
-  startsAt    DateTime     @map("starts_at") @db.Timestamptz(3)
-  endsAt      DateTime     @map("ends_at") @db.Timestamptz(3)
-  location    String?      @db.VarChar(160)
-  isPublished Boolean      @default(true) @map("is_published")
-  createdById String?      @map("created_by_id") @db.Uuid
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt   DateTime?    @map("deleted_at") @db.Timestamptz(3)
+  id           String               @id @default(uuid()) @db.Uuid
+  cycleId      String?              @map("cycle_id") @db.Uuid
+  title        String               @db.VarChar(160)
+  description  String?              @db.Text
+  type         ActivityType         @default(REUNION)
+  scope        ActivityScope        @default(AVANZADA)
+  scheduleType ActivityScheduleType @default(VARIABLE) @map("schedule_type")
+  startsAt     DateTime             @map("starts_at") @db.Timestamptz(3)
+  endsAt       DateTime             @map("ends_at") @db.Timestamptz(3)
+  location     String?              @db.VarChar(160)
+  isPublished  Boolean              @default(true) @map("is_published")
+  createdById  String?              @map("created_by_id") @db.Uuid
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt    DateTime?            @map("deleted_at") @db.Timestamptz(3)
 
-  semester   Semester             @relation(fields: [semesterId], references: [id], onDelete: Restrict)
-  createdBy  User?                @relation("ActivityCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  leaders     ActivityLeader[]
-  responses   AttendanceResponse[]
-  records     AttendanceRecord[]
+  cycle      ProgramCycle?            @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+  createdBy  User?                    @relation("ActivityCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  leaders    ActivityLeader[]
+  responses  AttendanceResponse[]
+  records    AttendanceRecord[]
   routeSheets RouteSheet[]
   evaluations ActivityEvaluation[]
   logbookEntries LogbookEntry[]
   compassReflections UserCompassReflection[]
 
-  @@index([semesterId, startsAt])
+  @@index([cycleId, startsAt])
   @@index([startsAt])
+  @@index([scope, scheduleType])
   @@map("activities")
 }
 
@@ -534,6 +597,110 @@ model ActivityLeader {
   @@id([activityId, userId])
   @@index([userId])
   @@map("activity_leaders")
+}
+
+// ------------------------------------------------------------
+// Ciclo de Programa democrático y Asamblea (Fase 4)
+// ------------------------------------------------------------
+
+/**
+ * Diagnóstico de Comunidad (RF-CIC-02).
+ *
+ * Cada comunidad escribe, para el ciclo activo, sus intereses, anhelos y su
+ * evaluación interna. Es la materia prima del diagnóstico general de la
+ * Avanzada que redacta la Reunión de Coordinadores.
+ */
+model CommunityDiagnosis {
+  id                    String   @id @default(uuid()) @db.Uuid
+  cycleId               String   @map("cycle_id") @db.Uuid
+  communityId           String   @map("community_id") @db.Uuid
+  authorId              String?  @map("author_id") @db.Uuid
+  strengthsAndInterests String   @map("strengths_and_interests") @db.Text
+  suggestedActivities   String?  @map("suggested_activities") @db.Text
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  cycle     ProgramCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  community Community    @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User?        @relation("CommunityDiagnosisAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([cycleId, communityId])
+  @@index([communityId])
+  @@map("community_diagnoses")
+}
+
+/**
+ * Propuesta de actividad (RF-CIC-03).
+ *
+ * Nace de los jóvenes o de una comunidad durante la fase de propuestas. La
+ * Asamblea las vota y la Reunión de Coordinadores decide cuáles pasan al
+ * calendario oficial.
+ */
+model ActivityProposal {
+  id                         String   @id @default(uuid()) @db.Uuid
+  cycleId                    String   @map("cycle_id") @db.Uuid
+  proposerId                 String?  @map("proposer_id") @db.Uuid
+  communityId                String?  @map("community_id") @db.Uuid
+  title                      String   @db.VarChar(160)
+  description                String   @db.Text
+  isSocialInterventionProject Boolean @default(false) @map("is_social_intervention_project")
+  selectedForCalendar        Boolean  @default(false) @map("selected_for_calendar")
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  cycle     ProgramCycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  proposer  User?             @relation("ActivityProposalProposer", fields: [proposerId], references: [id], onDelete: SetNull)
+  community Community?        @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  votes     AssemblyVote[]
+
+  @@index([cycleId, selectedForCalendar])
+  @@index([communityId])
+  @@map("activity_proposals")
+}
+
+/**
+ * Sesión de votación de la Asamblea (RF-CIC-04).
+ *
+ * Solo los jóvenes votan. La sesión pertenece a un ciclo y a una dinámica
+ * democrática concreta: elección directa, ranking de estrellas o asignación
+ * de puntos con un pozo limitado.
+ */
+model AssemblyVoteSession {
+  id              String                @id @default(uuid()) @db.Uuid
+  cycleId         String                @map("cycle_id") @db.Uuid
+  title           String                @db.VarChar(160)
+  dynamic         DemocraticVoteDynamic @default(ELECCION_DIRECTA)
+  isOpen          Boolean               @default(false) @map("is_open")
+  maxPointsBudget Int?                  @default(10) @map("max_points_budget")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  cycle  ProgramCycle   @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  votes  AssemblyVote[]
+
+  @@index([cycleId, isOpen])
+  @@map("assembly_vote_sessions")
+}
+
+/**
+ * Voto de la Asamblea (Art. VI).
+ *
+ * `value` vale 1 en elección directa, 1..5 en el ranking de estrellas y los
+ * puntos asignados en el pozo. El Equipo Adulto nunca emite votos.
+ */
+model AssemblyVote {
+  id         String   @id @default(uuid()) @db.Uuid
+  sessionId  String   @map("session_id") @db.Uuid
+  proposalId String   @map("proposal_id") @db.Uuid
+  voterId    String   @map("voter_id") @db.Uuid
+  value      Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  session  AssemblyVoteSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  proposal ActivityProposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  voter    User                @relation("AssemblyVoteVoter", fields: [voterId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, proposalId, voterId])
+  @@index([sessionId, voterId])
+  @@map("assembly_votes")
 }
 
 // ------------------------------------------------------------

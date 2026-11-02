@@ -54,7 +54,7 @@ export default async function HojasDeRutaPage() {
   const user = await requirePermission("calendar:view");
   const now = new Date();
 
-  const activeSemester = await prisma.semester.findFirst({
+  const activeCycle = await prisma.programCycle.findFirst({
     where: { isActive: true },
     select: { id: true, name: true },
   });
@@ -124,7 +124,7 @@ export default async function HojasDeRutaPage() {
         activity: {
           deletedAt: null,
           isPublished: true,
-          ...(activeSemester ? { semesterId: activeSemester.id } : {}),
+          ...(activeCycle ? { cycleId: activeCycle.id } : {}),
         },
       },
       orderBy: { activity: { startsAt: "desc" } },
@@ -151,7 +151,7 @@ export default async function HojasDeRutaPage() {
             type: true,
             startsAt: true,
             location: true,
-            semester: { select: { name: true } },
+            cycle: { select: { name: true } },
           },
         },
       },
@@ -169,7 +169,7 @@ export default async function HojasDeRutaPage() {
       <PageHeader
         eyebrow="Documentos de la unidad"
         title="Hojas de ruta"
-        description="Sube la hoja de ruta de las actividades que encabezas, revisa el feedback de los AA y descarga los documentos aprobados del semestre."
+        description="Sube la hoja de ruta de las actividades que encabezas, revisa el feedback de los AA y descarga los documentos aprobados del ciclo."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {user.role === "AA" ? (
@@ -491,7 +491,7 @@ export default async function HojasDeRutaPage() {
             </p>
             <h2 className="mt-1 font-display text-2xl font-semibold text-ink">
               Hojas de ruta aprobadas
-              {activeSemester ? ` · ${activeSemester.name}` : ""}
+              {activeCycle ? ` · ${activeCycle.name}` : ""}
             </h2>
             <p className="mt-1 text-sm text-ink-soft">
               Documentos autorizados por los AA, disponibles para lectura y
@@ -507,7 +507,7 @@ export default async function HojasDeRutaPage() {
           <EmptyState
             icon={FileText}
             title="Aún no hay hojas de ruta aprobadas"
-            description="Cuando un AA autorice el primer documento del semestre, aparecerá en este repositorio y junto a su actividad en el calendario."
+            description="Cuando un AA autorice el primer documento del ciclo, aparecerá en este repositorio y junto a su actividad en el calendario."
           />
         ) : (
           <ul className="space-y-3">
@@ -545,7 +545,7 @@ export default async function HojasDeRutaPage() {
                           Aprobada
                         </Badge>
                         <span className="text-[11px] text-ink-soft">
-                          Semestre {sheet.activity.semester.name}
+                          Ciclo {sheet.activity.cycle?.name ?? "sin asignar"}
                         </span>
                       </div>
 

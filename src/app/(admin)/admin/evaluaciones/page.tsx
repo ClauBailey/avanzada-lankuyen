@@ -23,15 +23,15 @@ export const metadata = {
 export default async function AdminEvaluacionesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ semester?: string }>;
+  searchParams: Promise<{ cycle?: string }>;
 }) {
   await requirePermission("activity:evaluation_view");
-  const { semester: semesterParam } = await searchParams;
+  const { cycle: cycleParam } = await searchParams;
   const now = new Date();
 
-  const [semesters, evaluatorCount] = await Promise.all([
-    prisma.semester.findMany({
-      orderBy: { startsOn: "desc" },
+  const [cycles, evaluatorCount] = await Promise.all([
+    prisma.programCycle.findMany({
+      orderBy: { startDate: "desc" },
       select: { id: true, name: true, isActive: true },
     }),
     prisma.user.count({
@@ -42,16 +42,16 @@ export default async function AdminEvaluacionesPage({
     }),
   ]);
 
-  const selectedSemester =
-    semesters.find((item) => item.id === semesterParam) ??
-    semesters.find((item) => item.isActive) ??
-    semesters[0] ??
+  const selectedCycle =
+    cycles.find((item) => item.id === cycleParam) ??
+    cycles.find((item) => item.isActive) ??
+    cycles[0] ??
     null;
 
-  const activities = selectedSemester
+  const activities = selectedCycle
     ? await prisma.activity.findMany({
         where: {
-          semesterId: selectedSemester.id,
+          cycleId: selectedCycle.id,
           deletedAt: null,
           endsAt: { lt: now },
         },
@@ -108,11 +108,11 @@ export default async function AdminEvaluacionesPage({
         }
       />
 
-      {!selectedSemester ? (
+      {!selectedCycle ? (
         <EmptyState
           icon={Star}
-          title="Aún no hay semestres"
-          description="Crea un semestre y publica actividades para habilitar las evaluaciones posteriores."
+          title="Aún no hay ciclos"
+          description="Crea un ciclo y publica actividades para habilitar las evaluaciones posteriores."
         />
       ) : (
         <>
@@ -125,7 +125,7 @@ export default async function AdminEvaluacionesPage({
                 {decorated.length}
               </p>
               <p className="mt-1 text-xs text-ink-soft">
-                Semestre {selectedSemester.name}
+                Ciclo {selectedCycle.name}
               </p>
             </Card>
             <Card className="p-5">
@@ -168,28 +168,28 @@ export default async function AdminEvaluacionesPage({
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2 className="font-display text-2xl font-semibold text-ink">
-                  Actividades del semestre
+                  Actividades del ciclo
                 </h2>
                 <p className="mt-1 text-sm text-ink-soft">
                   Solo aparecen actividades cuya hora de término ya pasó.
                 </p>
               </div>
 
-              {semesters.length > 1 ? (
+              {cycles.length > 1 ? (
                 <form method="get" className="flex items-center gap-2">
                   <label
-                    htmlFor="semester-select"
+                    htmlFor="cycle-select"
                     className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft"
                   >
-                    Semestre
+                    Ciclo
                   </label>
                   <select
-                    id="semester-select"
-                    name="semester"
-                    defaultValue={selectedSemester.id}
+                    id="cycle-select"
+                    name="cycle"
+                    defaultValue={selectedCycle.id}
                     className="h-9 rounded-xl border border-line bg-surface px-3 text-xs text-ink shadow-sm"
                   >
-                    {semesters.map((item) => (
+                    {cycles.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.name}
                       </option>
@@ -210,7 +210,7 @@ export default async function AdminEvaluacionesPage({
                 <EmptyState
                   icon={MessageSquareText}
                   title="No hay actividades terminadas"
-                  description="Cuando una actividad del semestre llegue a su hora de término, aparecerá aquí para reunir las observaciones de participantes."
+                  description="Cuando una actividad del ciclo llegue a su hora de término, aparecerá aquí para reunir las observaciones de participantes."
                   className="border-0 bg-transparent p-0"
                 />
               </Card>

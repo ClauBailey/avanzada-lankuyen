@@ -13,9 +13,14 @@ export const PERMISSIONS = [
   "calendar:view",
   "calendar:manage",
   "activity:manage",
+  "activity:manage_community",
   "activity:evaluate",
   "activity:evaluation_view",
-  "semester:manage",
+  "cycle:view",
+  "cycle:manage",
+  "cycle:diagnose",
+  "cycle:propose",
+  "assembly:vote",
   "attendance:rsvp",
   "attendance:ratify",
   "journey:register",
@@ -74,6 +79,10 @@ const PP_PERMISSIONS = [
   "compass:write",
   "community_log:view",
   "community_log:manage",
+  "cycle:view",
+  "cycle:diagnose",
+  "cycle:propose",
+  "assembly:vote",
 ] as const satisfies readonly Permission[];
 
 /**
@@ -106,6 +115,12 @@ const COORDINADOR_PERMISSIONS = [
   "compass:write",
   "community_log:view",
   "community_log:manage",
+  "cycle:view",
+  "cycle:manage",
+  "cycle:diagnose",
+  "cycle:propose",
+  "assembly:vote",
+  "activity:manage_community",
 ] as const satisfies readonly Permission[];
 
 /**
@@ -120,6 +135,10 @@ const AA_EXCLUDED_PERMISSIONS = new Set<Permission>([
   "compass:write",
   "community_log:view",
   "community_log:manage",
+  "cycle:diagnose",
+  "cycle:propose",
+  "assembly:vote",
+  "activity:manage_community",
 ]);
 
 const AA_PERMISSIONS = PERMISSIONS.filter(

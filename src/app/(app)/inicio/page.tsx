@@ -104,7 +104,7 @@ export default async function InicioPage() {
             isPublished: true,
             deletedAt: null,
             endsAt: { lt: new Date() },
-            semester: { isActive: true },
+            cycle: { isActive: true },
             evaluations: { none: { userId: user.id } },
           },
         }),

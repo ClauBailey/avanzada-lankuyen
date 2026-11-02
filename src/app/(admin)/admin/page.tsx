@@ -103,7 +103,7 @@ export default async function AdminPage() {
     upcomingActivities,
     pendingSheets,
     recentUsers,
-    activeSemester,
+    activeCycle,
   ] = await Promise.all([
     prisma.user.count({
       where: { role: "PP", isActive: true, deletedAt: null },
@@ -138,7 +138,7 @@ export default async function AdminPage() {
         community: { select: { name: true, color: true } },
       },
     }),
-    prisma.semester.findFirst({
+    prisma.programCycle.findFirst({
       where: { isActive: true },
       select: { name: true },
     }),
@@ -203,9 +203,9 @@ export default async function AdminPage() {
           label="Próximas actividades"
           value={upcomingActivities}
           hint={
-            activeSemester
-              ? `Semestre ${activeSemester.name}`
-              : "Sin semestre activo"
+            activeCycle
+              ? `Ciclo ${activeCycle.name}`
+              : "Sin ciclo activo"
           }
           icon={CalendarPlus}
           href="/admin/actividades"

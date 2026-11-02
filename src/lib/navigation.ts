@@ -17,6 +17,7 @@ export type NavIconName =
   | "users-round"
   | "settings"
   | "compass"
+  | "vote"
   | "arrow-left";
 
 export interface NavItem {
@@ -36,6 +37,7 @@ export const memberNav: NavItem[] = [
   { href: "/miembros", label: "Miembros", icon: "users-round" },
   { href: "/logros", label: "Logros", icon: "trophy" },
   { href: "/calendario", label: "Calendario", icon: "calendar" },
+  { href: "/ciclo", label: "Ciclo y Asamblea", icon: "vote" },
   { href: "/bitacora", label: "Bitácora", icon: "book" },
   { href: "/hojas-de-ruta", label: "Hojas de ruta", icon: "file" },
   { href: "/material", label: "Material", icon: "book" },
@@ -49,6 +51,7 @@ export const adminNav: NavItem[] = [
   { href: "/miembros", label: "Miembros", icon: "users-round" },
   { href: "/admin/comunidades", label: "Comunidades", icon: "community" },
   { href: "/admin/actividades", label: "Actividades", icon: "calendar-plus" },
+  { href: "/ciclo", label: "Ciclo y Asamblea", icon: "vote" },
   { href: "/admin/asistencia", label: "Asistencia", icon: "clipboard" },
   { href: "/admin/evaluaciones", label: "Evaluaciones", icon: "star" },
   { href: "/admin/bitacora", label: "Bitácora", icon: "book" },

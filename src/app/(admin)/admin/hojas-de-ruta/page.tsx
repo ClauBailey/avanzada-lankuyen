@@ -66,27 +66,27 @@ export default async function AdminHojasDeRutaPage({
 }: {
   searchParams: Promise<{
     status?: string;
-    semester?: string;
+    cycle?: string;
     activity?: string;
   }>;
 }) {
   await requirePermission("route_sheet:review");
   const params = await searchParams;
 
-  const [semesters, activities] = await Promise.all([
-    prisma.semester.findMany({
-      orderBy: { startsOn: "desc" },
+  const [cycles, activities] = await Promise.all([
+    prisma.programCycle.findMany({
+      orderBy: { startDate: "desc" },
       select: { id: true, name: true, isActive: true },
     }),
     prisma.activity.findMany({
       where: { deletedAt: null },
       orderBy: { startsAt: "desc" },
-      select: { id: true, title: true, semesterId: true },
+      select: { id: true, title: true, cycleId: true },
     }),
   ]);
 
-  const semesterId = semesters.some((item) => item.id === params.semester)
-    ? (params.semester ?? "")
+  const cycleId = cycles.some((item) => item.id === params.cycle)
+    ? (params.cycle ?? "")
     : "";
   const activityId = activities.some((item) => item.id === params.activity)
     ? (params.activity ?? "")
@@ -109,7 +109,7 @@ export default async function AdminHojasDeRutaPage({
     deletedAt: null,
     activity: {
       deletedAt: null,
-      ...(semesterId ? { semesterId } : {}),
+      ...(cycleId ? { cycleId } : {}),
       ...(activityId ? { id: activityId } : {}),
     },
   };
@@ -166,7 +166,7 @@ export default async function AdminHojasDeRutaPage({
             startsAt: true,
             endsAt: true,
             location: true,
-            semester: { select: { name: true } },
+            cycle: { select: { name: true } },
             leaders: {
               orderBy: { assignedAt: "asc" },
               select: {
@@ -284,10 +284,10 @@ export default async function AdminHojasDeRutaPage({
       <RunReminderButton lastRunLabel={lastRunLabel} />
 
       <RouteSheetFilters
-        semesters={semesters}
+        cycles={cycles}
         activities={activities}
         status={selectStatus}
-        semesterId={semesterId}
+        cycleId={cycleId}
         activityId={activityId}
       />
 
@@ -302,8 +302,8 @@ export default async function AdminHojasDeRutaPage({
               {statusTitle}
             </h2>
             <p className="mt-1 text-sm text-ink-soft">
-              {semesterId
-                ? `Filtradas por semestre y actividad.`
+              {cycleId
+                ? `Filtradas por ciclo y actividad.`
                 : "Todas las actividades con documentos enviados."}
             </p>
           </div>
@@ -333,7 +333,7 @@ export default async function AdminHojasDeRutaPage({
               description={
                 status === "PENDIENTE_AUTORIZACION"
                   ? "Cuando un encargado suba una hoja de ruta, aparecerá aquí para que la revises."
-                  : "Prueba con otro estado, semestre o actividad."
+                  : "Prueba con otro estado, ciclo o actividad."
               }
               className="border-0 bg-transparent p-0"
             />
@@ -388,7 +388,7 @@ export default async function AdminHojasDeRutaPage({
 
                         <p className="mt-1 text-xs text-ink-soft">
                           {formatDateTime(sheet.activity.startsAt)} ·{" "}
-                          {sheet.activity.semester.name}
+                          {sheet.activity.cycle?.name ?? "Sin ciclo"}
                           {sheet.activity.location
                             ? ` · ${sheet.activity.location}`
                             : ""}

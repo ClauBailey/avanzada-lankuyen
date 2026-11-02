@@ -21,6 +21,7 @@ import {
   UserRound,
   Users,
   UsersRound,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
 
@@ -49,6 +50,7 @@ const navIcons: Record<NavIconName, LucideIcon> = {
   trophy: Trophy,
   "users-round": UsersRound,
   compass: Compass,
+  vote: Vote,
   settings: Settings2,
   "arrow-left": ArrowLeft,
 };

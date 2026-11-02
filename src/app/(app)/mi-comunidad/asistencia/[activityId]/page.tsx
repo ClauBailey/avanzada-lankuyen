@@ -36,7 +36,7 @@ export default async function CommunityAttendanceDetailPage({
       startsAt: true,
       endsAt: true,
       location: true,
-      semester: { select: { name: true } },
+      cycle: { select: { name: true } },
     },
   });
 
@@ -144,7 +144,9 @@ export default async function CommunityAttendanceDetailPage({
       </Link>
 
       <PageHeader
-        eyebrow={`Semestre ${activity.semester.name}`}
+        eyebrow={
+          activity.cycle ? `Ciclo ${activity.cycle.name}` : "Actividad sin ciclo"
+        }
         title={activity.title}
         description={`${formatDateTime(activity.startsAt)} · hasta las ${formatTime(
           activity.endsAt,

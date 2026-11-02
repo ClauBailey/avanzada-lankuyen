@@ -29,15 +29,15 @@ export default async function CommunityAttendancePage() {
     );
   }
 
-  const semester = await prisma.semester.findFirst({
+  const cycle = await prisma.programCycle.findFirst({
     where: { isActive: true },
     select: { id: true, name: true },
   });
 
-  const activities = semester
+  const activities = cycle
     ? await prisma.activity.findMany({
         where: {
-          semesterId: semester.id,
+          cycleId: cycle.id,
           deletedAt: null,
           isPublished: true,
         },
@@ -73,7 +73,7 @@ export default async function CommunityAttendancePage() {
       {activities.length === 0 ? (
         <EmptyState
           icon={CalendarDays}
-          title="No hay actividades este semestre"
+          title="No hay actividades este ciclo"
           description="Cuando el Equipo Adulto publique actividades aparecerán aquí para ratificar la asistencia."
         />
       ) : (

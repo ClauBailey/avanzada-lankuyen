@@ -503,10 +503,12 @@ const SETTINGS = [
 ] as const;
 
 /**
- * Semestre en curso según la fecha de ejecución (hora de Chile).
- * S1: marzo–julio · S2: agosto–diciembre. Enero y febrero cierran el S2 anterior.
+ * Ciclo de Programa en curso según la fecha de ejecución (hora de Chile).
+ *
+ * Otoño–Invierno: marzo–julio · Primavera–Verano: agosto–diciembre. Enero y
+ * febrero cierran el ciclo Primavera–Verano del año anterior.
  */
-function getCurrentSemester() {
+function getCurrentProgramCycle() {
   const now = new Date();
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Santiago",
@@ -531,14 +533,14 @@ function getCurrentSemester() {
 
   return half === 1
     ? {
-        name: `${year}-S1`,
-        startsOn: new Date(`${year}-03-01T00:00:00.000Z`),
-        endsOn: new Date(`${year}-07-31T00:00:00.000Z`),
+        name: `Ciclo Otoño–Invierno ${year}`,
+        startDate: new Date(`${year}-03-01T00:00:00.000Z`),
+        endDate: new Date(`${year}-07-31T00:00:00.000Z`),
       }
     : {
-        name: `${year}-S2`,
-        startsOn: new Date(`${year}-08-01T00:00:00.000Z`),
-        endsOn: new Date(`${year}-12-31T00:00:00.000Z`),
+        name: `Ciclo Primavera–Verano ${year}`,
+        startDate: new Date(`${year}-08-01T00:00:00.000Z`),
+        endDate: new Date(`${year}-12-31T00:00:00.000Z`),
       };
 }
 
@@ -656,21 +658,23 @@ async function main() {
     });
   }
 
-  console.log("→ Sembrando semestre en curso…");
-  const currentSemester = getCurrentSemester();
-  const existingSemester = await prisma.semester.findUnique({
-    where: { name: currentSemester.name },
+  console.log("→ Sembrando ciclo de programa en curso…");
+  const currentCycle = getCurrentProgramCycle();
+  const existingCycle = await prisma.programCycle.findUnique({
+    where: { name: currentCycle.name },
     select: { id: true },
   });
 
-  if (existingSemester) {
-    console.log(`   El semestre "${currentSemester.name}" ya existe.`);
+  if (existingCycle) {
+    console.log(`   El ciclo "${currentCycle.name}" ya existe.`);
   } else {
-    const anyActive = await prisma.semester.count({ where: { isActive: true } });
-    await prisma.semester.create({
-      data: { ...currentSemester, isActive: anyActive === 0 },
+    const anyActive = await prisma.programCycle.count({
+      where: { isActive: true },
     });
-    console.log(`   Semestre "${currentSemester.name}" creado.`);
+    await prisma.programCycle.create({
+      data: { ...currentCycle, isActive: anyActive === 0 },
+    });
+    console.log(`   Ciclo "${currentCycle.name}" creado.`);
   }
 
   console.log("→ Asegurando comunidad base…");
