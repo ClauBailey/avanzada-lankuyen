@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
 
@@ -53,6 +54,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${fraunces.variable} font-sans`}>
         {children}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
