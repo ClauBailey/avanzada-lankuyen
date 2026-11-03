@@ -39,7 +39,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Sidebar de escritorio */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col overflow-hidden bg-anil-950 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col overflow-hidden bg-anil-950 md:flex">
         <div className="topo-bg pointer-events-none absolute inset-0 opacity-30" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-anil-950 via-anil-950/70 to-transparent" />
 
@@ -113,11 +113,11 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
       </aside>
 
       {/* Contenido */}
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-indigo-100 bg-white/90 backdrop-blur">
-          <div className="flex h-16 items-center justify-between gap-3 px-4 lg:h-[72px] lg:px-10">
+      <div className="md:pl-72">
+        <header className="sticky top-0 z-30 border-b border-anil-100 bg-white/90 backdrop-blur">
+          <div className="flex h-16 items-center justify-between gap-3 px-4 md:h-[72px] md:px-8 lg:px-10">
             <div className="flex min-w-0 items-center gap-3">
-              <Link href={variant === "admin" ? "/admin" : "/inicio"} className="lg:hidden">
+              <Link href={variant === "admin" ? "/admin" : "/inicio"} className="md:hidden">
                 <BrandMark size={36} />
               </Link>
               <div className="min-w-0">
@@ -152,7 +152,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
                 ) : null}
               </Link>
 
-              <div className="flex items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3">
+              <div className="hidden items-center gap-2.5 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 sm:flex">
                 <span className="flex size-8 items-center justify-center rounded-lg bg-anil-100 text-xs font-bold text-anil-800">
                   {getDisplayInitials(user)}
                 </span>
@@ -167,7 +167,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
                 </div>
               </div>
 
-              <form action={logoutAction} className="lg:hidden">
+              <form action={logoutAction} className="md:hidden">
                 <button
                   type="submit"
                   title="Cerrar sesión"
@@ -184,7 +184,7 @@ export function AppShell({ user, variant, unreadCount, children }: AppShellProps
 
         <main
           className={cn(
-            "mx-auto w-full max-w-6xl px-4 pb-24 pt-4 sm:pt-6 lg:px-10 lg:pb-14 lg:pt-10",
+            "mx-auto w-full max-w-6xl px-4 pb-24 pt-4 sm:pt-6 md:px-8 md:pb-14 lg:px-10 lg:pt-10",
           )}
         >
           {children}

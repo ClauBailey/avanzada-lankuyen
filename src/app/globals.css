@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  /* Añil — color identitario de la Avanzada Lankuyen */
-  --color-anil-50: #f2f3fb;
-  --color-anil-100: #e6e8f8;
-  --color-anil-200: #cdd1f0;
-  --color-anil-300: #a9aee4;
-  --color-anil-400: #8389d4;
-  --color-anil-500: #6268c0;
-  --color-anil-600: #4b50a8;
-  --color-anil-700: #3b4090;
-  --color-anil-800: #2f3375;
-  --color-anil-900: #26295e;
-  --color-anil-950: #15173a;
+  /* Añil profundo — color identitario de la Avanzada Lankuyen */
+  --color-anil-50: #ede7f6;
+  --color-anil-100: #d1c4e9;
+  --color-anil-200: #b39ddb;
+  --color-anil-300: #9575cd;
+  --color-anil-400: #7e57c2;
+  --color-anil-500: #673ab7;
+  --color-anil-600: #5e35b1;
+  --color-anil-700: #512da8;
+  --color-anil-800: #4527a0;
+  --color-anil-900: #311b92;
+  --color-anil-950: #1a0d4d;
 
-  /* Neutros fríos y acentos */
-  --color-canvas: #f5f6fb;
+  /* Neutros fríos, superficies limpias y acentos ceremoniales */
+  --color-canvas: #f8fafc;
   --color-surface: #ffffff;
-  --color-ink: #1a1d33;
-  --color-ink-soft: #626784;
-  --color-line: #e3e6f2;
-  --color-mist: #eceefa;
-  --color-lavender: #8b7fd4;
+  --color-ink: #0f172a;
+  --color-ink-soft: #475569;
+  --color-line: #e2e8f0;
+  --color-mist: #f1f5f9;
+  --color-lavender: #9575cd;
   --color-gold: #c9a24a;
   --color-gold-soft: #f5e8c8;
 
@@ -43,12 +43,25 @@
     scroll-behavior: smooth;
   }
 
+  @media (max-width: 767px) {
+    html {
+      scroll-padding-top: 5rem;
+      scroll-padding-bottom: 6rem;
+    }
+  }
+
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  button:not(:disabled),
+  [role="button"],
+  summary {
+    cursor: pointer;
   }
 
   h1,
@@ -62,6 +75,21 @@
   ::selection {
     background-color: var(--color-anil-200);
     color: var(--color-anil-950);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   :focus-visible {

@@ -93,7 +93,7 @@ export async function createCommunityAction(
           name,
           motto: motto ?? null,
           description: description ?? null,
-          color: color ?? "#4b50a8",
+          color: color ?? "#4527a0",
           slug,
         },
       });

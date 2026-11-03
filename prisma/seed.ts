@@ -688,7 +688,7 @@ async function main() {
       data: {
         name: "Comunidad Lankuyen",
         slug: "comunidad-lankuyen",
-        color: "#4b50a8",
+        color: "#4527a0",
       },
       select: { id: true },
     });

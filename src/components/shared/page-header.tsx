@@ -26,21 +26,21 @@ export function PageHeader({
     >
       <div className="max-w-2xl space-y-1.5">
         {eyebrow ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-anil-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-anil-700">
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
+        <h1 className="text-balance break-words font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
           {title}
         </h1>
         {description ? (
-          <p className="text-sm leading-relaxed text-ink-soft sm:text-base">
+          <p className="text-pretty text-sm leading-relaxed text-ink-soft sm:text-base">
             {description}
           </p>
         ) : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex w-full shrink-0 flex-col gap-2 [&>*]:w-full sm:w-auto sm:flex-row sm:items-center sm:[&>*]:w-auto">
           {actions}
         </div>
       ) : null}

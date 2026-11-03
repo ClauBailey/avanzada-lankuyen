@@ -15,7 +15,7 @@ import { EMPTY_ACTION_STATE } from "@/lib/action-state";
 import { cn } from "@/lib/utils";
 
 const PRESET_COLORS = [
-  "#4b50a8",
+  "#4527a0",
   "#8b7fd4",
   "#2f7d68",
   "#3f7fb5",
