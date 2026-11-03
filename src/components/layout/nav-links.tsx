@@ -81,8 +81,8 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             className={cn(
               "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
               active
-                ? "bg-white/12 text-white"
-                : "text-anil-100/65 hover:bg-white/6 hover:text-white",
+                ? "bg-white/10 text-white"
+                : "text-anil-100/65 hover:bg-white/10 hover:text-white",
             )}
           >
             <span
@@ -118,6 +118,9 @@ export function MobileNav({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const moreActive = moreGroups.some((group) =>
+    group.items.some((item) => isNavItemActive(pathname, item)),
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -132,7 +135,7 @@ export function MobileNav({
     <>
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-indigo-100 bg-white/95 pb-safe shadow-[0_-8px_30px_-20px_rgba(20,22,58,0.35)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-anil-100 bg-white/95 pb-safe shadow-[0_-8px_30px_-20px_rgba(20,22,58,0.35)] backdrop-blur md:hidden"
       >
         <div className="grid h-16 grid-cols-5">
           {primaryItems.map((item) => {
@@ -147,15 +150,15 @@ export function MobileNav({
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors",
                   active
-                    ? "text-indigo-700"
-                    : "text-slate-500 hover:text-indigo-700",
+                    ? "text-anil-700"
+                    : "text-slate-500 hover:text-anil-700",
                 )}
               >
                 <span
                   className={cn(
                     "relative flex size-8 items-center justify-center rounded-xl transition-colors",
                     active
-                      ? "bg-indigo-50 text-indigo-700"
+                      ? "bg-anil-50 text-anil-700"
                       : "text-slate-500",
                   )}
                 >
@@ -176,9 +179,19 @@ export function MobileNav({
             onClick={() => setOpen(true)}
             aria-expanded={open}
             aria-controls="mobile-more-sheet"
-            className="flex flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-slate-500 transition-colors hover:text-indigo-700"
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition-colors",
+              moreActive
+                ? "text-anil-700"
+                : "text-slate-500 hover:text-anil-700",
+            )}
           >
-            <span className="flex size-8 items-center justify-center rounded-xl">
+            <span
+              className={cn(
+                "flex size-8 items-center justify-center rounded-xl transition-colors",
+                moreActive && "bg-anil-50",
+              )}
+            >
               <Menu className="size-[21px]" aria-hidden="true" />
             </span>
             <span>Más</span>
@@ -192,7 +205,7 @@ export function MobileNav({
             type="button"
             aria-label="Cerrar el menú Más"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-indigo-950/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-anil-950/40 backdrop-blur-sm"
           />
           <div
             id="mobile-more-sheet"
@@ -201,9 +214,9 @@ export function MobileNav({
             aria-label="Más módulos"
             className="absolute inset-x-0 bottom-0 max-h-[82vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl"
           >
-            <div className="mb-4 flex items-center justify-between rounded-2xl bg-indigo-950 px-4 py-3 text-white">
+            <div className="mb-4 flex items-center justify-between rounded-2xl bg-anil-950 px-4 py-3 text-white">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-200/70">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-anil-200/70">
                   Avanzada Lankuyen
                 </p>
                 <p className="font-display text-lg font-semibold">Más módulos</p>
@@ -211,7 +224,7 @@ export function MobileNav({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
+                className="flex size-11 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"
                 aria-label="Cerrar"
               >
                 <X className="size-5" aria-hidden="true" />
@@ -237,8 +250,8 @@ export function MobileNav({
                         className={cn(
                           "flex min-h-[68px] flex-col justify-between rounded-2xl border p-3 transition-colors",
                           active
-                            ? "border-indigo-200 bg-indigo-50 text-indigo-800"
-                            : "border-indigo-100 bg-slate-50 text-slate-700 hover:border-indigo-200 hover:bg-indigo-50/60",
+                            ? "border-anil-200 bg-anil-50 text-anil-800"
+                            : "border-anil-100 bg-slate-50 text-slate-700 hover:border-anil-200 hover:bg-anil-50/60",
                         )}
                       >
                         <Icon className="size-5" aria-hidden="true" />

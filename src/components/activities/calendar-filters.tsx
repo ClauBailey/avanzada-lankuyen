@@ -70,13 +70,13 @@ export function CalendarFilters({
         pending && "opacity-70",
       )}
     >
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
           <Filter className="size-3.5" aria-hidden="true" />
           Filtrar
         </span>
 
-        <div className="flex rounded-xl border border-line bg-canvas p-0.5">
+        <div className="no-scrollbar flex w-full overflow-x-auto rounded-xl border border-line bg-canvas p-0.5 sm:w-auto">
           {WHEN_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -95,7 +95,7 @@ export function CalendarFilters({
           ))}
         </div>
 
-        <div className="w-40">
+        <div className="w-full sm:w-40">
           <Select
             value={month}
             onChange={(event) => update("month", event.target.value)}
@@ -111,7 +111,7 @@ export function CalendarFilters({
           </Select>
         </div>
 
-        <div className="w-44">
+        <div className="w-full sm:w-44">
           <Select
             value={type}
             onChange={(event) => update("type", event.target.value)}
@@ -127,7 +127,7 @@ export function CalendarFilters({
           </Select>
         </div>
 
-        <div className="w-44">
+        <div className="w-full sm:w-44">
           <Select
             value={activityScope}
             onChange={(event) => update("scope", event.target.value)}
@@ -143,7 +143,7 @@ export function CalendarFilters({
           </Select>
         </div>
 
-        <div className="w-40">
+        <div className="w-full sm:w-40">
           <Select
             value={scheduleType}
             onChange={(event) => update("schedule", event.target.value)}
@@ -167,7 +167,7 @@ export function CalendarFilters({
                 router.push("/calendario");
               });
             }}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-anil-700 hover:text-anil-900"
+            className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-anil-700 hover:text-anil-900 sm:min-h-0"
           >
             <RotateCcw className="size-3.5" aria-hidden="true" />
             Limpiar

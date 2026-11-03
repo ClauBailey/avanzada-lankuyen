@@ -31,7 +31,7 @@ export function StatCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">
             {label}
           </p>
           <p className="mt-2 font-display text-3xl font-semibold text-ink">{value}</p>

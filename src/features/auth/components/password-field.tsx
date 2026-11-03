@@ -37,13 +37,13 @@ export function PasswordField({
         placeholder={placeholder}
         required={required}
         minLength={minLength}
-        className="pr-11"
+        className="pr-12 sm:pr-11"
       />
       <button
         type="button"
         onClick={() => setVisible((current) => !current)}
         aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
-        className="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-mist hover:text-anil-800"
+        className="absolute right-0.5 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-mist hover:text-anil-800 sm:right-1.5 sm:size-8"
       >
         {visible ? (
           <EyeOff className="size-4" aria-hidden="true" />

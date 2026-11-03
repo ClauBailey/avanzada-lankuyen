@@ -352,7 +352,7 @@ export default async function PerfilPage() {
         <Card className="border-anil-200 bg-white p-6 sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-anil-700">
                 Ficha del Equipo Adulto
               </p>
               <h2 className="mt-1 font-display text-2xl font-semibold text-ink">
@@ -440,7 +440,7 @@ export default async function PerfilPage() {
                   <li key={youth.id}>
                     <Link
                       href={`/acompanamiento/${youth.id}`}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-line/70 bg-white px-3 py-2 text-sm text-ink transition-colors hover:border-indigo-200"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-line/70 bg-white px-3 py-2 text-sm text-ink transition-colors hover:border-anil-200"
                     >
                       <span className="min-w-0">
                         <span className="block font-semibold">

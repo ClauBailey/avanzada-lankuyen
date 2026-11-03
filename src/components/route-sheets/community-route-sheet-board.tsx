@@ -71,7 +71,7 @@ export function CommunityRouteSheetBoard({
               <span className="flex min-w-0 items-center gap-2">
                 <span
                   className="size-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: community.color ?? "#4b50a8" }}
+                  style={{ backgroundColor: community.color ?? "#4527a0" }}
                   aria-hidden="true"
                 />
                 <span className="truncate text-sm font-semibold text-ink">

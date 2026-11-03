@@ -203,7 +203,7 @@ export default async function AdminComunidadesPage() {
                               <span
                                 className="size-3 rounded-full"
                                 style={{
-                                  backgroundColor: community.color ?? "#4b50a8",
+                                  backgroundColor: community.color ?? "#4527a0",
                                 }}
                                 aria-hidden="true"
                               />
